@@ -51,18 +51,18 @@ export function Header() {
   }, [panelOpen, togglePanel]);
 
   return (
-    <header className="glass relative z-10 flex h-16 shrink-0 items-center justify-between px-6 shadow-sm border-b border-edge-light/50">
-      {/* Gradient accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-primary opacity-60" />
+    <header className="glass relative z-10 flex h-16 shrink-0 items-center justify-between px-8 shadow-md border-b border-edge-light/50">
+      {/* Enhanced gradient accent line with glow */}
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-primary opacity-70 shadow-sm" />
 
       {/* Left */}
       <div>
         {isDashboard ? (
-          <h1 className="text-[17px] font-bold text-text-primary">Dashboard</h1>
+          <h1 className="text-[18px] font-bold text-text-primary tracking-tight">Dashboard</h1>
         ) : standalonePageTitle ? (
-          <h1 className="text-[17px] font-bold text-text-primary">{standalonePageTitle}</h1>
+          <h1 className="text-[18px] font-bold text-text-primary tracking-tight">{standalonePageTitle}</h1>
         ) : project ? (
-          <div className="flex items-center gap-2 text-[14px]">
+          <div className="flex items-center gap-2.5 text-[15px]">
             <Link
               to={`/project/${project.id}`}
               className="font-bold text-text-primary hover:text-primary transition-all hover:scale-105"
@@ -71,42 +71,42 @@ export function Header() {
             </Link>
             {pageLabel && (
               <>
-                <span className="text-text-placeholder">/</span>
-                <span className="font-medium text-text-secondary">{pageLabel}</span>
+                <span className="text-text-placeholder font-light">/</span>
+                <span className="font-semibold text-text-secondary">{pageLabel}</span>
               </>
             )}
           </div>
         ) : (
-          <span className="text-[14px] font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <span className="text-[15px] font-bold bg-gradient-primary bg-clip-text text-transparent">
             AgentHub
           </span>
         )}
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         {isProjectRoute && (
           <button
             onClick={toggleChatPanel}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-300",
+              "flex items-center gap-2.5 rounded-xl px-5 py-2.5 text-[14px] font-bold transition-all duration-300",
               chatPanelOpen
-                ? "bg-gradient-primary text-white shadow-md glow-primary"
-                : "bg-page text-text-secondary hover:bg-surface-hover hover:shadow-sm",
+                ? "bg-gradient-primary text-white shadow-lg glow-primary scale-105"
+                : "bg-page text-text-secondary hover:bg-surface-hover hover:shadow-md",
             )}
           >
-            <MessageSquare className="h-4 w-4" />
+            <MessageSquare className="h-4.5 w-4.5" strokeWidth={2.2} />
             Chat
           </button>
         )}
 
         <button
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-page px-4 py-2 text-text-placeholder hover:bg-surface-hover hover:shadow-sm transition-all duration-300"
+          className="flex items-center gap-2.5 rounded-xl bg-page px-5 py-2.5 text-text-placeholder hover:bg-surface-hover hover:shadow-md transition-all duration-300"
         >
-          <Search className="h-4 w-4" />
-          <span className="text-[13px] font-medium">Buscar...</span>
-          <kbd className="ml-1 rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-text-tertiary border border-edge-light shadow-xs">
+          <Search className="h-4.5 w-4.5" strokeWidth={2} />
+          <span className="text-[14px] font-semibold">Buscar...</span>
+          <kbd className="ml-1 rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-bold text-text-tertiary border border-edge-light shadow-sm">
             ⌘K
           </kbd>
         </button>
@@ -115,15 +115,15 @@ export function Header() {
           <button
             onClick={togglePanel}
             className={cn(
-              "relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300",
+              "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300",
               panelOpen
-                ? "bg-gradient-to-br from-primary-light to-purple-light text-primary shadow-md"
-                : "text-text-tertiary hover:bg-page hover:shadow-sm",
+                ? "bg-gradient-to-br from-primary-light to-purple-light text-primary shadow-lg scale-105"
+                : "text-text-tertiary hover:bg-page hover:shadow-md",
             )}
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="h-5 w-5" strokeWidth={2} />
             {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-gradient-danger px-1.5 text-[10px] font-bold text-white shadow-md glow-red">
+              <span className="absolute -right-1 -top-1 flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-gradient-danger px-2 text-[11px] font-bold text-white shadow-lg glow-red">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -131,7 +131,7 @@ export function Header() {
           {panelOpen && <NotificationPanel />}
         </div>
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-[13px] font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary text-[14px] font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer">
           JP
         </div>
       </div>

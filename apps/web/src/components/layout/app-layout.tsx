@@ -12,8 +12,10 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex h-screen overflow-hidden bg-page">
+      <div className="flex h-screen overflow-hidden bg-gradient-to-br from-page via-surface-hover/20 to-page">
         <AppSidebar />
+        {/* Separator with subtle shadow */}
+        <div className="w-[1px] bg-gradient-to-b from-transparent via-edge-light to-transparent" />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Header />
           <div className="flex flex-1 overflow-hidden">

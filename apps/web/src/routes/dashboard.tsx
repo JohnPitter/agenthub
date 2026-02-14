@@ -91,10 +91,10 @@ export function Dashboard() {
   const activeProject = projects[0];
 
   const heroStats = [
-    { label: "Agentes", value: stats?.activeAgents ?? 0, icon: Users, color: "text-primary" },
-    { label: "Em Progresso", value: stats?.runningTasks ?? 0, icon: Clock, color: "text-yellow" },
-    { label: "Em Review", value: stats?.reviewTasks ?? 0, icon: AlertCircle, color: "text-purple" },
-    { label: "Concluídas", value: stats?.doneTasks ?? 0, icon: CheckCircle2, color: "text-green" },
+    { label: "Agentes", value: stats?.activeAgents ?? 0, icon: Users, color: "text-primary", bg: "from-primary-light to-purple-light" },
+    { label: "Em Progresso", value: stats?.runningTasks ?? 0, icon: Clock, color: "text-yellow-dark", bg: "from-yellow-light to-yellow-muted" },
+    { label: "Em Review", value: stats?.reviewTasks ?? 0, icon: AlertCircle, color: "text-purple-dark", bg: "from-purple-light to-purple-muted" },
+    { label: "Concluídas", value: stats?.doneTasks ?? 0, icon: CheckCircle2, color: "text-green-dark", bg: "from-green-light to-green-muted" },
   ];
 
   return (
@@ -103,52 +103,65 @@ export function Dashboard() {
 
         {/* Hero Section: Active Project */}
         {activeProject ? (
-          <div className="relative overflow-hidden rounded-2xl bg-white p-8 shadow-lg">
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 opacity-5 gradient-primary" />
+          <div className="relative overflow-hidden rounded-3xl bg-white p-10 shadow-xl">
+            {/* Animated gradient overlay */}
+            <div className="absolute inset-0 opacity-[0.06] gradient-primary" />
+            <div className="absolute top-0 right-0 w-96 h-96 opacity-[0.08] bg-gradient-to-bl from-purple via-primary to-transparent rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl" />
 
-            <div className="relative flex items-start justify-between">
-              <div className="flex-1">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-green-light px-3 py-1.5">
-                  <span className="h-2 w-2 rounded-full bg-green" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
-                  <span className="text-[12px] font-bold text-green-dark">Projeto Ativo</span>
+            <div className="relative flex items-start justify-between gap-8">
+              <div className="flex-1 min-w-0">
+                <div className="mb-4 inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-green-light to-green-muted px-4 py-2 shadow-sm">
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-dark shadow-sm" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
+                  <span className="text-[13px] font-bold text-green-dark">Projeto Ativo</span>
                 </div>
-                <h2 className="text-[32px] font-bold tracking-tight text-text-primary leading-tight">
+                <h1 className="text-[42px] font-bold tracking-tight text-text-primary leading-none mb-4">
                   {activeProject.name}
-                </h2>
-                <p className="mt-2 text-[13px] text-text-tertiary font-mono bg-page px-3 py-1.5 rounded-lg inline-block">
+                </h1>
+                <p className="text-[14px] text-text-tertiary font-mono bg-page/80 backdrop-blur-sm px-4 py-2 rounded-xl inline-block shadow-sm">
                   {activeProject.path}
                 </p>
 
-                <div className="mt-6 flex items-center gap-3">
+                <div className="mt-8 flex items-center gap-4">
                   <button
                     onClick={() => navigate(`/project/${activeProject.id}`)}
-                    className="btn-primary flex items-center gap-2 rounded-xl px-5 py-2.5 text-[14px] font-semibold text-white shadow-md"
+                    className="btn-primary flex items-center gap-2.5 rounded-xl px-6 py-3.5 text-[15px] font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
                   >
-                    <Play className="h-4 w-4" />
+                    <Play className="h-5 w-5" strokeWidth={2.5} />
                     Executar Agents
                   </button>
                   <button
                     onClick={() => navigate(`/project/${activeProject.id}/settings`)}
-                    className="flex items-center gap-2 rounded-xl bg-page px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-all hover:bg-surface-hover hover:shadow-sm"
+                    className="flex items-center gap-2.5 rounded-xl bg-page px-6 py-3.5 text-[15px] font-semibold text-text-secondary transition-all hover:bg-surface-hover hover:shadow-md"
                   >
-                    <Settings className="h-4 w-4" />
+                    <Settings className="h-5 w-5" strokeWidth={2} />
                     Configurar
                   </button>
                 </div>
               </div>
 
-              {/* Stats with modern cards */}
-              <div className="hidden lg:flex gap-6">
-                <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-blue-50 p-5 text-center min-w-[100px]">
-                  <p className="text-[28px] font-bold bg-gradient-primary bg-clip-text text-transparent">
-                    {stats?.activeAgents ?? 0}
-                  </p>
-                  <p className="text-[12px] font-semibold text-text-secondary">Agentes</p>
+              {/* Stats with modern gradient cards */}
+              <div className="hidden lg:flex gap-5">
+                <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg p-6 text-center min-w-[120px]">
+                  <div className="absolute inset-0 opacity-[0.08] bg-gradient-to-br from-primary-light to-purple-light" />
+                  <div className="relative">
+                    <div className="mb-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light p-2.5 shadow-md">
+                      <Users className="h-5 w-5 text-primary" strokeWidth={2.2} />
+                    </div>
+                    <p className="text-[32px] font-bold bg-gradient-primary bg-clip-text text-transparent leading-none mb-1.5">
+                      {stats?.activeAgents ?? 0}
+                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Agentes</p>
+                  </div>
                 </div>
-                <div className="rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 p-5 text-center min-w-[100px]">
-                  <p className="text-[28px] font-bold text-green-dark">{stats?.totalTasks ?? 0}</p>
-                  <p className="text-[12px] font-semibold text-text-secondary">Tasks</p>
+                <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg p-6 text-center min-w-[120px]">
+                  <div className="absolute inset-0 opacity-[0.08] bg-gradient-to-br from-green-light to-green-muted" />
+                  <div className="relative">
+                    <div className="mb-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-green-light to-green-muted p-2.5 shadow-md">
+                      <CheckCircle2 className="h-5 w-5 text-green-dark" strokeWidth={2.2} />
+                    </div>
+                    <p className="text-[32px] font-bold text-green-dark leading-none mb-1.5">{stats?.totalTasks ?? 0}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">Tasks</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -273,89 +286,92 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Stats Row - Modern gradient cards */}
+        {/* Stats Row - Enhanced gradient cards */}
         {stats && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             {heroStats.map((stat, index) => (
               <div
                 key={stat.label}
-                className="card-hover relative overflow-hidden rounded-2xl bg-white p-6 shadow-card"
+                className="card-hover relative overflow-hidden rounded-2xl bg-white p-7 shadow-lg"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 opacity-[0.03] gradient-primary" />
+                {/* Gradient overlay matching icon color */}
+                <div className={cn("absolute inset-0 opacity-[0.06] bg-gradient-to-br", stat.bg)} />
 
                 <div className="relative">
-                  <div className="mb-3 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light p-2.5">
-                    <stat.icon className={cn("h-5 w-5", stat.color)} />
+                  <div className={cn("mb-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-br p-3 shadow-md", stat.bg)}>
+                    <stat.icon className={cn("h-6 w-6", stat.color)} strokeWidth={2.2} />
                   </div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary mb-2">
                     {stat.label}
                   </p>
-                  <p className="text-[28px] font-bold text-text-primary leading-none">{stat.value}</p>
+                  <p className={cn("text-[32px] font-bold leading-none", stat.color)}>{stat.value}</p>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Recent Activities - Modern feed */}
+        {/* Recent Activities - Enhanced feed */}
         {stats && stats.recentActivities.length > 0 && (
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-1 w-8 rounded-full bg-gradient-primary" />
-              <h3 className="text-[13px] font-bold uppercase tracking-wider text-text-primary">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-1.5 w-10 rounded-full bg-gradient-primary shadow-sm" />
+              <h3 className="text-[14px] font-bold uppercase tracking-wider text-text-primary">
                 Atividades Recentes
               </h3>
             </div>
-            <div className="rounded-2xl bg-white shadow-lg divide-y divide-edge-light/60 overflow-hidden">
-              {stats.recentActivities.slice(0, 8).map((activity, index) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-gradient-to-r hover:from-surface-hover hover:to-transparent transition-all duration-300"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                >
+            <div className="relative overflow-hidden rounded-2xl bg-white shadow-xl">
+              <div className="absolute inset-0 opacity-[0.02] gradient-primary" />
+              <div className="relative divide-y divide-edge-light/60">
+                {stats.recentActivities.slice(0, 8).map((activity, index) => (
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold text-white shadow-md"
-                    style={{ backgroundColor: activity.agentColor }}
+                    key={activity.id}
+                    className="flex items-center gap-5 px-6 py-5 hover:bg-gradient-to-r hover:from-surface-hover hover:to-transparent transition-all duration-300 group"
+                    style={{ animationDelay: `${index * 30}ms` }}
                   >
-                    {activity.agentName.charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] text-text-primary leading-relaxed">
-                      <span className="font-bold">{activity.agentName}</span>
-                      <span className="text-text-tertiary"> · </span>
-                      <span className="font-medium">{ACTION_LABELS[activity.action] ?? activity.action}</span>
-                      {activity.taskTitle && (
-                        <span className="text-text-secondary"> — {activity.taskTitle}</span>
-                      )}
-                    </p>
-                    {activity.detail && (
-                      <p className="mt-1 text-[11px] text-text-tertiary truncate bg-page px-2 py-1 rounded-md inline-block">
-                        {activity.detail}
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-[14px] font-bold text-white shadow-md group-hover:shadow-lg transition-shadow"
+                      style={{ backgroundColor: activity.agentColor }}
+                    >
+                      {activity.agentName.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] text-text-primary leading-relaxed">
+                        <span className="font-bold">{activity.agentName}</span>
+                        <span className="text-text-tertiary"> · </span>
+                        <span className="font-semibold">{ACTION_LABELS[activity.action] ?? activity.action}</span>
+                        {activity.taskTitle && (
+                          <span className="text-text-secondary"> — {activity.taskTitle}</span>
+                        )}
                       </p>
-                    )}
+                      {activity.detail && (
+                        <p className="mt-2 text-[12px] text-text-tertiary truncate bg-page px-3 py-1.5 rounded-lg inline-block shadow-sm">
+                          {activity.detail}
+                        </p>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-[11px] font-bold text-text-placeholder bg-page px-3 py-1.5 rounded-full shadow-sm">
+                      {formatRelativeTime(activity.createdAt)}
+                    </span>
                   </div>
-                  <span className="shrink-0 text-[11px] font-medium text-text-placeholder bg-page px-2.5 py-1 rounded-full">
-                    {formatRelativeTime(activity.createdAt)}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}
 
-        {/* Projects Grid - Modern cards */}
+        {/* Projects Grid - Enhanced cards */}
         {projects.length > 0 && (
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-1 w-8 rounded-full bg-gradient-primary" />
-              <h3 className="text-[13px] font-bold uppercase tracking-wider text-text-primary">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-1.5 w-10 rounded-full bg-gradient-primary shadow-sm" />
+              <h3 className="text-[14px] font-bold uppercase tracking-wider text-text-primary">
                 Meus Projetos
               </h3>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => {
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project, index) => {
                 const stack: string[] = project.stack
                   ? typeof project.stack === "string" ? JSON.parse(project.stack as string) : project.stack
                   : [];
@@ -365,27 +381,33 @@ export function Dashboard() {
                   <button
                     key={project.id}
                     onClick={() => navigate(`/project/${project.id}`)}
-                    className="group relative overflow-hidden flex items-center gap-4 rounded-2xl bg-white p-6 text-left shadow-card card-hover"
+                    className="group relative overflow-hidden flex items-center gap-5 rounded-2xl bg-white p-7 text-left shadow-lg card-hover"
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    {/* Subtle gradient overlay */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.03] gradient-primary transition-opacity duration-300" />
+                    {/* Enhanced gradient overlay */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.06] gradient-primary transition-opacity duration-300" />
 
-                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light text-[16px] font-bold text-primary shadow-sm group-hover:shadow-md transition-shadow">
+                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light text-[18px] font-bold text-primary shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all">
                       {icon}
                     </div>
                     <div className="relative min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-bold text-text-primary group-hover:text-primary transition-colors">
+                      <p className="truncate text-[16px] font-bold text-text-primary group-hover:text-primary transition-colors mb-2">
                         {project.name}
                       </p>
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-2">
                         {stack.slice(0, 3).map((tech) => (
-                          <span key={tech} className="rounded-lg bg-page px-2 py-1 text-[10px] font-semibold text-text-secondary">
+                          <span key={tech} className="rounded-lg bg-gradient-to-r from-page to-surface-hover px-2.5 py-1 text-[11px] font-bold text-text-secondary shadow-sm">
                             {tech}
                           </span>
                         ))}
+                        {stack.length > 3 && (
+                          <span className="rounded-lg bg-primary-light px-2.5 py-1 text-[11px] font-bold text-primary shadow-sm">
+                            +{stack.length - 3}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <ArrowUpRight className="relative h-5 w-5 shrink-0 text-text-placeholder group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                    <ArrowUpRight className="relative h-6 w-6 shrink-0 text-text-placeholder group-hover:text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" strokeWidth={2} />
                   </button>
                 );
               })}

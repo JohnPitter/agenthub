@@ -134,14 +134,15 @@ export function ProjectTasks() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between bg-white px-8 py-5 shadow-xs">
+      <div className="glass relative z-10 flex items-center justify-between px-8 py-5 shadow-sm border-b border-edge-light/50">
+        <div className="absolute top-0 left-0 h-[2px] w-full bg-gradient-primary" />
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
-            <ListTodo className="h-4 w-4 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-light to-yellow-muted shadow-md">
+            <ListTodo className="h-5 w-5 text-yellow-dark" strokeWidth={2.2} />
           </div>
           <div>
-            <h1 className="text-[15px] font-semibold text-text-primary">Tasks</h1>
-            <p className="text-[11px] text-text-tertiary">{tasks.length} tarefas no projeto</p>
+            <h1 className="text-[16px] font-bold text-text-primary">Task Board</h1>
+            <p className="text-[12px] text-text-tertiary font-medium">{tasks.length} tarefas ativas</p>
           </div>
         </div>
 
@@ -155,9 +156,9 @@ export function ProjectTasks() {
           />
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-primary-hover"
+            className="btn-primary flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold text-white shadow-md transition-all hover:shadow-lg hover:scale-105"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
             Nova Task
           </button>
         </div>
@@ -166,11 +167,14 @@ export function ProjectTasks() {
       {/* Kanban Board */}
       {loading ? (
         <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-[13px] text-text-tertiary font-medium">Carregando tasks...</p>
+          </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-x-auto px-8 pb-6 pt-4">
-          <div className="grid h-full grid-cols-4 gap-5">
+        <div className="flex-1 overflow-x-auto px-8 pb-6 pt-6">
+          <div className="grid h-full grid-cols-4 gap-6">
             {KANBAN_COLUMNS.map((column) => {
               const columnTasks = getFilteredTasks(column.status);
               const isOver = dragOverColumn === column.status;
@@ -182,23 +186,26 @@ export function ProjectTasks() {
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, column.status)}
                   className={cn(
-                    "flex flex-col rounded-lg transition-colors",
-                    isOver && "bg-primary-light ring-1 ring-primary/20",
+                    "flex flex-col rounded-2xl bg-white/60 backdrop-blur-sm transition-all duration-300",
+                    isOver && "bg-gradient-to-br from-primary-light to-purple-light ring-2 ring-primary/30 shadow-lg scale-[1.02]",
                   )}
                 >
                   {/* Column Header */}
-                  <div className="flex items-center justify-between px-2 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("h-2.5 w-2.5 rounded-full", column.dotColor)} />
-                      <span className="text-[13px] font-semibold text-text-primary">{column.label}</span>
+                  <div className="relative overflow-hidden rounded-t-2xl bg-white/80 px-4 py-3.5 shadow-sm">
+                    <div className="absolute inset-0 opacity-[0.03] gradient-primary" />
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className={cn("h-2.5 w-2.5 rounded-full shadow-sm", column.dotColor)} style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
+                        <span className="text-[14px] font-bold text-text-primary">{column.label}</span>
+                      </div>
+                      <span className="flex h-6 min-w-6 items-center justify-center rounded-lg bg-gradient-to-br from-primary-light to-purple-light px-2 text-[11px] font-bold text-primary shadow-sm">
+                        {columnTasks.length}
+                      </span>
                     </div>
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-page px-1.5 text-[11px] font-bold text-text-tertiary">
-                      {columnTasks.length}
-                    </span>
                   </div>
 
                   {/* Cards */}
-                  <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-1 pb-2">
+                  <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
                     {columnTasks.length > 0 ? (
                       columnTasks.map((task) => (
                         <TaskCard
@@ -215,8 +222,8 @@ export function ProjectTasks() {
                         />
                       ))
                     ) : (
-                      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-edge py-8">
-                        <p className="text-[12px] text-text-placeholder">Nenhuma task</p>
+                      <div className="flex flex-1 items-center justify-center rounded-xl border-2 border-dashed border-edge-light/50 bg-page/30 py-12">
+                        <p className="text-[12px] font-medium text-text-placeholder">Vazio</p>
                       </div>
                     )}
                   </div>

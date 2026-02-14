@@ -155,58 +155,69 @@ export function Dashboard() {
           </div>
         ) : (
           /* Scanner when no projects */
-          <div className="rounded-xl bg-white p-8 shadow-card">
-            <div className="flex items-center gap-2 mb-1">
-              <Search className="h-4 w-4 text-primary" />
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-primary">Workspace Scanner</span>
-            </div>
-            <p className="text-[13px] text-text-secondary mb-4">
-              Comece escaneando seu diretório de projetos para detectá-los automaticamente.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={workspacePath}
-                onChange={(e) => setWorkspacePath(e.target.value)}
-                placeholder="C:\Users\...\Projects"
-                className="flex-1 rounded-lg border border-edge-light bg-page px-3 py-2 text-[13px] text-text-primary placeholder-text-placeholder outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
-                onKeyDown={(e) => e.key === "Enter" && handleScan()}
-              />
-              <button
-                onClick={handleScan}
-                disabled={scanning || !workspacePath.trim()}
-                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
-              >
-                {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                Escanear
-              </button>
+          <div className="relative overflow-hidden rounded-2xl bg-white p-10 shadow-lg">
+            <div className="absolute inset-0 opacity-[0.04] gradient-primary" />
+            <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.08] bg-gradient-to-bl from-purple to-transparent rounded-full -translate-y-1/4 translate-x-1/4" />
+
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light shadow-md">
+                  <Search className="h-5 w-5 text-primary" strokeWidth={2.2} />
+                </div>
+                <div>
+                  <span className="text-[15px] font-bold text-text-primary">Workspace Scanner</span>
+                  <p className="text-[12px] text-text-tertiary">Detecte projetos automaticamente</p>
+                </div>
+              </div>
+              <p className="text-[13px] text-text-secondary mb-5">
+                Aponte para o seu diretório de projetos e deixe a IA descobrir tudo.
+              </p>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={workspacePath}
+                  onChange={(e) => setWorkspacePath(e.target.value)}
+                  placeholder="C:\Users\...\Projects"
+                  className="flex-1 rounded-xl border border-edge-light bg-page px-4 py-3 text-[13px] text-text-primary placeholder-text-placeholder outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:shadow-sm"
+                  onKeyDown={(e) => e.key === "Enter" && handleScan()}
+                />
+                <button
+                  onClick={handleScan}
+                  disabled={scanning || !workspacePath.trim()}
+                  className="btn-primary flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                >
+                  {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" strokeWidth={2.5} />}
+                  Escanear
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* Scanner (always available when has projects) */}
         {projects.length > 0 && (
-          <div className="rounded-xl bg-white p-5 shadow-card">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-light">
-                <Search className="h-4 w-4 text-primary" />
+          <div className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg">
+            <div className="absolute inset-0 opacity-[0.02] gradient-primary" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light shadow-md">
+                <Search className="h-5 w-5 text-primary" strokeWidth={2.2} />
               </div>
               <div className="flex-1">
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <input
                     type="text"
                     value={workspacePath}
                     onChange={(e) => setWorkspacePath(e.target.value)}
                     placeholder="Escanear outro workspace..."
-                    className="flex-1 rounded-lg border border-edge-light bg-page px-3 py-2 text-[13px] text-text-primary placeholder-text-placeholder outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="flex-1 rounded-xl border border-edge-light bg-page px-4 py-2.5 text-[13px] text-text-primary placeholder-text-placeholder outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:shadow-sm"
                     onKeyDown={(e) => e.key === "Enter" && handleScan()}
                   />
                   <button
                     onClick={handleScan}
                     disabled={scanning || !workspacePath.trim()}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
+                    className="btn-primary flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
                   >
-                    {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" strokeWidth={2.5} />}
                     Scan
                   </button>
                 </div>
@@ -215,41 +226,43 @@ export function Dashboard() {
 
             {/* Scanned results */}
             {scannedProjects.length > 0 && (
-              <div className="mt-3 border-t border-edge-light pt-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-3.5 w-3.5 text-green" />
-                  <span className="text-[12px] font-semibold text-green">
+              <div className="relative mt-5 border-t border-edge-light/60 pt-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-green-light to-green-muted shadow-sm">
+                    <Sparkles className="h-3.5 w-3.5 text-green-dark" />
+                  </div>
+                  <span className="text-[13px] font-bold text-green-dark">
                     {scannedProjects.length} projeto(s) encontrado(s)
                   </span>
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2.5">
                   {scannedProjects.map((scanned) => {
                     const alreadyAdded = existingPaths.has(scanned.path);
                     return (
                       <div
                         key={scanned.path}
-                        className="flex items-center justify-between rounded-lg bg-page px-3 py-2.5 transition-colors hover:bg-surface-hover"
+                        className="flex items-center justify-between rounded-xl bg-page px-4 py-3.5 transition-all hover:bg-surface-hover hover:shadow-sm"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary-light text-[11px] font-bold text-primary">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary-light to-purple-light text-[12px] font-bold text-primary shadow-sm">
                             {scanned.icon}
                           </span>
                           <div className="min-w-0">
-                            <p className="truncate text-[13px] font-semibold text-text-primary">{scanned.name}</p>
-                            <p className="truncate text-[11px] text-text-tertiary">{scanned.stack.join(" · ")}</p>
+                            <p className="truncate text-[14px] font-bold text-text-primary">{scanned.name}</p>
+                            <p className="truncate text-[11px] text-text-tertiary font-medium">{scanned.stack.join(" · ")}</p>
                           </div>
                         </div>
                         <button
                           onClick={() => handleAddProject(scanned)}
                           disabled={alreadyAdded}
                           className={cn(
-                            "ml-3 flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                            "ml-3 flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-bold transition-all shadow-sm",
                             alreadyAdded
-                              ? "text-green"
-                              : "bg-primary text-white hover:bg-primary-hover",
+                              ? "bg-gradient-to-r from-green-light to-green-muted text-green-dark"
+                              : "btn-primary text-white hover:shadow-md hover:scale-105",
                           )}
                         >
-                          {alreadyAdded ? <><Check className="h-3 w-3" /> Adicionado</> : <><Plus className="h-3 w-3" /> Adicionar</>}
+                          {alreadyAdded ? <><Check className="h-3.5 w-3.5" strokeWidth={2.5} /> Adicionado</> : <><Plus className="h-3.5 w-3.5" strokeWidth={2.5} /> Adicionar</>}
                         </button>
                       </div>
                     );

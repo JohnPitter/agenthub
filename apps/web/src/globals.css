@@ -224,6 +224,11 @@ body {
   animation: float 3s ease-in-out infinite;
 }
 
+.animate-float-delayed {
+  animation: float 4s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
 /* Stagger animations with smooth easing */
 .stagger > * {
   animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;

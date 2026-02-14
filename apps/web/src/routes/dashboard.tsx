@@ -98,8 +98,14 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="p-8">
-      <div className="stagger flex flex-col gap-8">
+    <div className="relative p-8">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-primary/5 to-purple/5 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-40 left-40 w-80 h-80 bg-gradient-to-tr from-blue/5 to-primary/5 rounded-full blur-3xl animate-float-delayed" />
+      </div>
+
+      <div className="relative stagger flex flex-col gap-8">
 
         {/* Hero Section: Active Project */}
         {activeProject ? (
@@ -288,24 +294,27 @@ export function Dashboard() {
 
         {/* Stats Row - Enhanced gradient cards */}
         {stats && (
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             {heroStats.map((stat, index) => (
               <div
                 key={stat.label}
-                className="card-hover relative overflow-hidden rounded-2xl bg-white p-7 shadow-lg"
+                className="card-hover group relative overflow-hidden rounded-2xl bg-white p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                {/* Gradient overlay matching icon color */}
-                <div className={cn("absolute inset-0 opacity-[0.06] bg-gradient-to-br", stat.bg)} />
+                {/* Gradient overlay matching icon color with animation */}
+                <div className={cn("absolute inset-0 opacity-[0.08] group-hover:opacity-[0.12] bg-gradient-to-br transition-opacity duration-300", stat.bg)} />
+
+                {/* Shine effect on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-700" />
 
                 <div className="relative">
-                  <div className={cn("mb-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-br p-3 shadow-md", stat.bg)}>
-                    <stat.icon className={cn("h-6 w-6", stat.color)} strokeWidth={2.2} />
+                  <div className={cn("mb-5 inline-flex items-center justify-center rounded-xl bg-gradient-to-br p-3.5 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300", stat.bg)}>
+                    <stat.icon className={cn("h-7 w-7", stat.color)} strokeWidth={2.5} />
                   </div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary mb-2">
+                  <p className="text-[12px] font-bold uppercase tracking-wider text-text-tertiary mb-3">
                     {stat.label}
                   </p>
-                  <p className={cn("text-[32px] font-bold leading-none", stat.color)}>{stat.value}</p>
+                  <p className={cn("text-[36px] font-bold leading-none group-hover:scale-105 transition-transform duration-300", stat.color)}>{stat.value}</p>
                 </div>
               </div>
             ))}
@@ -364,13 +373,13 @@ export function Dashboard() {
         {/* Projects Grid - Enhanced cards */}
         {projects.length > 0 && (
           <section>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="h-1.5 w-10 rounded-full bg-gradient-primary shadow-sm" />
-              <h3 className="text-[14px] font-bold uppercase tracking-wider text-text-primary">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-2 w-12 rounded-full bg-gradient-primary shadow-md" />
+              <h3 className="text-[15px] font-bold uppercase tracking-wider text-text-primary">
                 Meus Projetos
               </h3>
             </div>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project, index) => {
                 const stack: string[] = project.stack
                   ? typeof project.stack === "string" ? JSON.parse(project.stack as string) : project.stack
@@ -381,33 +390,36 @@ export function Dashboard() {
                   <button
                     key={project.id}
                     onClick={() => navigate(`/project/${project.id}`)}
-                    className="group relative overflow-hidden flex items-center gap-5 rounded-2xl bg-white p-7 text-left shadow-lg card-hover"
+                    className="group relative overflow-hidden flex items-center gap-5 rounded-2xl bg-white p-8 text-left shadow-xl hover:shadow-2xl transition-all duration-300"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    {/* Enhanced gradient overlay */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.06] gradient-primary transition-opacity duration-300" />
+                    {/* Enhanced gradient overlay with animation */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.08] gradient-primary transition-opacity duration-300" />
 
-                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light text-[18px] font-bold text-primary shadow-md group-hover:shadow-xl group-hover:scale-110 transition-all">
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-tr from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-700" />
+
+                    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light text-[20px] font-bold text-primary shadow-lg group-hover:shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                       {icon}
                     </div>
                     <div className="relative min-w-0 flex-1">
-                      <p className="truncate text-[16px] font-bold text-text-primary group-hover:text-primary transition-colors mb-2">
+                      <p className="truncate text-[17px] font-bold text-text-primary group-hover:text-primary transition-colors mb-2.5">
                         {project.name}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {stack.slice(0, 3).map((tech) => (
-                          <span key={tech} className="rounded-lg bg-gradient-to-r from-page to-surface-hover px-2.5 py-1 text-[11px] font-bold text-text-secondary shadow-sm">
+                          <span key={tech} className="rounded-lg bg-gradient-to-r from-page to-surface-hover px-3 py-1.5 text-[11px] font-bold text-text-secondary shadow-sm group-hover:shadow-md transition-shadow">
                             {tech}
                           </span>
                         ))}
                         {stack.length > 3 && (
-                          <span className="rounded-lg bg-primary-light px-2.5 py-1 text-[11px] font-bold text-primary shadow-sm">
+                          <span className="rounded-lg bg-gradient-to-r from-primary-light to-purple-light px-3 py-1.5 text-[11px] font-bold text-primary shadow-sm group-hover:shadow-md transition-shadow">
                             +{stack.length - 3}
                           </span>
                         )}
                       </div>
                     </div>
-                    <ArrowUpRight className="relative h-6 w-6 shrink-0 text-text-placeholder group-hover:text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" strokeWidth={2} />
+                    <ArrowUpRight className="relative h-6 w-6 shrink-0 text-text-placeholder group-hover:text-primary group-hover:translate-x-1.5 group-hover:-translate-y-1.5 transition-all duration-300" strokeWidth={2.5} />
                   </button>
                 );
               })}

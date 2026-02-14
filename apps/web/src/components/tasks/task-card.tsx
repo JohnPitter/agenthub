@@ -40,20 +40,19 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove,
       onDragStart={(e) => onDragStart?.(e, task)}
       onClick={() => onEdit(task)}
       className={cn(
-        "group cursor-pointer rounded-2xl bg-white p-4 shadow-sm transition-all duration-200",
-        "hover:shadow-card hover:-translate-y-0.5",
+        "group cursor-pointer rounded-xl bg-white p-4 shadow-card transition-all hover:shadow-card-hover",
         draggable && "cursor-grab active:cursor-grabbing",
       )}
     >
       {/* Header: Priority + Grip */}
-      <div className="flex items-center justify-between mb-2.5">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className={cn("h-2 w-2 rounded-full", priority.dot)} />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
             {priority.label}
           </span>
           {task.category && (
-            <span className="rounded-md bg-page px-2 py-0.5 text-[10px] font-medium text-text-tertiary">
+            <span className="rounded bg-page px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
               {CATEGORY_LABELS[task.category] ?? task.category}
             </span>
           )}
@@ -69,14 +68,14 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove,
       </p>
 
       {task.description && (
-        <p className="mt-1.5 text-[11px] text-text-secondary leading-relaxed line-clamp-2">
+        <p className="mt-1 text-[11px] text-text-secondary leading-relaxed line-clamp-2">
           {task.description}
         </p>
       )}
 
       {/* Git Branch Badge */}
       {task.branch && (
-        <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-purple-light px-2 py-1 w-fit">
+        <div className="mt-2 flex items-center gap-1.5 rounded-md bg-purple-light px-2 py-0.5 w-fit">
           <GitBranch className="h-3 w-3 text-purple" />
           <span className="text-[10px] font-semibold text-purple">{task.branch}</span>
         </div>
@@ -84,7 +83,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove,
 
       {/* Git Commit Badge */}
       {task.result && task.result.includes("Committed as") && (
-        <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-green-light px-2 py-1 w-fit">
+        <div className="mt-2 flex items-center gap-1.5 rounded-md bg-green-light px-2 py-0.5 w-fit">
           <CheckCircle2 className="h-3 w-3 text-green" />
           <span className="text-[10px] font-semibold text-green">
             Committed {task.result.match(/Committed as ([a-f0-9]+)/)?.[1]?.slice(0, 7)}
@@ -98,13 +97,13 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove,
       )}
 
       {/* Footer: Agent + Timestamp + Delete */}
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {agent ? (
             <div className="flex items-center gap-1.5">
               <div
-                className="flex h-5 w-5 items-center justify-center rounded-md text-[8px] font-bold text-white"
-                style={{ backgroundColor: agent.color ?? "#FF5C35" }}
+                className="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                style={{ backgroundColor: agent.color ?? "#0866FF" }}
               >
                 {agent.name.charAt(0)}
               </div>
@@ -129,7 +128,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove,
                 e.stopPropagation();
                 onExecute(task.id, task.assignedAgentId!);
               }}
-              className="rounded-lg p-1 text-green opacity-0 transition-all hover:bg-green-light group-hover:opacity-100"
+              className="rounded-md p-1 text-green opacity-0 transition-all hover:bg-green-light group-hover:opacity-100"
               title="Executar"
             >
               <Play className="h-3 w-3" />
@@ -140,7 +139,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove,
               e.stopPropagation();
               onDelete(task.id);
             }}
-            className="rounded-lg p-1 text-text-placeholder opacity-0 transition-all hover:bg-red-light hover:text-red group-hover:opacity-100"
+            className="rounded-md p-1 text-text-placeholder opacity-0 transition-all hover:bg-red-light hover:text-red group-hover:opacity-100"
           >
             <Trash2 className="h-3 w-3" />
           </button>

@@ -1,7 +1,6 @@
 import { Router } from "express";
-import { db } from "@agenthub/database";
+import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
-import { schema } from "@agenthub/database/schema";
 import { GitService } from "../git/git-service.js";
 import { logger } from "../lib/logger.js";
 import { encrypt, decrypt } from "../lib/encryption.js";

@@ -59,7 +59,7 @@ export function MessageList({ messages, onLoadMore }: MessageListProps) {
       {/* Empty state */}
       {messages.length === 0 && !isLoadingMessages && (
         <div className="flex h-full flex-col items-center justify-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-light">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary-light">
             <span className="text-[20px]">💬</span>
           </div>
           <p className="text-[13px] font-medium text-text-secondary">

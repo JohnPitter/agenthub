@@ -28,9 +28,9 @@ export function ProjectAgents() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-edge-light px-8 py-5">
+      <div className="relative z-10 flex items-center justify-between bg-white px-8 py-5 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-light">
             <Users className="h-5 w-5 text-primary" />
           </div>
           <div>

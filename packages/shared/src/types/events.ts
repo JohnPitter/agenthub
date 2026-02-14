@@ -18,6 +18,8 @@ export interface ServerToClientEvents {
   "task:ready_to_commit": (data: TaskReadyToCommitEvent) => void;
   "task:git_push": (data: TaskGitPushEvent) => void;
   "task:git_push_error": (data: TaskGitPushErrorEvent) => void;
+  "task:pr_created": (data: TaskPRCreatedEvent) => void;
+  "task:pr_merged": (data: TaskPRMergedEvent) => void;
   "board:activity": (data: BoardActivityEvent) => void;
   "board:agent_cursor": (data: BoardAgentCursorEvent) => void;
   "integration:status": (data: IntegrationStatusEvent) => void;
@@ -33,6 +35,7 @@ export interface ClientToServerEvents {
   "user:approve_task": (data: { taskId: string }) => void;
   "user:reject_task": (data: { taskId: string; feedback: string }) => void;
   "user:commit_task": (data: { taskId: string; message: string }) => void;
+  "user:push_task": (data: { taskId: string }) => void;
   "project:select": (data: { projectId: string }) => void;
   "board:subscribe": (data: { projectId: string }) => void;
   "board:unsubscribe": (data: { projectId: string }) => void;
@@ -178,4 +181,21 @@ export interface TaskGitPushErrorEvent {
   taskId: string;
   projectId: string;
   error: string;
+}
+
+export interface TaskPRCreatedEvent {
+  taskId: string;
+  projectId: string;
+  prNumber: number;
+  prUrl: string;
+  prTitle: string;
+  headBranch: string;
+  baseBranch: string;
+}
+
+export interface TaskPRMergedEvent {
+  taskId: string;
+  projectId: string;
+  prNumber: number;
+  method: string;
 }

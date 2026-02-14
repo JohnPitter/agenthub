@@ -210,21 +210,21 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
   return (
     <div
       className={cn(
-        "flex h-full flex-col border-l border-edge bg-white transition-all duration-300",
+        "flex h-full flex-col bg-white shadow-md transition-all duration-300",
         chatPanelOpen ? "w-[380px]" : "w-0 overflow-hidden",
       )}
     >
       {/* Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-edge-light px-4">
+      <div className="flex h-14 shrink-0 items-center justify-between px-4 shadow-xs">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-light">
             <MessageSquare className="h-4 w-4 text-primary" />
           </div>
-          <span className="text-[14px] font-semibold text-text-primary">Chat</span>
+          <span className="text-[13px] font-semibold text-text-primary">Chat</span>
         </div>
         <button
           onClick={toggleChatPanel}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-secondary"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-page hover:text-text-secondary"
         >
           <ChevronRight className="h-4 w-4" />
         </button>

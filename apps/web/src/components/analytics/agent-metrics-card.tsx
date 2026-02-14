@@ -49,17 +49,17 @@ export function AgentMetricsCard({ metrics, rank }: AgentMetricsCardProps) {
   const SuccessIcon = getSuccessRateIcon(metrics.successRate);
 
   return (
-    <div className="bg-white border border-edge rounded-xl p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl p-5 shadow-card transition-all hover:shadow-card-hover">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           {rank && (
             <div
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-bold",
-                rank === 1 && "bg-yellow-100 text-yellow-700",
-                rank === 2 && "bg-gray-100 text-gray-700",
-                rank === 3 && "bg-orange-100 text-orange-700",
+                "flex h-7 w-7 items-center justify-center rounded-md text-[12px] font-bold",
+                rank === 1 && "bg-yellow-light text-yellow",
+                rank === 2 && "bg-page text-text-secondary",
+                rank === 3 && "bg-yellow-light text-yellow",
                 rank > 3 && "bg-page text-text-tertiary"
               )}
             >
@@ -67,15 +67,15 @@ export function AgentMetricsCard({ metrics, rank }: AgentMetricsCardProps) {
             </div>
           )}
           <div>
-            <h3 className="text-[14px] font-semibold text-text-primary">{metrics.agentName}</h3>
+            <h3 className="text-[13px] font-semibold text-text-primary">{metrics.agentName}</h3>
             <p className="text-[11px] text-text-tertiary">{metrics.totalTasks} total tasks</p>
           </div>
         </div>
 
         {/* Success Rate */}
         <div className="text-right">
-          <div className={cn("flex items-center gap-1 text-[18px] font-bold", getSuccessRateColor(metrics.successRate))}>
-            <SuccessIcon className="h-4 w-4" />
+          <div className={cn("flex items-center gap-1 text-[16px] font-bold", getSuccessRateColor(metrics.successRate))}>
+            <SuccessIcon className="h-3.5 w-3.5" />
             {metrics.successRate.toFixed(1)}%
           </div>
           <p className="text-[10px] text-text-tertiary">Success Rate</p>
@@ -83,34 +83,34 @@ export function AgentMetricsCard({ metrics, rank }: AgentMetricsCardProps) {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="bg-green-light rounded-lg p-2">
-          <div className="flex items-center gap-1.5 mb-1">
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="bg-green-light rounded-md p-2">
+          <div className="flex items-center gap-1 mb-0.5">
             <CheckCircle2 className="h-3 w-3 text-green" />
-            <span className="text-[10px] font-semibold text-green uppercase">Completed</span>
+            <span className="text-[9px] font-semibold text-green uppercase">Completed</span>
           </div>
-          <div className="text-[16px] font-bold text-green">{metrics.completedTasks}</div>
+          <div className="text-[15px] font-bold text-green">{metrics.completedTasks}</div>
         </div>
 
-        <div className="bg-red-light rounded-lg p-2">
-          <div className="flex items-center gap-1.5 mb-1">
+        <div className="bg-red-light rounded-md p-2">
+          <div className="flex items-center gap-1 mb-0.5">
             <XCircle className="h-3 w-3 text-red" />
-            <span className="text-[10px] font-semibold text-red uppercase">Failed</span>
+            <span className="text-[9px] font-semibold text-red uppercase">Failed</span>
           </div>
-          <div className="text-[16px] font-bold text-red">{metrics.failedTasks}</div>
+          <div className="text-[15px] font-bold text-red">{metrics.failedTasks}</div>
         </div>
 
-        <div className="bg-purple-light rounded-lg p-2">
-          <div className="flex items-center gap-1.5 mb-1">
+        <div className="bg-purple-light rounded-md p-2">
+          <div className="flex items-center gap-1 mb-0.5">
             <Activity className="h-3 w-3 text-purple" />
-            <span className="text-[10px] font-semibold text-purple uppercase">In Progress</span>
+            <span className="text-[9px] font-semibold text-purple uppercase">In Progress</span>
           </div>
-          <div className="text-[16px] font-bold text-purple">{metrics.inProgressTasks}</div>
+          <div className="text-[15px] font-bold text-purple">{metrics.inProgressTasks}</div>
         </div>
       </div>
 
       {/* Avg Completion Time */}
-      <div className="flex items-center justify-between py-2 border-t border-edge-light">
+      <div className="flex items-center justify-between py-2.5 border-t border-edge-light/50">
         <div className="flex items-center gap-2 text-[11px] text-text-tertiary">
           <Clock className="h-3 w-3" />
           <span>Avg. Completion Time</span>
@@ -121,11 +121,11 @@ export function AgentMetricsCard({ metrics, rank }: AgentMetricsCardProps) {
       </div>
 
       {/* Status Distribution */}
-      <div className="mt-3">
-        <div className="text-[10px] font-semibold text-text-tertiary uppercase mb-2">
+      <div className="mt-2">
+        <div className="text-[10px] font-semibold text-text-tertiary uppercase mb-1.5">
           Status Distribution
         </div>
-        <div className="flex h-2 rounded-full overflow-hidden bg-page">
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-page">
           {metrics.tasksByStatus.done > 0 && (
             <div
               className="bg-green"
@@ -156,7 +156,7 @@ export function AgentMetricsCard({ metrics, rank }: AgentMetricsCardProps) {
           )}
           {metrics.tasksByStatus.pending + metrics.tasksByStatus.assigned > 0 && (
             <div
-              className="bg-gray-300"
+              className="bg-edge"
               style={{
                 width: `${((metrics.tasksByStatus.pending + metrics.tasksByStatus.assigned) / metrics.totalTasks) * 100}%`,
               }}

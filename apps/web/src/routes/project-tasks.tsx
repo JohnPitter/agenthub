@@ -11,11 +11,11 @@ import { TaskCommitDialog } from "../components/tasks/task-commit-dialog";
 import { cn } from "../lib/utils";
 import type { Task, TaskStatus, TaskPriority } from "@agenthub/shared";
 
-const KANBAN_COLUMNS: { status: TaskStatus; label: string; color: string; dotColor: string }[] = [
-  { status: "created", label: "Criadas", color: "bg-blue-light", dotColor: "bg-blue" },
-  { status: "in_progress", label: "Em Progresso", color: "bg-yellow-light", dotColor: "bg-yellow" },
-  { status: "review", label: "Em Review", color: "bg-purple-light", dotColor: "bg-purple" },
-  { status: "done", label: "Concluídas", color: "bg-green-light", dotColor: "bg-green" },
+const KANBAN_COLUMNS: { status: TaskStatus; label: string; dotColor: string }[] = [
+  { status: "created", label: "Criadas", dotColor: "bg-blue" },
+  { status: "in_progress", label: "Em Progresso", dotColor: "bg-yellow" },
+  { status: "review", label: "Em Review", dotColor: "bg-purple" },
+  { status: "done", label: "Concluídas", dotColor: "bg-green" },
 ];
 
 export function ProjectTasks() {
@@ -33,34 +33,28 @@ export function ProjectTasks() {
   const [commitDialogTask, setCommitDialogTask] = useState<{ taskId: string; changedFiles: string[]; title: string } | null>(null);
 
   const handleTaskGitBranch = useCallback((data: { taskId: string; branchName: string }) => {
-    // Update task locally when git branch is created
     updateTask(data.taskId, { branch: data.branchName }).catch(() => {
-      // If update fails, refetch to stay in sync
       refetch();
     });
   }, [updateTask, refetch]);
 
   const handleTaskGitCommit = useCallback((data: { taskId: string; commitSha: string }) => {
-    // Update task result when commit is created
     updateTask(data.taskId, { result: `Committed as ${data.commitSha}` }).catch(() => {
       refetch();
     });
 
-    // Remove from ready-to-commit map
     setReadyToCommitTasks((prev) => {
       const next = new Map(prev);
       next.delete(data.taskId);
       return next;
     });
 
-    // Close dialog if open
     if (commitDialogTask?.taskId === data.taskId) {
       setCommitDialogTask(null);
     }
   }, [updateTask, refetch, commitDialogTask]);
 
   const handleTaskReadyToCommit = useCallback((data: { taskId: string; changedFiles: string[] }) => {
-    // Track tasks ready to commit
     setReadyToCommitTasks((prev) => new Map(prev).set(data.taskId, data.changedFiles));
   }, []);
 
@@ -99,7 +93,6 @@ export function ProjectTasks() {
     await deleteTask(taskId);
   }, [deleteTask]);
 
-  // Drag and drop
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
     e.dataTransfer.setData("taskId", task.id);
     e.dataTransfer.effectAllowed = "move";
@@ -135,24 +128,24 @@ export function ProjectTasks() {
   }, [getTasksByStatus, priorityFilter, agentFilter]);
 
   if (!project) {
-    return <div className="p-10 text-text-secondary">Projeto não encontrado.</div>;
+    return <div className="p-8 text-text-secondary">Projeto não encontrado.</div>;
   }
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-edge-light px-8 py-5">
+      <div className="relative z-10 flex items-center justify-between bg-white px-8 py-5 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light">
-            <ListTodo className="h-5 w-5 text-primary" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+            <ListTodo className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h1 className="text-[18px] font-semibold text-text-primary">Tasks</h1>
-            <p className="text-[12px] text-text-tertiary">{tasks.length} tarefas no projeto</p>
+            <h1 className="text-[15px] font-semibold text-text-primary">Tasks</h1>
+            <p className="text-[11px] text-text-tertiary">{tasks.length} tarefas no projeto</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <TaskFilters
             priorityFilter={priorityFilter}
             agentFilter={agentFilter}
@@ -162,7 +155,7 @@ export function ProjectTasks() {
           />
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98]"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-primary-hover"
           >
             <Plus className="h-4 w-4" />
             Nova Task
@@ -176,7 +169,7 @@ export function ProjectTasks() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="flex-1 overflow-x-auto p-6">
+        <div className="flex-1 overflow-x-auto px-8 pb-6 pt-4">
           <div className="grid h-full grid-cols-4 gap-5">
             {KANBAN_COLUMNS.map((column) => {
               const columnTasks = getFilteredTasks(column.status);
@@ -189,26 +182,23 @@ export function ProjectTasks() {
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, column.status)}
                   className={cn(
-                    "flex flex-col rounded-2xl transition-all duration-200",
-                    isOver && "ring-2 ring-primary/30 bg-primary-light",
+                    "flex flex-col rounded-lg transition-colors",
+                    isOver && "bg-primary-light ring-1 ring-primary/20",
                   )}
                 >
                   {/* Column Header */}
-                  <div className="flex items-center justify-between px-3 py-3">
-                    <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-between px-2 py-2.5">
+                    <div className="flex items-center gap-2">
                       <span className={cn("h-2.5 w-2.5 rounded-full", column.dotColor)} />
                       <span className="text-[13px] font-semibold text-text-primary">{column.label}</span>
                     </div>
-                    <span className={cn(
-                      "flex h-6 min-w-6 items-center justify-center rounded-lg px-1.5 text-[11px] font-bold",
-                      column.color,
-                    )}>
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-page px-1.5 text-[11px] font-bold text-text-tertiary">
                       {columnTasks.length}
                     </span>
                   </div>
 
                   {/* Cards */}
-                  <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-1 pb-3">
+                  <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-1 pb-2">
                     {columnTasks.length > 0 ? (
                       columnTasks.map((task) => (
                         <TaskCard
@@ -225,7 +215,7 @@ export function ProjectTasks() {
                         />
                       ))
                     ) : (
-                      <div className="flex flex-1 items-center justify-center rounded-xl border-2 border-dashed border-edge py-8">
+                      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-edge py-8">
                         <p className="text-[12px] text-text-placeholder">Nenhuma task</p>
                       </div>
                     )}

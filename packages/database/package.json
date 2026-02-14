@@ -15,12 +15,13 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@agenthub/shared": "workspace:*",
     "@libsql/client": "^0.14.0",
     "drizzle-orm": "^0.39.0",
-    "nanoid": "^5.1.0",
-    "@agenthub/shared": "workspace:*"
+    "nanoid": "^5.1.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "drizzle-kit": "^0.30.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"

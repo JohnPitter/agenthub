@@ -10,6 +10,7 @@ import { dashboardRouter } from "./routes/dashboard";
 import { gitRouter } from "./routes/git";
 import { filesRouter } from "./routes/files";
 import { analyticsRouter } from "./routes/analytics";
+import { pullRequestsRouter } from "./routes/pull-requests";
 import { setupSocketHandlers } from "./realtime/socket-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { rateLimiter } from "./middleware/rate-limiter";
@@ -36,6 +37,7 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api", gitRouter);
 app.use("/api", filesRouter);
 app.use("/api", analyticsRouter);
+app.use("/api", pullRequestsRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

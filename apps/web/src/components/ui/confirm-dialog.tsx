@@ -26,14 +26,14 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-md rounded-3xl bg-white p-6 shadow-lg animate-fade-up"
+        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl",
+                "flex h-10 w-10 items-center justify-center rounded-lg",
                 variant === "danger" ? "bg-red-light" : "bg-primary-light",
               )}
             >
@@ -45,7 +45,7 @@ export function ConfirmDialog({
           </div>
           <button
             onClick={onCancel}
-            className="rounded-xl p-2 text-text-tertiary transition-colors hover:bg-page hover:text-text-primary"
+            className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-page hover:text-text-primary"
           >
             <X className="h-5 w-5" />
           </button>
@@ -56,14 +56,14 @@ export function ConfirmDialog({
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="rounded-xl px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-colors hover:bg-page"
+            className="rounded-lg px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-colors hover:bg-page"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             className={cn(
-              "rounded-xl px-5 py-2.5 text-[14px] font-medium text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]",
+              "rounded-lg px-5 py-2.5 text-[14px] font-medium text-white transition-all hover:opacity-90",
               variant === "danger" ? "bg-red" : "bg-primary",
             )}
           >

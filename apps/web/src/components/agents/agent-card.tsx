@@ -25,14 +25,20 @@ interface AgentCardProps {
 export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
   return (
     <div className={cn(
-      "group relative rounded-2xl bg-white p-6 shadow-card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-1",
+      "group rounded-xl bg-white p-6 shadow-card transition-all hover:shadow-card-hover",
       !agent.isActive && "opacity-60",
     )}>
       {/* Status indicator */}
-      <div className="absolute right-4 top-4 flex items-center gap-2">
+      <div className="flex items-center justify-between mb-4">
+        <div
+          className="flex h-12 w-12 items-center justify-center rounded-full text-[18px] font-bold text-white"
+          style={{ backgroundColor: agent.color ?? "#0866FF" }}
+        >
+          {agent.name.charAt(0)}
+        </div>
         <span className={cn(
-          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-          agent.isActive ? "bg-green-light" : "bg-edge-light",
+          "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5",
+          agent.isActive ? "bg-green-light" : "bg-page",
         )}>
           <span className={cn(
             "h-1.5 w-1.5 rounded-full",
@@ -47,40 +53,31 @@ export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
         </span>
       </div>
 
-      {/* Avatar + Info */}
-      <div className="flex flex-col items-center text-center">
-        <div
-          className="flex h-16 w-16 items-center justify-center rounded-2xl text-[22px] font-bold text-white shadow-md transition-transform duration-200 group-hover:scale-105"
-          style={{ backgroundColor: agent.color ?? "#FF5C35" }}
-        >
-          {agent.name.charAt(0)}
-        </div>
+      {/* Info */}
+      <h3 className="text-[14px] font-semibold text-text-primary">{agent.name}</h3>
+      <p className="mt-0.5 text-[12px] text-text-secondary">{ROLE_LABELS[agent.role] ?? agent.role}</p>
+      <p className="text-[11px] text-text-tertiary">{MODEL_LABELS[agent.model] ?? agent.model}</p>
 
-        <h3 className="mt-4 text-[15px] font-semibold text-text-primary">{agent.name}</h3>
-        <p className="mt-0.5 text-[12px] text-text-secondary">{ROLE_LABELS[agent.role] ?? agent.role}</p>
-        <p className="mt-0.5 text-[11px] text-text-tertiary">{MODEL_LABELS[agent.model] ?? agent.model}</p>
+      <p className="mt-2 text-[11px] text-text-tertiary leading-relaxed line-clamp-2">
+        {agent.description}
+      </p>
 
-        <p className="mt-3 text-[11px] text-text-tertiary leading-relaxed line-clamp-2">
-          {agent.description}
-        </p>
-
-        {/* Level badge */}
-        <div className="mt-3 inline-flex items-center rounded-lg bg-page px-2.5 py-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
-            {agent.level}
-          </span>
-        </div>
+      {/* Level badge */}
+      <div className="mt-3 inline-flex items-center rounded-md bg-page px-2 py-0.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+          {agent.level}
+        </span>
       </div>
 
       {/* Actions */}
-      <div className="mt-5 flex items-center gap-2">
+      <div className="mt-4 flex items-center gap-2">
         <button
           onClick={() => onToggle(agent.id)}
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[12px] font-medium transition-all",
+            "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-semibold transition-colors",
             agent.isActive
               ? "bg-green-light text-green hover:bg-green-muted"
-              : "bg-edge-light text-text-tertiary hover:bg-edge",
+              : "bg-page text-text-tertiary hover:bg-sidebar-hover",
           )}
         >
           <Power className="h-3.5 w-3.5" />
@@ -88,7 +85,7 @@ export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
         </button>
         <button
           onClick={() => onConfigure(agent)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-light py-2.5 text-[12px] font-medium text-primary transition-all hover:bg-primary-muted"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-light py-2 text-[12px] font-semibold text-primary transition-colors hover:bg-primary-muted"
         >
           <Settings className="h-3.5 w-3.5" />
           Configurar

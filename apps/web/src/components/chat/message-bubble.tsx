@@ -14,7 +14,7 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
   if (isSystem) {
     return (
       <div className="flex justify-center">
-        <div className="rounded-xl bg-surface-hover px-4 py-2">
+        <div className="rounded-lg bg-surface-hover px-4 py-2">
           <p className="text-[12px] text-text-tertiary">{message.content}</p>
         </div>
       </div>
@@ -31,8 +31,8 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
       {/* Agent avatar */}
       {!isUser && (
         <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold text-white"
-          style={{ backgroundColor: agent?.color ?? "#FF5C35" }}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
+          style={{ backgroundColor: agent?.color ?? "#0866FF" }}
         >
           {agent?.name?.charAt(0) ?? "A"}
         </div>
@@ -54,7 +54,7 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
         {/* Bubble */}
         <div
           className={cn(
-            "rounded-2xl px-4 py-2.5 shadow-sm",
+            "rounded-lg px-4 py-2.5",
             isUser
               ? "bg-primary text-white"
               : "border border-edge bg-white",

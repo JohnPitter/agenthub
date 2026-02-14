@@ -18,6 +18,8 @@ export interface EventMap {
   "task:ready_to_commit": { taskId: string; projectId: string; changedFiles: string[] };
   "task:git_push": { taskId: string; projectId: string; branchName: string; commitSha: string; remote: string };
   "task:git_push_error": { taskId: string; projectId: string; error: string };
+  "task:pr_created": { taskId: string; projectId: string; prNumber: number; prUrl: string; prTitle: string; headBranch: string; baseBranch: string };
+  "task:pr_merged": { taskId: string; projectId: string; prNumber: number; method: string };
   "board:activity": { projectId: string; agentId: string; action: string; detail: string; timestamp: number };
   "board:agent_cursor": { projectId: string; agentId: string; filePath?: string; lineNumber?: number; action: string };
 }

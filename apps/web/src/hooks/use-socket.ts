@@ -15,6 +15,8 @@ import type {
   TaskGitBranchEvent,
   TaskGitCommitEvent,
   TaskReadyToCommitEvent,
+  TaskPRCreatedEvent,
+  TaskPRMergedEvent,
   BoardActivityEvent,
   BoardAgentCursorEvent,
 } from "@agenthub/shared";
@@ -34,6 +36,8 @@ interface SocketHandlers {
   onTaskGitBranch?: (data: TaskGitBranchEvent) => void;
   onTaskGitCommit?: (data: TaskGitCommitEvent) => void;
   onTaskReadyToCommit?: (data: TaskReadyToCommitEvent) => void;
+  onTaskPRCreated?: (data: TaskPRCreatedEvent) => void;
+  onTaskPRMerged?: (data: TaskPRMergedEvent) => void;
   onBoardActivity?: (data: BoardActivityEvent) => void;
   onBoardAgentCursor?: (data: BoardAgentCursorEvent) => void;
 }
@@ -68,6 +72,8 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     const onTaskGitBranch = (data: TaskGitBranchEvent) => handlersRef.current?.onTaskGitBranch?.(data);
     const onTaskGitCommit = (data: TaskGitCommitEvent) => handlersRef.current?.onTaskGitCommit?.(data);
     const onTaskReadyToCommit = (data: TaskReadyToCommitEvent) => handlersRef.current?.onTaskReadyToCommit?.(data);
+    const onTaskPRCreated = (data: TaskPRCreatedEvent) => handlersRef.current?.onTaskPRCreated?.(data);
+    const onTaskPRMerged = (data: TaskPRMergedEvent) => handlersRef.current?.onTaskPRMerged?.(data);
     const onBoardActivity = (data: BoardActivityEvent) => handlersRef.current?.onBoardActivity?.(data);
     const onBoardAgentCursor = (data: BoardAgentCursorEvent) => handlersRef.current?.onBoardAgentCursor?.(data);
 
@@ -85,6 +91,8 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     socket.on("task:git_branch", onTaskGitBranch);
     socket.on("task:git_commit", onTaskGitCommit);
     socket.on("task:ready_to_commit", onTaskReadyToCommit);
+    socket.on("task:pr_created", onTaskPRCreated);
+    socket.on("task:pr_merged", onTaskPRMerged);
     socket.on("board:activity", onBoardActivity);
     socket.on("board:agent_cursor", onBoardAgentCursor);
 
@@ -104,6 +112,8 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
       socket.off("task:git_branch", onTaskGitBranch);
       socket.off("task:git_commit", onTaskGitCommit);
       socket.off("task:ready_to_commit", onTaskReadyToCommit);
+      socket.off("task:pr_created", onTaskPRCreated);
+      socket.off("task:pr_merged", onTaskPRMerged);
       socket.off("board:activity", onBoardActivity);
       socket.off("board:agent_cursor", onBoardAgentCursor);
     };

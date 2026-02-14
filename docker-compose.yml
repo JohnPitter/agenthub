@@ -1,0 +1,27 @@
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: apps/orchestrator/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - ORCHESTRATOR_PORT=3001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - agenthub-data:/root/.agenthub
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - orchestrator
+    restart: unless-stopped
+
+volumes:
+  agenthub-data:

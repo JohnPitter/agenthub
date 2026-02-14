@@ -2,6 +2,124 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0] - 2026-02-14
+
+### Fase 13: Testing & Deployment
+
+#### Added
+
+- **Testing Infrastructure**
+  - Vitest 4 configurado com workspace (orchestrator + web)
+  - In-memory SQLite para isolamento total entre testes
+  - `@testing-library/react` + jsdom para testes frontend
+  - `supertest` para testes de integração de API
+  - Test helpers: `createTestDb()`, `createTestProject()`, `createTestAgent()`, `createTestTask()`
+  - 52 testes passando (35 backend + 17 frontend)
+
+- **Backend Integration Tests** (`apps/orchestrator/src/__tests__/`)
+  - `health.test.ts` — Health check endpoint
+  - `projects.test.ts` — CRUD completo de projetos (9 testes)
+  - `agents.test.ts` — CRUD de agentes + proteção de default agents (11 testes)
+  - `tasks.test.ts` — CRUD + filtros por projeto/status + completedAt automático (14 testes)
+
+- **Frontend Tests** (`apps/web/src/__tests__/`)
+  - `utils.test.ts` — cn(), formatDate(), formatRelativeTime() (11 testes)
+  - `use-pull-requests.test.ts` — Hook de PRs com URL-based fetch mocking (6 testes)
+
+- **Docker Containers**
+  - `apps/orchestrator/Dockerfile` — Multi-stage build (deps → build → runtime com node:20-alpine)
+  - `apps/web/Dockerfile` — Multi-stage build (deps → build → nginx:alpine serve)
+  - `apps/web/nginx.conf` — SPA fallback, proxy API/Socket.io, cache headers, security headers
+  - `docker-compose.yml` — Produção: web (port 80) + orchestrator (port 3001) + SQLite volume
+  - `docker-compose.dev.yml` — Desenvolvimento: hot-reload com volumes montados
+  - `.dockerignore` — Exclude node_modules, dist, .git, tests
+
+- **CI/CD Pipeline** (`.github/workflows/`)
+  - `ci.yml` — Lint + typecheck + test (Node 20 & 22 matrix) + build em cada PR/push
+  - `docker.yml` — Build e push de Docker images via GitHub Container Registry em releases
+  - `dependabot.yml` — Auto-updates semanais para npm e GitHub Actions
+
+- **Production Deployment**
+  - `DEPLOYMENT.md` — Guia completo: Docker Compose, manual, variáveis de ambiente, backup, troubleshooting
+  - `scripts/deploy.sh` — Script helper: up/down/restart/logs/build commands
+
+#### Changed
+
+- `package.json` — Adicionado scripts `test`, `test:watch`, `test:coverage`
+- `turbo.json` — Adicionado task `test`
+
+## [0.12.0] - 2026-02-14
+
+### Fase 12: PR Management
+
+#### Added
+
+- **GitHub Service** (`apps/orchestrator/src/git/github-service.ts`)
+  - Full `gh` CLI integration via `execFileNoThrow` (no shell injection risk)
+  - `isGhAvailable()` / `isAuthenticated()` — environment checks
+  - `getRepoSlug()` — detect GitHub remote from project path
+  - `listPRs()` — list PRs with state/limit filters
+  - `getPR()` — single PR detail with full metadata
+  - `createPR()` — create PRs with title, body, head/base branch, draft flag
+  - `mergePR()` — merge/squash/rebase strategies
+  - `closePR()` — close without merging
+  - `getPRReviews()` — fetch review approvals/change requests
+  - `getPRChecks()` — CI/CD check status aggregation (pass/fail/pending)
+  - `findPRForBranch()` — find existing PR for a branch (dedup check)
+  - State normalization: `gh` returns `OPEN`/`CLOSED`/`MERGED` → lowercased to `open`/`closed`/`merged`
+
+- **PR REST API** (`apps/orchestrator/src/routes/pull-requests.ts`)
+  - `GET /api/projects/:id/prs/status` — GitHub integration availability check
+  - `GET /api/projects/:id/prs` — list PRs with state/limit query params
+  - `GET /api/projects/:id/prs/:number` — PR detail with reviews + checks
+  - `POST /api/projects/:id/prs` — create PR, optionally links to taskId via taskLogs
+  - `POST /api/projects/:id/prs/:number/merge` — merge with method selection
+  - `POST /api/projects/:id/prs/:number/close` — close PR
+  - `GET /api/projects/:id/prs/branch/:branch` — find PR by branch name
+
+- **Shared Event Types** (`packages/shared/src/types/events.ts`)
+  - `TaskPRCreatedEvent` — emitted when a PR is created (taskId, prNumber, prUrl, prTitle, headBranch, baseBranch)
+  - `TaskPRMergedEvent` — emitted when a PR is merged (taskId, prNumber, method)
+  - `user:push_task` added to `ClientToServerEvents`
+  - Events added to `ServerToClientEvents` for socket bridging
+
+- **EventBus PR Events** (`apps/orchestrator/src/realtime/event-bus.ts`)
+  - `task:pr_created` and `task:pr_merged` added to `EventMap`
+
+- **Socket Bridge** (`apps/orchestrator/src/realtime/socket-handler.ts`)
+  - `task:pr_created` and `task:pr_merged` forwarded to project rooms via Socket.io
+  - `tryAutoPR()` — auto-creates PR after successful push when `autoPR` config enabled
+    - Dedup check via `findPRForBranch` to avoid duplicate PRs
+    - Logs PR creation in `taskLogs`
+    - Integrated into both auto-push (commit_task) and manual push (push_task) flows
+
+- **Frontend PR Hook** (`apps/web/src/hooks/use-pull-requests.ts`)
+  - `usePullRequests(projectId)` — full PR management hook
+  - Returns: `prs`, `loading`, `ghStatus`, `filter`, `setFilter`, `createPR`, `mergePR`, `closePR`, `getPRDetail`, `refresh`
+  - Typed interfaces: `PullRequest`, `PRCheck`, `PRReview`, `GitHubStatus`
+
+- **Frontend PR Page** (`apps/web/src/routes/project-prs.tsx`)
+  - Full PR management UI with design system compliance
+  - `PRStateIcon` / `PRStateBadge` — state visualization (green open, purple merged, red closed)
+  - `CreatePRDialog` — form with head/base branch, title, body, draft toggle
+  - `PRCard` — PR info card with merge/close action buttons, external link
+  - Filter tabs (open/closed/merged/all) with counters
+  - Empty states for: gh CLI not available, not authenticated, no GitHub remote, no PRs
+  - Real-time updates via `useSocket` — auto-refreshes on `task:pr_created` / `task:pr_merged`
+
+- **Navigation Integration**
+  - Route added: `/project/:id/prs` in `App.tsx`
+  - Breadcrumb: "Pull Requests" added to `ROUTE_LABELS` in `header.tsx`
+  - Navigation card added to `project-overview.tsx` with GitPullRequest icon
+
+- **Socket Hook PR Events** (`apps/web/src/hooks/use-socket.ts`)
+  - `onTaskPRCreated` and `onTaskPRMerged` handlers added to `SocketHandlers`
+  - Full listener registration and cleanup for PR events
+
+- **Auto-PR Config** (`apps/web/src/routes/project-settings.tsx`)
+  - New toggle: "Auto-PR após push" in Git configuration section
+  - `autoPR` field added to `GitConfig` interface in `use-git-status.ts`
+
 ## [0.11.0] - 2026-02-14
 
 ### Fase 11: Agent Performance Dashboard

@@ -1,7 +1,6 @@
 import { Router } from "express";
-import { db } from "@agenthub/database";
+import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
-import { schema } from "@agenthub/database/schema";
 import { readdir, stat, readFile, writeFile } from "fs/promises";
 import { join, relative, sep } from "path";
 import { logger } from "../lib/logger.js";

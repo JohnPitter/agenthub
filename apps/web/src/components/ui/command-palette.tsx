@@ -173,7 +173,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[560px] rounded-2xl bg-white shadow-card-hover overflow-hidden animate-fade-up"
+        className="w-full max-w-[560px] rounded-lg bg-white shadow-lg border border-edge-light overflow-hidden animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}

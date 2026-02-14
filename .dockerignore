@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+*.md
+!README.md
+.env
+.env.*
+.claude
+.turbo
+coverage
+*.test.ts
+*.test.tsx
+__tests__

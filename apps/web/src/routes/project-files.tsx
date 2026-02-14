@@ -31,13 +31,13 @@ export function ProjectFiles() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b border-edge bg-white px-6 py-4">
+      <div className="relative z-10 bg-white px-8 py-5 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-light">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-light">
             <FolderOpen className="h-5 w-5 text-purple" />
           </div>
           <div>
-            <h1 className="text-[20px] font-bold text-text-primary">Arquivos</h1>
+            <h1 className="text-[18px] font-semibold text-text-primary">Arquivos</h1>
             <p className="text-[12px] text-text-tertiary">
               Navegue pelos arquivos do projeto
             </p>

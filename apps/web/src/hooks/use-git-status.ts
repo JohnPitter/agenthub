@@ -22,6 +22,7 @@ export interface GitConfig {
   defaultBranch: string;
   autoCommit: boolean;
   autoCreateBranch: boolean;
+  autoPR: boolean;
 }
 
 export interface GitRemoteStatus {

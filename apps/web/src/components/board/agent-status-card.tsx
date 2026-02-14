@@ -21,7 +21,7 @@ interface AgentActivity {
 }
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  idle: { color: "text-text-tertiary", bg: "bg-surface-hover", label: "Ocioso" },
+  idle: { color: "text-text-tertiary", bg: "bg-page", label: "Ocioso" },
   running: { color: "text-green", bg: "bg-green-light", label: "Executando" },
   paused: { color: "text-yellow", bg: "bg-yellow-light", label: "Pausado" },
   error: { color: "text-red", bg: "bg-red-light", label: "Erro" },
@@ -51,15 +51,15 @@ export function AgentStatusCard({ agent, activity, task, onApprove, onReject, on
 
   return (
     <>
-      <div className="rounded-2xl bg-white p-5 shadow-card">
-        <div className="mb-4 flex items-start justify-between">
+      <div className="rounded-xl bg-white p-5 shadow-card">
+        <div className="mb-3 flex items-start justify-between">
           <div
-            className="flex h-12 w-12 items-center justify-center rounded-2xl text-[16px] font-bold text-white"
-            style={{ backgroundColor: agent.color ?? "#FF5C35" }}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-[14px] font-bold text-white"
+            style={{ backgroundColor: agent.color ?? "#0866FF" }}
           >
             {agent.name.charAt(0)}
           </div>
-          <div className={cn("flex items-center gap-1.5 rounded-lg px-2 py-1", config.bg)}>
+          <div className={cn("flex items-center gap-1.5 rounded-md px-2 py-0.5", config.bg)}>
             {status === "running" && (
               <span className="h-2 w-2 rounded-full bg-green animate-pulse" />
             )}
@@ -69,21 +69,21 @@ export function AgentStatusCard({ agent, activity, task, onApprove, onReject, on
           </div>
         </div>
 
-        <h3 className="text-[14px] font-semibold text-text-primary">{agent.name}</h3>
-        <p className="mb-3 text-[12px] text-text-tertiary">
+        <h3 className="text-[13px] font-semibold text-text-primary">{agent.name}</h3>
+        <p className="mb-3 text-[11px] text-text-tertiary">
           {ROLE_LABELS[agent.role] ?? agent.role}
         </p>
 
         {/* Task info */}
         {task && (
-          <div className="mb-3 flex items-start gap-2 rounded-lg bg-surface-hover p-2">
+          <div className="mb-3 flex items-start gap-2 rounded-md bg-page p-2">
             <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-[11px] text-text-secondary">
                 {task.title}
               </p>
               {status === "running" && (
-                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-edge">
+                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-edge-light">
                   <div
                     className="h-full bg-primary transition-all duration-300"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
@@ -99,14 +99,14 @@ export function AgentStatusCard({ agent, activity, task, onApprove, onReject, on
           <div className="flex gap-2">
             <button
               onClick={() => onApprove(task.id)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green px-3 py-2 text-[12px] font-medium text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:opacity-90"
             >
               <Check className="h-3.5 w-3.5" />
               Aprovar
             </button>
             <button
               onClick={() => setShowRejectDialog(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red px-3 py-2 text-[12px] font-medium text-white shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:opacity-90"
             >
               <X className="h-3.5 w-3.5" />
               Rejeitar

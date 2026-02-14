@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { useLocation, useParams, Link } from "react-router-dom";
 import { Search, Bell, MessageSquare } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -13,6 +13,7 @@ const ROUTE_LABELS: Record<string, string> = {
   tasks: "Tasks",
   agents: "Agentes",
   files: "Arquivos",
+  prs: "Pull Requests",
   settings: "Configurações",
 };
 
@@ -32,38 +33,43 @@ export function Header() {
   const isDashboard = location.pathname === "/";
   const isProjectRoute = location.pathname.startsWith("/project/");
 
-  // Click outside to close notification panel
+  const PAGE_TITLES: Record<string, string> = {
+    "/analytics": "Analytics",
+    "/settings": "Configurações",
+  };
+  const standalonePageTitle = PAGE_TITLES[location.pathname] ?? null;
+
   useEffect(() => {
     if (!panelOpen) return;
-
     const handleClickOutside = (e: MouseEvent) => {
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
         togglePanel();
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [panelOpen, togglePanel]);
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-edge-light px-8">
+    <header className="relative z-10 flex h-14 shrink-0 items-center justify-between bg-white px-6 shadow-xs">
       {/* Left */}
       <div>
         {isDashboard ? (
-          <h1 className="text-[18px] font-semibold text-text-primary">Dashboard</h1>
+          <h1 className="text-[16px] font-semibold text-text-primary">Dashboard</h1>
+        ) : standalonePageTitle ? (
+          <h1 className="text-[16px] font-semibold text-text-primary">{standalonePageTitle}</h1>
         ) : project ? (
           <div className="flex items-center gap-2 text-[14px]">
             <Link
               to={`/project/${project.id}`}
-              className="font-semibold text-text-primary transition-colors hover:text-primary"
+              className="font-semibold text-text-primary hover:text-primary transition-colors"
             >
               {project.name}
             </Link>
             {pageLabel && (
               <>
                 <span className="text-text-placeholder">/</span>
-                <span className="font-medium text-text-secondary">{pageLabel}</span>
+                <span className="text-text-secondary">{pageLabel}</span>
               </>
             )}
           </div>
@@ -73,15 +79,15 @@ export function Header() {
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {isProjectRoute && (
           <button
             onClick={toggleChatPanel}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium transition-all duration-200",
+              "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
               chatPanelOpen
-                ? "bg-primary text-white shadow-sm"
-                : "border border-edge bg-white text-text-secondary hover:border-text-placeholder",
+                ? "bg-primary text-white"
+                : "bg-page text-text-secondary hover:bg-sidebar-hover",
             )}
           >
             <MessageSquare className="h-4 w-4" />
@@ -91,12 +97,12 @@ export function Header() {
 
         <button
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-xl border border-edge bg-white px-4 py-2 transition-all duration-200 hover:border-text-placeholder"
+          className="flex items-center gap-2 rounded-lg bg-page px-3 py-1.5 text-text-placeholder hover:bg-sidebar-hover transition-colors"
         >
-          <Search className="h-4 w-4 text-text-tertiary" />
-          <span className="text-[13px] text-text-placeholder">Buscar...</span>
-          <kbd className="ml-2 rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary border border-edge">
-            Ctrl+K
+          <Search className="h-4 w-4" />
+          <span className="text-[13px]">Buscar...</span>
+          <kbd className="ml-1 rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary border border-edge-light">
+            ⌘K
           </kbd>
         </button>
 
@@ -104,13 +110,13 @@ export function Header() {
           <button
             onClick={togglePanel}
             className={cn(
-              "relative flex h-9 w-9 items-center justify-center rounded-xl text-text-tertiary transition-all duration-200",
-              panelOpen ? "bg-primary-light text-primary" : "hover:bg-surface hover:text-text-secondary",
+              "relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+              panelOpen ? "bg-primary-light text-primary" : "text-text-tertiary hover:bg-page",
             )}
           >
-            <Bell className="h-[18px] w-[18px]" />
+            <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red px-1 text-[10px] font-bold text-white">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -118,7 +124,7 @@ export function Header() {
           {panelOpen && <NotificationPanel />}
         </div>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-hero-from to-hero-to text-[11px] font-bold text-white">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-white">
           JP
         </div>
       </div>

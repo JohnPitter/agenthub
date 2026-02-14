@@ -13,7 +13,6 @@ interface PerformanceChartProps {
 }
 
 export function PerformanceChart({ data, type = "area" }: PerformanceChartProps) {
-  // Format date for display
   const formattedData = data.map((point) => ({
     ...point,
     displayDate: new Date(point.date).toLocaleDateString("en-US", {
@@ -25,8 +24,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-edge rounded-lg shadow-lg p-3">
-          <p className="text-[11px] font-semibold text-text-primary mb-2">
+        <div className="bg-white border border-edge-light rounded-lg shadow-md p-3">
+          <p className="text-[11px] font-semibold text-text-primary mb-1.5">
             {new Date(payload[0].payload.date).toLocaleDateString("en-US", {
               weekday: "short",
               month: "short",
@@ -45,9 +44,9 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
               <span className="text-[11px] font-semibold text-red">{payload[1].value}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple" />
+              <div className="w-2 h-2 rounded-full bg-primary" />
               <span className="text-[10px] text-text-tertiary">Total:</span>
-              <span className="text-[11px] font-semibold text-purple">{payload[2].value}</span>
+              <span className="text-[11px] font-semibold text-primary">{payload[2].value}</span>
             </div>
           </div>
         </div>
@@ -60,17 +59,17 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
     return (
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={formattedData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#DADDE1" />
           <XAxis
             dataKey="displayDate"
-            tick={{ fontSize: 10, fill: "#9CA3AF" }}
+            tick={{ fontSize: 10, fill: "#8A8D91" }}
             tickLine={false}
-            axisLine={{ stroke: "#E5E7EB" }}
+            axisLine={{ stroke: "#DADDE1" }}
           />
           <YAxis
-            tick={{ fontSize: 10, fill: "#9CA3AF" }}
+            tick={{ fontSize: 10, fill: "#8A8D91" }}
             tickLine={false}
-            axisLine={{ stroke: "#E5E7EB" }}
+            axisLine={{ stroke: "#DADDE1" }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
@@ -82,27 +81,27 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             type="monotone"
             dataKey="completed"
             name="Completed"
-            stroke="#22C55E"
-            fill="#22C55E"
-            fillOpacity={0.2}
+            stroke="#31A24C"
+            fill="#31A24C"
+            fillOpacity={0.15}
             strokeWidth={2}
           />
           <Area
             type="monotone"
             dataKey="failed"
             name="Failed"
-            stroke="#EF4444"
-            fill="#EF4444"
-            fillOpacity={0.2}
+            stroke="#E4405F"
+            fill="#E4405F"
+            fillOpacity={0.15}
             strokeWidth={2}
           />
           <Area
             type="monotone"
             dataKey="total"
             name="Total"
-            stroke="#A855F7"
-            fill="#A855F7"
-            fillOpacity={0.1}
+            stroke="#0866FF"
+            fill="#0866FF"
+            fillOpacity={0.08}
             strokeWidth={2}
           />
         </AreaChart>
@@ -113,17 +112,17 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={formattedData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#DADDE1" />
         <XAxis
           dataKey="displayDate"
-          tick={{ fontSize: 10, fill: "#9CA3AF" }}
+          tick={{ fontSize: 10, fill: "#8A8D91" }}
           tickLine={false}
-          axisLine={{ stroke: "#E5E7EB" }}
+          axisLine={{ stroke: "#DADDE1" }}
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9CA3AF" }}
+          tick={{ fontSize: 10, fill: "#8A8D91" }}
           tickLine={false}
-          axisLine={{ stroke: "#E5E7EB" }}
+          axisLine={{ stroke: "#DADDE1" }}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
@@ -135,27 +134,27 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
           type="monotone"
           dataKey="completed"
           name="Completed"
-          stroke="#22C55E"
+          stroke="#31A24C"
           strokeWidth={2}
-          dot={{ fill: "#22C55E", r: 3 }}
+          dot={{ fill: "#31A24C", r: 3 }}
           activeDot={{ r: 5 }}
         />
         <Line
           type="monotone"
           dataKey="failed"
           name="Failed"
-          stroke="#EF4444"
+          stroke="#E4405F"
           strokeWidth={2}
-          dot={{ fill: "#EF4444", r: 3 }}
+          dot={{ fill: "#E4405F", r: 3 }}
           activeDot={{ r: 5 }}
         />
         <Line
           type="monotone"
           dataKey="total"
           name="Total"
-          stroke="#A855F7"
+          stroke="#0866FF"
           strokeWidth={2}
-          dot={{ fill: "#A855F7", r: 3 }}
+          dot={{ fill: "#0866FF", r: 3 }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

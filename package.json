@@ -7,12 +7,17 @@
     "dev:orchestrator": "turbo dev --filter=@agenthub/orchestrator",
     "build": "turbo build",
     "lint": "turbo lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "db:migrate": "pnpm --filter @agenthub/database migrate",
     "db:seed": "pnpm --filter @agenthub/database seed"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
     "turbo": "^2.5.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^4.0.18"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {

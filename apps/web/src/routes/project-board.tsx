@@ -44,7 +44,6 @@ export function ProjectBoard() {
       }
     },
     onTaskGitBranch: (data) => {
-      // Add git branch creation to activity feed
       setActivities((prev) =>
         [
           {
@@ -59,7 +58,6 @@ export function ProjectBoard() {
       );
     },
     onTaskGitCommit: (data) => {
-      // Add git commit to activity feed
       setActivities((prev) =>
         [
           {
@@ -78,16 +76,16 @@ export function ProjectBoard() {
   const activeAgents = agents.filter((a) => a.isActive);
 
   return (
-    <div className="flex h-full flex-col gap-6 p-6">
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="relative z-10 flex items-center justify-between bg-white px-8 py-5 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light">
-            <Activity className="h-5 w-5 text-primary" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+            <Activity className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h1 className="text-[18px] font-semibold text-text-primary">Live Board</h1>
-            <p className="text-[12px] text-text-tertiary">
+            <h1 className="text-[15px] font-semibold text-text-primary">Live Board</h1>
+            <p className="text-[11px] text-text-tertiary">
               Monitore agentes em tempo real
             </p>
           </div>
@@ -98,38 +96,41 @@ export function ProjectBoard() {
         </div>
       </div>
 
-      {/* Agent Status Cards */}
-      <div className="grid grid-cols-3 gap-4 stagger">
-        {activeAgents.map((agent) => {
-          const activity = agentActivity.get(agent.id);
-          const task = activity?.taskId ? tasks.find((t) => t.id === activity.taskId) : undefined;
-          return (
-            <AgentStatusCard
-              key={agent.id}
-              agent={agent}
-              activity={
-                activity
-                  ? {
-                      status: activity.status,
-                      currentTask: activity.currentTask,
-                      currentFile: activity.currentFile,
-                      progress: activity.progress,
-                    }
-                  : undefined
-              }
-              task={task}
-              onApprove={approveTask}
-              onReject={rejectTask}
-              onCancel={cancelTask}
-            />
-          );
-        })}
-      </div>
+      {/* Content */}
+      <div className="flex flex-1 flex-col gap-8 overflow-y-auto p-8">
+        {/* Agent Status Cards */}
+        <div className="grid grid-cols-3 gap-4 stagger">
+          {activeAgents.map((agent) => {
+            const activity = agentActivity.get(agent.id);
+            const task = activity?.taskId ? tasks.find((t) => t.id === activity.taskId) : undefined;
+            return (
+              <AgentStatusCard
+                key={agent.id}
+                agent={agent}
+                activity={
+                  activity
+                    ? {
+                        status: activity.status,
+                        currentTask: activity.currentTask,
+                        currentFile: activity.currentFile,
+                        progress: activity.progress,
+                      }
+                    : undefined
+                }
+                task={task}
+                onApprove={approveTask}
+                onReject={rejectTask}
+                onCancel={cancelTask}
+              />
+            );
+          })}
+        </div>
 
-      {/* Activity + Timeline */}
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        <ActivityFeed activities={activities} agents={agents} />
-        <ToolTimeline toolUses={toolUses} agents={agents} />
+        {/* Activity + Timeline */}
+        <div className="flex flex-1 gap-5 overflow-hidden">
+          <ActivityFeed activities={activities} agents={agents} />
+          <ToolTimeline toolUses={toolUses} agents={agents} />
+        </div>
       </div>
     </div>
   );

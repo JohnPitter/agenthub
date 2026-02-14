@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Settings, Zap, FolderOpen } from "lucide-react";
+import { LayoutDashboard, BarChart3, Settings, Zap, FolderOpen } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { api } from "../../lib/utils";
 import { cn } from "../../lib/utils";
@@ -9,7 +9,7 @@ import { getStackIcon } from "@agenthub/shared";
 
 const NAV_ITEMS = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/agents", icon: Users, label: "Agentes" },
+  { to: "/analytics", icon: BarChart3, label: "Analytics" },
   { to: "/settings", icon: Settings, label: "Configurações" },
 ];
 
@@ -36,15 +36,15 @@ export function AppSidebar() {
   return (
     <aside className="flex w-[240px] shrink-0 flex-col bg-sidebar">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm">
-          <Zap className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
+      <div className="flex h-14 items-center gap-2.5 px-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+          <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
         </div>
-        <span className="text-[15px] font-bold text-text-primary tracking-tight">AgentHub</span>
+        <span className="text-[15px] font-bold text-text-primary">AgentHub</span>
       </div>
 
       {/* Main Nav */}
-      <nav className="mt-2 flex flex-col gap-1 px-3">
+      <nav className="mt-2 flex flex-col gap-0.5 px-3">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(item.to);
           return (
@@ -52,15 +52,14 @@ export function AppSidebar() {
               key={item.to}
               to={item.to}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
+                "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium transition-colors",
                 active
-                  ? "bg-sidebar-active text-text-primary"
-                  : "text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-bright",
+                  ? "bg-sidebar-active text-text-primary font-semibold"
+                  : "text-sidebar-text hover:bg-sidebar-hover",
               )}
             >
-              {/* Active indicator */}
               {active && (
-                <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-sidebar-indicator" />
               )}
               <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2 : 1.6} />
               {item.label}
@@ -69,14 +68,17 @@ export function AppSidebar() {
         })}
       </nav>
 
+      {/* Divider */}
+      <div className="mx-4 my-5 border-t border-edge-light/60" />
+
       {/* Projects section */}
       {projects.length > 0 && (
         <>
-          <div className="mx-5 mt-6 mb-2 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-text">
+          <div className="mx-4 mb-2 flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-text-secondary">
               Projetos
             </span>
-            <span className="rounded-full bg-sidebar-active px-2 py-0.5 text-[10px] font-bold text-sidebar-text-bright">
+            <span className="text-[12px] font-semibold text-text-tertiary">
               {projects.length}
             </span>
           </div>
@@ -94,24 +96,24 @@ export function AppSidebar() {
                   key={project.id}
                   to={`/project/${project.id}`}
                   className={cn(
-                    "group relative flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-200",
+                    "relative flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
                     isActive
-                      ? "bg-sidebar-active text-text-primary"
-                      : "text-sidebar-text-bright hover:bg-sidebar-hover",
+                      ? "bg-sidebar-active text-text-primary font-semibold"
+                      : "text-text-primary hover:bg-sidebar-hover",
                   )}
                 >
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-sidebar-indicator" />
                   )}
                   <span className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold transition-all duration-200",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold",
                     isActive
-                      ? "bg-primary text-white shadow-sm"
-                      : "bg-sidebar-active text-sidebar-text-bright group-hover:bg-sidebar-hover",
+                      ? "bg-primary text-white"
+                      : "bg-page text-text-secondary",
                   )}>
                     {icon}
                   </span>
-                  <span className="truncate text-[13px] font-medium">{project.name}</span>
+                  <span className="truncate text-[13px]">{project.name}</span>
                 </Link>
               );
             })}
@@ -121,9 +123,9 @@ export function AppSidebar() {
 
       {/* Empty state for projects */}
       {projects.length === 0 && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 pb-8 opacity-50">
-          <FolderOpen className="h-6 w-6 text-sidebar-text" />
-          <p className="text-center text-[12px] text-sidebar-text">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 pb-8">
+          <FolderOpen className="h-6 w-6 text-text-placeholder" />
+          <p className="text-center text-[12px] text-text-tertiary">
             Escaneie um workspace para começar
           </p>
         </div>

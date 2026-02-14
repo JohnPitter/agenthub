@@ -66,103 +66,69 @@ export function Analytics() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="border-b border-edge bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-light">
-              <BarChart3 className="h-5 w-5 text-purple" />
-            </div>
-            <div>
-              <h1 className="text-[20px] font-bold text-text-primary">Analytics</h1>
-              <p className="text-[12px] text-text-tertiary">
-                Performance metrics and insights
-              </p>
-            </div>
-          </div>
-
-          {/* Period Selector */}
-          <div className="flex items-center gap-2 bg-page rounded-lg p-1">
+      {/* Period Selector */}
+      <div className="relative z-10 flex items-center justify-end bg-white px-8 py-4 shadow-xs">
+        <div className="flex items-center gap-1 rounded-lg bg-page p-1">
+          {(["7d", "30d", "all"] as Period[]).map((p) => (
             <button
-              onClick={() => setPeriod("7d")}
+              key={p}
+              onClick={() => setPeriod(p)}
               className={cn(
-                "rounded px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                period === "7d"
-                  ? "bg-white text-purple shadow-sm"
+                "rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                period === p
+                  ? "bg-white text-primary shadow-xs"
                   : "text-text-tertiary hover:text-text-secondary"
               )}
             >
-              Last 7 days
+              {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
             </button>
-            <button
-              onClick={() => setPeriod("30d")}
-              className={cn(
-                "rounded px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                period === "30d"
-                  ? "bg-white text-purple shadow-sm"
-                  : "text-text-tertiary hover:text-text-secondary"
-              )}
-            >
-              Last 30 days
-            </button>
-            <button
-              onClick={() => setPeriod("all")}
-              className={cn(
-                "rounded px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                period === "all"
-                  ? "bg-white text-purple shadow-sm"
-                  : "text-text-tertiary hover:text-text-secondary"
-              )}
-            >
-              All time
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="flex-1 overflow-auto bg-page p-6">
+        <div className="flex-1 overflow-auto p-8">
           {/* Summary Stats */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white border border-edge rounded-xl p-4">
+          <div className="grid grid-cols-2 gap-4 mb-8 sm:grid-cols-4">
+            <div className="bg-white rounded-xl p-5 shadow-card">
               <div className="flex items-center gap-2 text-[11px] text-text-tertiary uppercase font-semibold mb-2">
                 <BarChart3 className="h-3 w-3" />
                 Total Tasks
               </div>
-              <div className="text-[24px] font-bold text-text-primary">{totalTasks}</div>
+              <div className="text-[20px] font-semibold text-text-primary">{totalTasks}</div>
             </div>
 
-            <div className="bg-white border border-edge rounded-xl p-4">
+            <div className="bg-white rounded-xl p-5 shadow-card">
               <div className="flex items-center gap-2 text-[11px] text-green uppercase font-semibold mb-2">
                 <TrendingUp className="h-3 w-3" />
                 Completed
               </div>
-              <div className="text-[24px] font-bold text-green">{totalCompleted}</div>
+              <div className="text-[20px] font-semibold text-green">{totalCompleted}</div>
             </div>
 
-            <div className="bg-white border border-edge rounded-xl p-4">
+            <div className="bg-white rounded-xl p-5 shadow-card">
               <div className="flex items-center gap-2 text-[11px] text-red uppercase font-semibold mb-2">
                 <TrendingUp className="h-3 w-3 rotate-180" />
                 Failed
               </div>
-              <div className="text-[24px] font-bold text-red">{totalFailed}</div>
+              <div className="text-[20px] font-semibold text-red">{totalFailed}</div>
             </div>
 
-            <div className="bg-white border border-edge rounded-xl p-4">
-              <div className="flex items-center gap-2 text-[11px] text-purple uppercase font-semibold mb-2">
+            <div className="bg-white rounded-xl p-5 shadow-card">
+              <div className="flex items-center gap-2 text-[11px] text-primary uppercase font-semibold mb-2">
                 <TrendingUp className="h-3 w-3" />
                 Success Rate
               </div>
-              <div className="text-[24px] font-bold text-purple">{overallSuccessRate.toFixed(1)}%</div>
+              <div className="text-[20px] font-semibold text-primary">{overallSuccessRate.toFixed(1)}%</div>
             </div>
           </div>
 
           {/* Performance Trends Chart */}
-          <div className="bg-white border border-edge rounded-xl p-6 mb-6">
+          <div className="bg-white rounded-xl p-6 shadow-card mb-8">
             <h2 className="text-[14px] font-semibold text-text-primary mb-4">
               Performance Trends
             </h2>
@@ -171,10 +137,10 @@ export function Analytics() {
 
           {/* Agent Metrics Cards */}
           <div>
-            <h2 className="text-[14px] font-semibold text-text-primary mb-4">
+            <h2 className="text-[13px] font-semibold uppercase tracking-wider text-text-tertiary mb-4">
               Agent Performance
             </h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {metrics.map((metric, index) => (
                 <AgentMetricsCard
                   key={metric.agentId}
@@ -187,7 +153,7 @@ export function Analytics() {
 
           {metrics.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12">
-              <BarChart3 className="h-12 w-12 text-text-tertiary mb-3" />
+              <BarChart3 className="h-10 w-10 text-text-placeholder mb-3" />
               <p className="text-[13px] text-text-tertiary">No analytics data available</p>
             </div>
           )}

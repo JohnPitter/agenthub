@@ -44,15 +44,15 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-lg animate-fade-up"
+        className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-lg bg-white p-6 shadow-lg animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-[14px] font-bold text-white"
-              style={{ backgroundColor: agent.color ?? "#FF5C35" }}
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-[14px] font-bold text-white"
+              style={{ backgroundColor: agent.color ?? "#0866FF" }}
             >
               {agent.name.charAt(0)}
             </div>
@@ -61,7 +61,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               <p className="text-[12px] text-text-tertiary">{agent.role}</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-xl p-2 text-text-tertiary transition-colors hover:bg-page hover:text-text-primary">
+          <button onClick={onClose} className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-page hover:text-text-primary">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -75,7 +75,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
             <select
               value={model}
               onChange={(e) => setModel(e.target.value as AgentModel)}
-              className="w-full rounded-xl border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
+              className="w-full rounded-lg border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
             >
               {MODELS.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -120,7 +120,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
                     onClick={() => handleToggleTool(tool)}
                     className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all ${
                       isActive
-                        ? "bg-primary text-white shadow-sm"
+                        ? "bg-primary text-white"
                         : "bg-page text-text-tertiary hover:bg-edge-light hover:text-text-secondary"
                     }`}
                   >
@@ -141,7 +141,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder="Instruções adicionais para o agent..."
               rows={4}
-              className="w-full resize-none rounded-xl border border-edge bg-page px-4 py-3 text-[13px] text-text-primary placeholder-text-placeholder font-mono outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
+              className="w-full resize-none rounded-lg border border-edge bg-page px-4 py-3 text-[13px] text-text-primary placeholder-text-placeholder font-mono outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
             />
           </div>
 
@@ -149,13 +149,13 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
           <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="rounded-xl px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-colors hover:bg-page"
+              className="rounded-lg px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-colors hover:bg-page"
             >
               Cancelar
             </button>
             <button
               onClick={handleSave}
-              className="rounded-xl bg-primary px-6 py-2.5 text-[14px] font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98]"
+              className="rounded-lg bg-primary px-6 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-primary-hover"
             >
               Salvar Configuração
             </button>

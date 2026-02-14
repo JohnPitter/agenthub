@@ -1,0 +1,37 @@
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: apps/orchestrator/Dockerfile
+      target: deps
+    command: pnpm --filter @agenthub/orchestrator dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - ORCHESTRATOR_PORT=3001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./apps/orchestrator/src:/app/apps/orchestrator/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - ./packages/database/src:/app/packages/database/src
+      - agenthub-data:/root/.agenthub
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: deps
+    command: pnpm --filter @agenthub/web dev --host 0.0.0.0
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      - orchestrator
+
+volumes:
+  agenthub-data:

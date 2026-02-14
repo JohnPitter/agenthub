@@ -51,7 +51,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-lg animate-fade-up"
+        className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -59,7 +59,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
           <h2 className="text-[18px] font-semibold text-text-primary">
             {task ? "Editar Task" : "Nova Task"}
           </h2>
-          <button onClick={onClose} className="rounded-xl p-2 text-text-tertiary transition-colors hover:bg-page hover:text-text-primary">
+          <button onClick={onClose} className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-page hover:text-text-primary">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -75,7 +75,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex: Implementar autenticação JWT"
-              className="w-full rounded-xl border border-edge bg-page px-4 py-3 text-[14px] text-text-primary placeholder-text-placeholder outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
+              className="w-full rounded-lg border border-edge bg-page px-4 py-3 text-[14px] text-text-primary placeholder-text-placeholder outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
               autoFocus
             />
           </div>
@@ -90,7 +90,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detalhe o que precisa ser feito..."
               rows={3}
-              className="w-full resize-none rounded-xl border border-edge bg-page px-4 py-3 text-[14px] text-text-primary placeholder-text-placeholder outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
+              className="w-full resize-none rounded-lg border border-edge bg-page px-4 py-3 text-[14px] text-text-primary placeholder-text-placeholder outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
             />
           </div>
 
@@ -103,7 +103,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="w-full rounded-xl border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
+                className="w-full rounded-lg border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
               >
                 {PRIORITIES.map((p) => (
                   <option key={p.value} value={p.value}>{p.label}</option>
@@ -118,7 +118,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as TaskCategory | "")}
-                className="w-full rounded-xl border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
+                className="w-full rounded-lg border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
               >
                 <option value="">Nenhuma</option>
                 {CATEGORIES.map((c) => (
@@ -136,7 +136,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
             <select
               value={assignedAgentId}
               onChange={(e) => setAssignedAgentId(e.target.value)}
-              className="w-full rounded-xl border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
+              className="w-full rounded-lg border border-edge bg-page px-4 py-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary-muted"
             >
               <option value="">Auto (Tech Lead decide)</option>
               {activeAgents.map((agent) => (
@@ -150,14 +150,14 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-colors hover:bg-page"
+              className="rounded-lg px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-colors hover:bg-page"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={!title.trim()}
-              className="rounded-xl bg-primary px-6 py-2.5 text-[14px] font-medium text-white shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-40"
+              className="rounded-lg bg-primary px-6 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-primary-hover disabled:opacity-40"
             >
               {task ? "Salvar" : "Criar Task"}
             </button>

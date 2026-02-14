@@ -28,11 +28,11 @@ export function TaskCommitDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-modal">
+      <div className="w-full max-w-2xl rounded-lg bg-white shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-edge-light px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-light">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-light">
               <GitCommit className="h-4 w-4 text-green" />
             </div>
             <div>
@@ -60,7 +60,7 @@ export function TaskCommitDialog({
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Describe your changes..."
               rows={3}
-              className="w-full rounded-xl border border-edge bg-white px-4 py-3 text-[13px] text-text-primary placeholder-text-placeholder focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-edge bg-white px-4 py-3 text-[13px] text-text-primary placeholder-text-placeholder focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               autoFocus
             />
           </div>
@@ -70,7 +70,7 @@ export function TaskCommitDialog({
             <button
               type="button"
               onClick={() => setShowFiles(!showFiles)}
-              className="flex w-full items-center justify-between rounded-xl bg-page px-4 py-3 text-left transition-colors hover:bg-page/80"
+              className="flex w-full items-center justify-between rounded-lg bg-page px-4 py-3 text-left transition-colors hover:bg-page/80"
             >
               <span className="text-[12px] font-semibold text-text-secondary">
                 Changed Files ({changedFiles.length})
@@ -83,7 +83,7 @@ export function TaskCommitDialog({
             </button>
 
             {showFiles && (
-              <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-edge bg-white p-4">
+              <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-edge bg-white p-4">
                 {changedFiles.length > 0 ? (
                   <ul className="space-y-1.5">
                     {changedFiles.map((file, index) => (
@@ -107,7 +107,7 @@ export function TaskCommitDialog({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-xl border border-edge px-5 py-2.5 text-[13px] font-medium text-text-secondary transition-colors hover:bg-page"
+              className="rounded-lg border border-edge px-5 py-2.5 text-[13px] font-medium text-text-secondary transition-colors hover:bg-page"
             >
               Cancel
             </button>
@@ -115,9 +115,9 @@ export function TaskCommitDialog({
               type="submit"
               disabled={!message.trim()}
               className={cn(
-                "flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-medium text-white shadow-sm transition-all",
+                "flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-medium text-white shadow-sm transition-all",
                 message.trim()
-                  ? "bg-green hover:bg-green/90 active:scale-[0.98]"
+                  ? "bg-green hover:bg-green/90"
                   : "cursor-not-allowed bg-edge text-text-placeholder"
               )}
             >

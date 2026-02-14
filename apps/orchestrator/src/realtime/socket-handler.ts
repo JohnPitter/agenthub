@@ -8,9 +8,11 @@ import { transitionTask } from "../tasks/task-lifecycle";
 import { eventBus } from "./event-bus";
 import { logger } from "../lib/logger";
 import { GitService } from "../git/git-service";
+import { GitHubService } from "../git/github-service";
 import { decrypt } from "../lib/encryption";
 
 const gitService = new GitService();
+const githubService = new GitHubService();
 
 export function setupSocketHandlers(
   io: SocketServer<ClientToServerEvents, ServerToClientEvents>,
@@ -269,6 +271,10 @@ export function setupSocketHandlers(
               });
 
               logger.info(`Auto-pushed task ${taskId} to remote`, "socket");
+
+              // Auto-PR after push
+              const pushBranch = task.branch || config.defaultBranch || "main";
+              await tryAutoPR(task, project.path, pushBranch, config);
             } catch (error) {
               logger.error(`Auto-push failed for task ${taskId}: ${error}`, "socket");
 
@@ -349,6 +355,9 @@ export function setupSocketHandlers(
         });
 
         logger.info(`Manual push for task ${taskId} to remote`, "socket");
+
+        // Auto-PR after push
+        await tryAutoPR(task, project.path, branchName, config);
       } catch (error) {
         logger.error(`Manual push failed for task ${taskId}: ${error}`, "socket");
 
@@ -389,6 +398,60 @@ export function setupSocketHandlers(
       logger.debug(`Client disconnected: ${socket.id}`, "socket");
     });
   });
+}
+
+/**
+ * Auto-create PR after a successful push if autoPR is enabled in git config.
+ */
+async function tryAutoPR(task: { id: string; projectId: string; title: string; branch: string | null }, projectPath: string, branchName: string, config: Record<string, unknown>) {
+  if (!config.autoPR) return;
+
+  try {
+    // Check if a PR already exists for this branch
+    const existingPR = await githubService.findPRForBranch(projectPath, branchName);
+    if (existingPR) {
+      logger.debug(`PR already exists for branch ${branchName}: #${existingPR.number}`, "socket");
+      return;
+    }
+
+    const baseBranch = (config.defaultBranch as string) || "main";
+    const pr = await githubService.createPR(projectPath, {
+      title: task.title,
+      body: `Automated PR for task \`${task.id}\`\n\nBranch: \`${branchName}\` → \`${baseBranch}\``,
+      headBranch: branchName,
+      baseBranch,
+      draft: false,
+    });
+
+    if (pr) {
+      // Log PR creation
+      await db.insert(schema.taskLogs).values({
+        id: crypto.randomUUID(),
+        taskId: task.id,
+        agentId: null,
+        action: "pr_created",
+        fromStatus: null,
+        toStatus: null,
+        detail: JSON.stringify({ prNumber: pr.number, prUrl: pr.url }),
+        filePath: null,
+        createdAt: new Date(),
+      });
+
+      eventBus.emit("task:pr_created", {
+        taskId: task.id,
+        projectId: task.projectId,
+        prNumber: pr.number,
+        prUrl: pr.url,
+        prTitle: pr.title,
+        headBranch: branchName,
+        baseBranch,
+      });
+
+      logger.info(`Auto-PR created for task ${task.id}: #${pr.number}`, "socket");
+    }
+  } catch (error) {
+    logger.error(`Auto-PR failed for task ${task.id}: ${error}`, "socket");
+  }
 }
 
 function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientEvents>) {
@@ -455,6 +518,14 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
 
   eventBus.on("task:git_push_error", (data) => {
     io.to(`project:${data.projectId}`).emit("task:git_push_error", data);
+  });
+
+  eventBus.on("task:pr_created", (data) => {
+    io.to(`project:${data.projectId}`).emit("task:pr_created", data);
+  });
+
+  eventBus.on("task:pr_merged", (data) => {
+    io.to(`project:${data.projectId}`).emit("task:pr_merged", data);
   });
 
   eventBus.on("board:activity", (data) => {

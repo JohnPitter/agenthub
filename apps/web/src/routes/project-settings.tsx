@@ -31,6 +31,7 @@ export function ProjectSettings() {
     defaultBranch: "main",
     autoCommit: false,
     autoCreateBranch: false,
+    autoPR: false,
   });
 
   const handleArchive = async () => {
@@ -53,8 +54,8 @@ export function ProjectSettings() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-edge-light px-8 py-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light">
+      <div className="relative z-10 flex items-center gap-3 bg-white px-8 py-5 shadow-xs">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-light">
           <Settings className="h-5 w-5 text-primary" />
         </div>
         <div>
@@ -64,12 +65,12 @@ export function ProjectSettings() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <div className="mx-auto flex max-w-2xl flex-col gap-8">
 
           {/* Workspace Path */}
-          <section className="rounded-2xl bg-white p-6 shadow-card">
+          <section className="rounded-xl bg-white p-6 shadow-card">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-light">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
                 <FolderOpen className="h-4 w-4 text-primary" />
               </div>
               <div>
@@ -77,15 +78,15 @@ export function ProjectSettings() {
                 <p className="text-[12px] text-text-tertiary">Diretório raiz do projeto</p>
               </div>
             </div>
-            <div className="rounded-xl bg-page px-4 py-3 font-mono text-[13px] text-text-secondary">
+            <div className="rounded-lg bg-page px-4 py-3 font-mono text-[13px] text-text-secondary">
               {project.path}
             </div>
           </section>
 
           {/* Active Agents */}
-          <section className="rounded-2xl bg-white p-6 shadow-card">
+          <section className="rounded-xl bg-white p-6 shadow-card">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-light">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-light">
                 <Users className="h-4 w-4 text-green" />
               </div>
               <div>
@@ -97,12 +98,12 @@ export function ProjectSettings() {
               {agents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="flex items-center justify-between rounded-xl bg-page px-4 py-3"
+                  className="flex items-center justify-between rounded-lg bg-page px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
                     <div
                       className="flex h-9 w-9 items-center justify-center rounded-lg text-[12px] font-bold text-white"
-                      style={{ backgroundColor: agent.color ?? "#FF5C35" }}
+                      style={{ backgroundColor: agent.color ?? "#0866FF" }}
                     >
                       {agent.name.charAt(0)}
                     </div>
@@ -128,7 +129,7 @@ export function ProjectSettings() {
                 </div>
               ))}
               {agents.length === 0 && (
-                <div className="rounded-xl bg-page px-4 py-6 text-center text-[13px] text-text-placeholder">
+                <div className="rounded-lg bg-page px-4 py-6 text-center text-[13px] text-text-placeholder">
                   Nenhum agente configurado
                 </div>
               )}
@@ -136,9 +137,9 @@ export function ProjectSettings() {
           </section>
 
           {/* Git Status & Configuration */}
-          <section className="rounded-2xl bg-white p-6 shadow-card">
+          <section className="rounded-xl bg-white p-6 shadow-card">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-light">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-light">
                 <GitBranch className="h-4 w-4 text-purple" />
               </div>
               <div>
@@ -148,11 +149,11 @@ export function ProjectSettings() {
             </div>
 
             {loading ? (
-              <div className="rounded-xl bg-page px-4 py-6 text-center text-[13px] text-text-tertiary">
+              <div className="rounded-lg bg-page px-4 py-6 text-center text-[13px] text-text-tertiary">
                 Carregando status do Git...
               </div>
             ) : !isGitRepo ? (
-              <div className="rounded-xl bg-page px-4 py-6 text-center">
+              <div className="rounded-lg bg-page px-4 py-6 text-center">
                 <p className="text-[13px] text-text-tertiary mb-3">Repositório Git não inicializado</p>
                 <button
                   onClick={async () => {
@@ -163,7 +164,7 @@ export function ProjectSettings() {
                       addToast("error", "Erro ao inicializar", "Não foi possível criar o repositório Git");
                     }
                   }}
-                  className="rounded-xl bg-purple px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-purple/90"
+                  className="rounded-lg bg-purple px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-purple/90"
                 >
                   Inicializar Repositório
                 </button>
@@ -171,7 +172,7 @@ export function ProjectSettings() {
             ) : (
               <div className="flex flex-col gap-4">
                 {/* Git Status */}
-                <div className="rounded-xl bg-page p-4">
+                <div className="rounded-lg bg-page p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-semibold text-text-tertiary uppercase">Branch Atual</span>
@@ -259,7 +260,7 @@ export function ProjectSettings() {
                 </div>
 
                 {/* Git Configuration */}
-                <div className="rounded-xl bg-page p-4">
+                <div className="rounded-lg bg-page p-4">
                   <div className="text-[11px] font-semibold text-text-tertiary uppercase mb-3">Configuração</div>
 
                   <div className="flex flex-col gap-3">
@@ -328,6 +329,27 @@ export function ProjectSettings() {
                       </button>
                     </div>
 
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[12px] font-semibold text-text-primary">Auto-PR após push</p>
+                        <p className="text-[11px] text-text-tertiary">Cria PR automaticamente ao fazer push</p>
+                      </div>
+                      <button
+                        onClick={() => setGitConfigForm({ ...gitConfigForm, autoPR: !gitConfigForm.autoPR })}
+                        className={cn(
+                          "relative h-6 w-11 rounded-full transition-colors duration-200",
+                          (config?.autoPR ?? gitConfigForm.autoPR) ? "bg-green" : "bg-edge"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+                            (config?.autoPR ?? gitConfigForm.autoPR) ? "translate-x-5" : "translate-x-0.5"
+                          )}
+                        />
+                      </button>
+                    </div>
+
                     <button
                       onClick={async () => {
                         try {
@@ -337,7 +359,7 @@ export function ProjectSettings() {
                           addToast("error", "Erro ao salvar", "Não foi possível atualizar configurações");
                         }
                       }}
-                      className="mt-2 w-full rounded-xl bg-purple px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-purple/90"
+                      className="mt-2 w-full rounded-lg bg-purple px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-purple/90"
                     >
                       Salvar Configurações
                     </button>
@@ -348,9 +370,9 @@ export function ProjectSettings() {
           </section>
 
           {/* Danger Zone */}
-          <section className="rounded-2xl border-2 border-red/20 bg-white p-6">
+          <section className="rounded-xl border border-red/20 bg-white p-6 shadow-card">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-light">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-light">
                 <AlertTriangle className="h-4 w-4 text-red" />
               </div>
               <div>
@@ -358,14 +380,14 @@ export function ProjectSettings() {
                 <p className="text-[12px] text-text-tertiary">Ações irreversíveis</p>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl bg-red-light/50 px-4 py-3">
+            <div className="flex items-center justify-between rounded-lg bg-red-light/50 px-4 py-3">
               <div>
                 <p className="text-[13px] font-semibold text-text-primary">Arquivar Projeto</p>
                 <p className="text-[11px] text-text-tertiary">Remove o projeto do AgentHub (não afeta arquivos)</p>
               </div>
               <button
                 onClick={() => setShowArchiveDialog(true)}
-                className="rounded-xl border border-red/30 px-4 py-2 text-[12px] font-semibold text-red transition-colors hover:bg-red hover:text-white"
+                className="rounded-lg border border-red/30 px-4 py-2 text-[12px] font-semibold text-red transition-colors hover:bg-red hover:text-white"
               >
                 Arquivar
               </button>

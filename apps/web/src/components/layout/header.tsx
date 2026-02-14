@@ -51,43 +51,48 @@ export function Header() {
   }, [panelOpen, togglePanel]);
 
   return (
-    <header className="relative z-10 flex h-14 shrink-0 items-center justify-between bg-white px-6 shadow-xs">
+    <header className="glass relative z-10 flex h-16 shrink-0 items-center justify-between px-6 shadow-sm border-b border-edge-light/50">
+      {/* Gradient accent line */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-primary opacity-60" />
+
       {/* Left */}
       <div>
         {isDashboard ? (
-          <h1 className="text-[16px] font-semibold text-text-primary">Dashboard</h1>
+          <h1 className="text-[17px] font-bold text-text-primary">Dashboard</h1>
         ) : standalonePageTitle ? (
-          <h1 className="text-[16px] font-semibold text-text-primary">{standalonePageTitle}</h1>
+          <h1 className="text-[17px] font-bold text-text-primary">{standalonePageTitle}</h1>
         ) : project ? (
           <div className="flex items-center gap-2 text-[14px]">
             <Link
               to={`/project/${project.id}`}
-              className="font-semibold text-text-primary hover:text-primary transition-colors"
+              className="font-bold text-text-primary hover:text-primary transition-all hover:scale-105"
             >
               {project.name}
             </Link>
             {pageLabel && (
               <>
                 <span className="text-text-placeholder">/</span>
-                <span className="text-text-secondary">{pageLabel}</span>
+                <span className="font-medium text-text-secondary">{pageLabel}</span>
               </>
             )}
           </div>
         ) : (
-          <span className="text-[14px] font-semibold text-text-primary">AgentHub</span>
+          <span className="text-[14px] font-bold bg-gradient-primary bg-clip-text text-transparent">
+            AgentHub
+          </span>
         )}
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {isProjectRoute && (
           <button
             onClick={toggleChatPanel}
             className={cn(
-              "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-300",
               chatPanelOpen
-                ? "bg-primary text-white"
-                : "bg-page text-text-secondary hover:bg-sidebar-hover",
+                ? "bg-gradient-primary text-white shadow-md glow-primary"
+                : "bg-page text-text-secondary hover:bg-surface-hover hover:shadow-sm",
             )}
           >
             <MessageSquare className="h-4 w-4" />
@@ -97,11 +102,11 @@ export function Header() {
 
         <button
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-page px-3 py-1.5 text-text-placeholder hover:bg-sidebar-hover transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-page px-4 py-2 text-text-placeholder hover:bg-surface-hover hover:shadow-sm transition-all duration-300"
         >
           <Search className="h-4 w-4" />
-          <span className="text-[13px]">Buscar...</span>
-          <kbd className="ml-1 rounded bg-white px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary border border-edge-light">
+          <span className="text-[13px] font-medium">Buscar...</span>
+          <kbd className="ml-1 rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-text-tertiary border border-edge-light shadow-xs">
             ⌘K
           </kbd>
         </button>
@@ -110,13 +115,15 @@ export function Header() {
           <button
             onClick={togglePanel}
             className={cn(
-              "relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-              panelOpen ? "bg-primary-light text-primary" : "text-text-tertiary hover:bg-page",
+              "relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300",
+              panelOpen
+                ? "bg-gradient-to-br from-primary-light to-purple-light text-primary shadow-md"
+                : "text-text-tertiary hover:bg-page hover:shadow-sm",
             )}
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-gradient-danger px-1.5 text-[10px] font-bold text-white shadow-md glow-red">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -124,7 +131,7 @@ export function Header() {
           {panelOpen && <NotificationPanel />}
         </div>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-[13px] font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer">
           JP
         </div>
       </div>

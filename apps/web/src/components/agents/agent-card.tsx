@@ -25,28 +25,31 @@ interface AgentCardProps {
 export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
   return (
     <div className={cn(
-      "group rounded-xl bg-white p-6 shadow-card transition-all hover:shadow-card-hover",
+      "group relative overflow-hidden rounded-2xl bg-white p-6 shadow-card card-hover",
       !agent.isActive && "opacity-60",
     )}>
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.02] gradient-primary transition-opacity duration-300" />
+
       {/* Status indicator */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="relative flex items-center justify-between mb-5">
         <div
-          className="flex h-12 w-12 items-center justify-center rounded-full text-[18px] font-bold text-white"
-          style={{ backgroundColor: agent.color ?? "#0866FF" }}
+          className="flex h-14 w-14 items-center justify-center rounded-2xl text-[20px] font-bold text-white shadow-md transition-all group-hover:shadow-lg group-hover:scale-105"
+          style={{ backgroundColor: agent.color ?? "#6366F1" }}
         >
           {agent.name.charAt(0)}
         </div>
         <span className={cn(
-          "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5",
-          agent.isActive ? "bg-green-light" : "bg-page",
+          "inline-flex items-center gap-2 rounded-full px-3 py-1.5 shadow-sm",
+          agent.isActive ? "bg-gradient-to-r from-green-light to-green-muted" : "bg-page",
         )}>
           <span className={cn(
-            "h-1.5 w-1.5 rounded-full",
-            agent.isActive ? "bg-green" : "bg-text-placeholder",
+            "h-2 w-2 rounded-full",
+            agent.isActive ? "bg-green-dark" : "bg-text-placeholder",
           )} style={agent.isActive ? { animation: "pulse-dot 2s ease-in-out infinite" } : undefined} />
           <span className={cn(
-            "text-[10px] font-semibold",
-            agent.isActive ? "text-green" : "text-text-placeholder",
+            "text-[11px] font-bold",
+            agent.isActive ? "text-green-dark" : "text-text-placeholder",
           )}>
             {agent.isActive ? "Online" : "Offline"}
           </span>
@@ -54,41 +57,43 @@ export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
       </div>
 
       {/* Info */}
-      <h3 className="text-[14px] font-semibold text-text-primary">{agent.name}</h3>
-      <p className="mt-0.5 text-[12px] text-text-secondary">{ROLE_LABELS[agent.role] ?? agent.role}</p>
-      <p className="text-[11px] text-text-tertiary">{MODEL_LABELS[agent.model] ?? agent.model}</p>
+      <h3 className="relative text-[16px] font-bold text-text-primary">{agent.name}</h3>
+      <p className="relative mt-1 text-[13px] font-semibold text-text-secondary">{ROLE_LABELS[agent.role] ?? agent.role}</p>
+      <p className="relative text-[11px] font-medium text-text-tertiary bg-page px-2 py-1 rounded-lg inline-block mt-1">
+        {MODEL_LABELS[agent.model] ?? agent.model}
+      </p>
 
-      <p className="mt-2 text-[11px] text-text-tertiary leading-relaxed line-clamp-2">
+      <p className="relative mt-3 text-[12px] text-text-tertiary leading-relaxed line-clamp-2">
         {agent.description}
       </p>
 
       {/* Level badge */}
-      <div className="mt-3 inline-flex items-center rounded-md bg-page px-2 py-0.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+      <div className="relative mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-primary-light to-purple-light px-3 py-1.5 shadow-sm">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-primary-dark">
           {agent.level}
         </span>
       </div>
 
       {/* Actions */}
-      <div className="mt-4 flex items-center gap-2">
+      <div className="relative mt-5 flex items-center gap-3">
         <button
           onClick={() => onToggle(agent.id)}
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-semibold transition-colors",
+            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-bold shadow-sm transition-all duration-300 hover:shadow-md hover:scale-105",
             agent.isActive
-              ? "bg-green-light text-green hover:bg-green-muted"
-              : "bg-page text-text-tertiary hover:bg-sidebar-hover",
+              ? "bg-gradient-to-r from-green-light to-green-muted text-green-dark"
+              : "bg-page text-text-tertiary hover:bg-surface-hover",
           )}
         >
-          <Power className="h-3.5 w-3.5" />
+          <Power className="h-4 w-4" />
           {agent.isActive ? "Ativo" : "Inativo"}
         </button>
         <button
           onClick={() => onConfigure(agent)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary-light py-2 text-[12px] font-semibold text-primary transition-colors hover:bg-primary-muted"
+          className="btn-primary flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-bold text-white shadow-md transition-all duration-300 hover:scale-105"
         >
-          <Settings className="h-3.5 w-3.5" />
-          Configurar
+          <Settings className="h-4 w-4" />
+          Config
         </button>
       </div>
     </div>

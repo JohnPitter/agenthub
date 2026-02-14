@@ -1,0 +1,21 @@
+{
+  "name": "agenthub",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=@agenthub/web",
+    "dev:orchestrator": "turbo dev --filter=@agenthub/orchestrator",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:migrate": "pnpm --filter @agenthub/database migrate",
+    "db:seed": "pnpm --filter @agenthub/database seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

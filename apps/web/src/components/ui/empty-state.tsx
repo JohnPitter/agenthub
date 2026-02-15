@@ -28,7 +28,8 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center",
+        "relative flex flex-col items-center justify-center text-center",
+        !isInline && "dot-pattern",
         isInline && "flex-row gap-4 text-left",
         !isInline && isCompact ? "gap-3 py-8" : "gap-6 py-16",
         className,
@@ -36,7 +37,7 @@ export function EmptyState({
     >
       <div
         className={cn(
-          "flex items-center justify-center rounded-lg bg-neutral-bg2",
+          "flex items-center justify-center rounded-xl bg-neutral-bg2 border border-stroke",
           isCompact || isInline ? "h-12 w-12" : "h-16 w-16",
         )}
       >
@@ -49,7 +50,7 @@ export function EmptyState({
       <div className={cn("flex flex-col", isInline ? "flex-1 gap-1" : "gap-2")}>
         <h3
           className={cn(
-            "font-semibold text-neutral-fg1",
+            "font-semibold text-gradient",
             isCompact || isInline ? "text-[14px]" : "text-[16px]",
           )}
         >
@@ -71,7 +72,7 @@ export function EmptyState({
       {action && !isInline && (
         <button
           onClick={action.onClick}
-          className="btn-primary flex items-center gap-2 rounded-md px-5 py-2.5 text-[14px] font-medium text-white"
+          className="btn-primary flex items-center gap-2 rounded-lg px-5 py-2.5 text-[14px] font-medium text-white"
         >
           {action.icon && <action.icon className="h-4 w-4" strokeWidth={2.5} />}
           {action.label}

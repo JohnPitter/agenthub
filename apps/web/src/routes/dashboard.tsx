@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Loader2, Check, Sparkles, Activity, FolderOpen } from "lucide-react";
+import {
+  Search, Plus, Loader2, Check, Sparkles, Activity, FolderOpen, ListTodo, Users, Zap, CheckCircle2,
+  UserCheck, Play, Eye, ThumbsUp, XCircle, MessageSquare, Clock, AlertTriangle, ArrowRightLeft, HelpCircle,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { api, formatRelativeTime } from "../lib/utils";
 import { cn } from "../lib/utils";
 import { getStackIcon } from "@agenthub/shared";
 import { CommandBar } from "../components/layout/command-bar";
-import { StatBar } from "../components/ui/stat-bar";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonTable, SkeletonCard } from "../components/ui/skeleton";
 import { ProjectCard } from "../components/projects/project-card";
@@ -34,22 +37,75 @@ interface DashboardStats {
     agentName: string;
     agentColor: string;
     taskTitle: string;
+    projectName: string;
     createdAt: string;
   }[];
 }
 
-const ACTION_LABELS: Record<string, string> = {
-  created: "Task criada",
-  assigned: "Task atribuída",
-  started: "Execução iniciada",
-  completed: "Task concluída",
-  review: "Enviada para review",
-  approved: "Task aprovada",
-  rejected: "Task rejeitada",
-  changes_requested: "Alterações solicitadas",
-  queued: "Adicionada à fila",
-  agent_error: "Erro na execução",
+const ACTION_MAP: Record<string, { icon: LucideIcon; label: string; color: string }> = {
+  created: { icon: Plus, label: "Task criada", color: "text-brand" },
+  assigned: { icon: UserCheck, label: "Task atribuída", color: "text-info" },
+  agent_assigned: { icon: UserCheck, label: "Agente atribuído", color: "text-info" },
+  started: { icon: Play, label: "Execução iniciada", color: "text-success" },
+  completed: { icon: CheckCircle2, label: "Task concluída", color: "text-success" },
+  review: { icon: Eye, label: "Enviada para review", color: "text-purple" },
+  approved: { icon: ThumbsUp, label: "Task aprovada", color: "text-success" },
+  rejected: { icon: XCircle, label: "Task rejeitada", color: "text-danger" },
+  changes_requested: { icon: MessageSquare, label: "Alterações solicitadas", color: "text-warning" },
+  queued: { icon: Clock, label: "Adicionada à fila", color: "text-neutral-fg2" },
+  agent_error: { icon: AlertTriangle, label: "Erro na execução", color: "text-danger" },
+  status_change: { icon: ArrowRightLeft, label: "Mudança de status", color: "text-neutral-fg2" },
 };
+
+const DEFAULT_ACTION = { icon: HelpCircle, label: "Ação desconhecida", color: "text-neutral-fg3" };
+
+function ActionIcon({ action }: { action: string }) {
+  const { icon: Icon, color } = ACTION_MAP[action] ?? DEFAULT_ACTION;
+
+  return (
+    <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-bg3", color)}>
+      <Icon className="h-3.5 w-3.5" />
+    </div>
+  );
+}
+
+function ActionLegendHeader() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative inline-flex items-center gap-1.5">
+      <span>Ação</span>
+      <button
+        className="text-neutral-fg-disabled hover:text-neutral-fg2 transition-colors"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <HelpCircle className="h-3 w-3" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-2 z-50 rounded-lg bg-neutral-bg1 border border-stroke p-3 shadow-16 animate-scale-in w-[200px]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">Legenda</p>
+          <div className="flex flex-col gap-1.5">
+            {Object.entries(ACTION_MAP).map(([key, { icon: Icon, label, color }]) => (
+              <div key={key} className="flex items-center gap-2">
+                <Icon className={cn("h-3 w-3 shrink-0", color)} />
+                <span className="text-[11px] text-neutral-fg2">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const STAT_ITEMS = [
+  { key: "totalProjects", label: "Projetos", icon: FolderOpen, color: "text-brand" },
+  { key: "activeAgents", label: "Agentes Ativos", icon: Users, color: "text-purple" },
+  { key: "runningTasks", label: "Em Progresso", icon: Zap, color: "text-warning" },
+  { key: "reviewTasks", label: "Em Review", icon: Activity, color: "text-purple" },
+  { key: "doneTasks", label: "Concluídas", icon: CheckCircle2, color: "text-success" },
+] as const;
 
 export function Dashboard() {
   const { projects, addProject } = useWorkspaceStore();
@@ -112,7 +168,7 @@ export function Dashboard() {
               value={workspacePath}
               onChange={(e) => setWorkspacePath(e.target.value)}
               placeholder="Caminho do workspace..."
-              className="w-64 rounded-md border border-stroke bg-neutral-bg2 px-3 py-1.5 text-[13px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none transition-colors focus:border-brand"
+              className="w-64 input-fluent text-[13px]"
               onKeyDown={(e) => e.key === "Enter" && handleScan()}
             />
             <button
@@ -130,19 +186,6 @@ export function Dashboard() {
           {projects.length} projeto{projects.length !== 1 ? "s" : ""}
         </span>
       </CommandBar>
-
-      {/* Stat Bar */}
-      {stats && (
-        <StatBar
-          stats={[
-            { label: "Projetos", value: stats.totalProjects },
-            { label: "Agentes", value: stats.activeAgents },
-            { label: "Em Progresso", value: stats.runningTasks, color: "var(--color-warning)" },
-            { label: "Em Review", value: stats.reviewTasks, color: "var(--color-purple)" },
-            { label: "Concluídas", value: stats.doneTasks, color: "var(--color-success)" },
-          ]}
-        />
-      )}
 
       {/* Scanned results banner */}
       {scannedProjects.length > 0 && (
@@ -190,35 +233,69 @@ export function Dashboard() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 overflow-y-auto p-10">
+        {/* Hero area */}
+        <div className="relative mb-12">
+          <div className="glow-orb glow-orb-brand w-[300px] h-[300px] -top-32 -left-20 opacity-40" />
+          <div className="glow-orb glow-orb-purple w-[200px] h-[200px] -top-16 right-10 opacity-30" />
+          <div className="relative">
+            <h1 className="text-display text-gradient animate-fade-up">Dashboard</h1>
+            <p className="text-subtitle mt-2 animate-fade-up stagger-1">
+              {projects.length} projeto{projects.length !== 1 ? "s" : ""} no workspace
+            </p>
+          </div>
+        </div>
+
+        {/* Stat cards grid */}
+        {stats && (
+          <div className="grid grid-cols-5 gap-4 mb-12 animate-fade-up stagger-2">
+            {STAT_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const value = stats[item.key as keyof DashboardStats] as number;
+              return (
+                <div key={item.key} className="stat-card flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-label">{item.label}</span>
+                    <Icon className={cn("h-4 w-4", item.color)} />
+                  </div>
+                  <span className={cn("text-[28px] font-bold tracking-tight", item.color)}>
+                    {value}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Projects grid */}
-        <div className="mb-10">
-          <h3 className="section-heading mb-4">
+        <div className="mb-12">
+          <h3 className="section-heading mb-6">
             Projetos
           </h3>
           {!stats ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
                 <SkeletonCard key={i} />
               ))}
             </div>
           ) : projects.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => {
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project, i) => {
                 const projectStat = stats.projectStats?.find(ps => ps.projectId === project.id);
                 return (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    taskCount={projectStat?.taskCount ?? 0}
-                    agentCount={projectStat?.agentCount ?? 0}
-                    lastActivity={projectStat?.lastActivity ?? undefined}
-                  />
+                  <div key={project.id} className={cn("animate-fade-up", `stagger-${Math.min(i + 1, 5)}`)}>
+                    <ProjectCard
+                      project={project}
+                      taskCount={projectStat?.taskCount ?? 0}
+                      agentCount={projectStat?.agentCount ?? 0}
+                      lastActivity={projectStat?.lastActivity ?? undefined}
+                    />
+                  </div>
                 );
               })}
             </div>
           ) : (
-            <div className="card p-12">
+            <div className="card-glow p-12">
               <EmptyState
                 icon={FolderOpen}
                 title="Nenhum projeto adicionado"
@@ -230,27 +307,30 @@ export function Dashboard() {
 
         {/* Recent activities */}
         {stats && stats.recentActivities.length > 0 && (
-          <div>
-            <h3 className="section-heading mb-4">
+          <div className="animate-fade-up stagger-3">
+            <h3 className="section-heading mb-6">
               Atividades Recentes
             </h3>
-            <div className="card shadow-2">
+            <div className="card-glow overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-stroke2 text-left">
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Ação</th>
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Task</th>
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Quando</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Projeto</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">
+                      <ActionLegendHeader />
+                    </th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Task</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Quando</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stroke2">
                   {stats.recentActivities.slice(0, 10).map((activity) => (
-                    <tr key={activity.id} className="hover:bg-neutral-bg-hover transition-colors">
-                      <td className="px-4 py-3">
+                    <tr key={activity.id} className="table-row">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold text-white"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-white shadow-xs"
                             style={{ backgroundColor: activity.agentColor }}
                           >
                             {activity.agentName.charAt(0)}
@@ -258,13 +338,16 @@ export function Dashboard() {
                           <span className="text-[13px] font-medium text-neutral-fg1">{activity.agentName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-neutral-fg2">
-                        {ACTION_LABELS[activity.action] ?? activity.action}
+                      <td className="px-5 py-3.5 text-[13px] font-medium text-neutral-fg1 truncate max-w-[160px]">
+                        {activity.projectName || "—"}
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-neutral-fg2 truncate max-w-[200px]">
+                      <td className="px-5 py-3.5">
+                        <ActionIcon action={activity.action} />
+                      </td>
+                      <td className="px-5 py-3.5 text-[13px] text-neutral-fg2 truncate max-w-[200px]">
                         {activity.taskTitle || "—"}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-neutral-fg-disabled text-right whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-[11px] text-neutral-fg-disabled text-right whitespace-nowrap">
                         {formatRelativeTime(activity.createdAt)}
                       </td>
                     </tr>

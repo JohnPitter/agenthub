@@ -1,4 +1,5 @@
 import { DiffEditor } from "@monaco-editor/react";
+import { useThemeStore } from "../../stores/theme-store";
 
 interface DiffViewerProps {
   original: string;
@@ -15,13 +16,16 @@ export function DiffViewer({
   originalLabel = "Original",
   modifiedLabel = "Modified",
 }: DiffViewerProps) {
+  const { theme } = useThemeStore();
+  const monacoTheme = theme === "light" ? "vs" : "vs-dark";
+
   return (
     <DiffEditor
       height="100%"
       language={language}
       original={original}
       modified={modified}
-      theme="vs-dark"
+      theme={monacoTheme}
       options={{
         readOnly: true,
         renderSideBySide: true,
@@ -41,8 +45,8 @@ export function DiffViewer({
         diffAlgorithm: "advanced",
       }}
       loading={
-        <div className="flex h-full items-center justify-center bg-[#1e1e1e]">
-          <div className="text-[13px] text-white/50">Loading diff...</div>
+        <div className="flex h-full items-center justify-center bg-neutral-bg2">
+          <div className="text-[13px] text-neutral-fg3">Loading diff...</div>
         </div>
       }
     />

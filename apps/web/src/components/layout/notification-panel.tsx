@@ -14,7 +14,7 @@ export function NotificationPanel() {
 
   if (notifications.length === 0) {
     return (
-      <div className="absolute right-0 top-full mt-2 w-[360px] rounded-xl bg-neutral-bg1 shadow-8 overflow-hidden">
+      <div className="absolute right-0 top-full mt-2 w-[360px] rounded-xl glass-strong shadow-8 overflow-hidden animate-scale-in">
         <div className="flex flex-col items-center justify-center py-10 px-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-bg2 mb-3">
             <Info className="h-5 w-5 text-neutral-fg-disabled" />
@@ -26,7 +26,7 @@ export function NotificationPanel() {
   }
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-[360px] rounded-xl bg-neutral-bg1 shadow-8 overflow-hidden">
+    <div className="absolute right-0 top-full mt-2 w-[360px] rounded-xl glass-strong shadow-8 overflow-hidden animate-scale-in">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stroke px-4 py-3">
         <span className="text-[13px] font-semibold text-neutral-fg1">Notificações</span>
@@ -40,7 +40,7 @@ export function NotificationPanel() {
 
       {/* List */}
       <div className="max-h-[400px] overflow-y-auto">
-        {notifications.map((notif) => {
+        {notifications.map((notif, i) => {
           const config = ICON_MAP[notif.type];
           const Icon = config.icon;
 
@@ -49,8 +49,11 @@ export function NotificationPanel() {
               key={notif.id}
               onClick={() => markAsRead(notif.id)}
               className={cn(
-                "flex w-full items-start gap-3 border-b border-stroke px-4 py-3 text-left transition-colors hover:bg-neutral-bg-hover",
+                "flex w-full items-start gap-3 border-b border-stroke px-4 py-3 text-left transition-all duration-200 hover:bg-neutral-bg-hover animate-fade-up",
                 !notif.read && "bg-brand-light",
+                i === 0 && "stagger-1",
+                i === 1 && "stagger-2",
+                i === 2 && "stagger-3",
               )}
             >
               <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", config.color)} />
@@ -68,7 +71,7 @@ export function NotificationPanel() {
                 </p>
               </div>
               {!notif.read && (
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand animate-pulse" />
               )}
             </button>
           );

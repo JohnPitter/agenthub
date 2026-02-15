@@ -24,15 +24,15 @@ export function useAgents() {
       method: "PATCH",
       body: JSON.stringify(updates),
     });
-    setAgents(agents.map((a) => (a.id === agentId ? agent : a)));
+    setAgents(useWorkspaceStore.getState().agents.map((a) => (a.id === agentId ? agent : a)));
     return agent;
-  }, [agents, setAgents]);
+  }, [setAgents]);
 
   const toggleAgent = useCallback(async (agentId: string) => {
-    const agent = agents.find((a) => a.id === agentId);
-    if (!agent) return;
-    return updateAgent(agentId, { isActive: !agent.isActive });
-  }, [agents, updateAgent]);
+    const current = useWorkspaceStore.getState().agents.find((a) => a.id === agentId);
+    if (!current) return;
+    return updateAgent(agentId, { isActive: !current.isActive });
+  }, [updateAgent]);
 
   return {
     agents,

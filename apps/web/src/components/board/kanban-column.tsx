@@ -27,7 +27,7 @@ export function KanbanColumn({ id, title, tasks, agents, color }: KanbanColumnPr
           <h3 className="text-[13px] font-semibold uppercase tracking-wider text-neutral-fg2">
             {title}
           </h3>
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-neutral-bg3 px-1.5 text-[11px] font-semibold text-neutral-fg1">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-neutral-bg3 px-1.5 text-[11px] font-semibold text-neutral-fg1">
             {tasks.length}
           </span>
         </div>
@@ -38,8 +38,10 @@ export function KanbanColumn({ id, title, tasks, agents, color }: KanbanColumnPr
         <div
           ref={setNodeRef}
           className={cn(
-            "flex-1 space-y-3 rounded-lg border-2 border-dashed p-4 transition-colors",
-            isOver ? "border-brand bg-brand-light/10" : "border-transparent bg-neutral-bg2/30"
+            "flex-1 space-y-3 rounded-xl border-2 border-dashed p-4 transition-all duration-200",
+            isOver
+              ? "border-brand bg-brand-light/10 shadow-glow"
+              : "border-transparent glass"
           )}
         >
           {tasks.length === 0 ? (

@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import Editor, { OnMount } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import * as monaco from "monaco-editor";
+import { useThemeStore } from "../../stores/theme-store";
 
 interface CodeEditorProps {
   value: string;
@@ -14,6 +15,8 @@ interface CodeEditorProps {
 export function CodeEditor({ value, language, readOnly = false, onChange, onSave }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const { theme } = useThemeStore();
+  const monacoTheme = theme === "light" ? "vs" : "vs-dark";
 
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
@@ -32,7 +35,7 @@ export function CodeEditor({ value, language, readOnly = false, onChange, onSave
       height="100%"
       language={language}
       value={value}
-      theme="vs-dark"
+      theme={monacoTheme}
       options={{
         readOnly,
         minimap: { enabled: true },
@@ -52,8 +55,8 @@ export function CodeEditor({ value, language, readOnly = false, onChange, onSave
       onChange={onChange}
       onMount={handleEditorDidMount}
       loading={
-        <div className="flex h-full items-center justify-center bg-[#1e1e1e]">
-          <div className="text-[13px] text-white/50">Loading editor...</div>
+        <div className="flex h-full items-center justify-center bg-neutral-bg2">
+          <div className="text-[13px] text-neutral-fg3">Loading editor...</div>
         </div>
       }
     />

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Brain } from "lucide-react";
+import { cn } from "../../lib/utils";
 import type { Agent, AgentModel, PermissionMode } from "@agenthub/shared";
 
 interface AgentConfigDialogProps {
@@ -110,27 +111,61 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
             </p>
           </div>
 
-          {/* Thinking Tokens */}
-          <div>
-            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Max Thinking Tokens — {thinkingTokens > 0 ? thinkingTokens.toLocaleString() : "Desabilitado"}
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={32000}
-              step={1000}
-              value={thinkingTokens}
-              onChange={(e) => setThinkingTokens(Number(e.target.value))}
-              className="w-full accent-brand"
-            />
-            <div className="mt-1 flex justify-between text-[10px] text-neutral-fg-disabled">
-              <span>Off</span>
-              <span>8k</span>
-              <span>16k</span>
-              <span>24k</span>
-              <span>32k</span>
+          {/* Extended Thinking */}
+          <div className="rounded-lg border border-stroke bg-neutral-bg2 p-4">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4 text-purple" />
+                <label className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
+                  Extended Thinking
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => setThinkingTokens(thinkingTokens > 0 ? 0 : 16000)}
+                className={cn(
+                  "relative h-5 w-9 rounded-full transition-all duration-200",
+                  thinkingTokens > 0 ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
+                    thinkingTokens > 0 && "left-[18px]",
+                  )}
+                />
+              </button>
             </div>
+            <p className="text-[11px] text-neutral-fg3 mb-3">
+              Permite que o agente "pense" antes de responder, melhorando raciocínio complexo
+            </p>
+
+            {thinkingTokens > 0 && (
+              <div className="pt-3 border-t border-stroke">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-neutral-fg3">Budget de tokens</span>
+                  <span className="text-[12px] font-semibold text-purple tabular-nums">
+                    {thinkingTokens.toLocaleString()}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1024}
+                  max={128000}
+                  step={1024}
+                  value={thinkingTokens}
+                  onChange={(e) => setThinkingTokens(Number(e.target.value))}
+                  className="w-full accent-purple"
+                />
+                <div className="mt-1 flex justify-between text-[10px] text-neutral-fg-disabled">
+                  <span>1k</span>
+                  <span>32k</span>
+                  <span>64k</span>
+                  <span>96k</span>
+                  <span>128k</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tools */}

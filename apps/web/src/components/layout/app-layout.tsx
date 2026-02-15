@@ -18,10 +18,10 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex h-screen overflow-hidden bg-neutral-bg1">
+      <div className="flex h-screen overflow-hidden bg-app-bg p-5 gap-6">
         <AppSidebar />
         <ChatPanel />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-stroke bg-neutral-bg2/50">
           <Header />
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
             <Outlet />

@@ -33,7 +33,7 @@ export function useMessages(projectId: string | undefined) {
       setLoadingMessages(true);
       try {
         const data = await api<{ messages: Message[] }>(
-          `/api/messages?projectId=${projectId}&limit=${LIMIT}&offset=${offset}`,
+          `/messages?projectId=${projectId}&limit=${LIMIT}&offset=${offset}`,
         );
 
         const msgs = data.messages;
@@ -81,7 +81,7 @@ export function useMessages(projectId: string | undefined) {
       addMessage(optimistic);
 
       try {
-        await api<{ message: Message }>("/api/messages", {
+        await api<{ message: Message }>("/messages", {
           method: "POST",
           body: JSON.stringify({ projectId, content: content.trim() }),
         });

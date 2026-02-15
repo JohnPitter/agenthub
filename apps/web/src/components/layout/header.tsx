@@ -51,20 +51,20 @@ export function Header() {
   }, [panelOpen, togglePanel]);
 
   return (
-    <header className="relative z-10 flex h-11 shrink-0 flex-col bg-neutral-bg1">
+    <header className="relative z-10 flex h-14 shrink-0 flex-col bg-neutral-bg1">
       {/* Gradient accent line */}
-      <div className="h-[1px] w-full bg-gradient-to-r from-brand/40 via-purple/30 to-brand/40 bg-[length:200%_100%] animate-gradient" />
+      <div className="h-[2px] w-full bg-gradient-to-r from-brand/40 via-purple/30 to-brand/40 bg-[length:200%_100%] animate-gradient" />
 
       {/* Header content */}
       <div className="flex flex-1 items-center justify-between px-6 border-b border-stroke2">
         {/* Left */}
       <div>
         {isDashboard ? (
-          <h1 className="text-[15px] font-semibold text-neutral-fg1">Dashboard</h1>
+          <h1 className="text-[17px] font-semibold text-neutral-fg1">Dashboard</h1>
         ) : standalonePageTitle ? (
-          <h1 className="text-[15px] font-semibold text-neutral-fg1">{standalonePageTitle}</h1>
+          <h1 className="text-[17px] font-semibold text-neutral-fg1">{standalonePageTitle}</h1>
         ) : project ? (
-          <div className="flex items-center gap-2 text-[14px]">
+          <div className="flex items-center gap-2 text-[15px]">
             <Link
               to={`/project/${project.id}`}
               className="font-semibold text-neutral-fg1 hover:text-brand transition-colors"
@@ -79,7 +79,7 @@ export function Header() {
             )}
           </div>
         ) : (
-          <span className="text-[14px] font-semibold text-brand">
+          <span className="text-[15px] font-semibold text-brand">
             AgentHub
           </span>
         )}
@@ -91,10 +91,10 @@ export function Header() {
           <button
             onClick={toggleChatPanel}
             className={cn(
-              "flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-semibold transition-colors",
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200",
               chatPanelOpen
-                ? "bg-brand text-white"
-                : "bg-neutral-bg2 text-neutral-fg2 hover:bg-neutral-bg-hover",
+                ? "bg-gradient-to-r from-brand to-purple text-white shadow-brand"
+                : "bg-neutral-bg2 text-neutral-fg2 hover:bg-neutral-bg-hover border border-stroke",
             )}
           >
             <MessageSquare className="h-4 w-4" strokeWidth={2} />
@@ -104,7 +104,7 @@ export function Header() {
 
         <button
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2 rounded-md bg-neutral-bg2 px-4 py-2 text-neutral-fg3 hover:bg-neutral-bg-hover transition-colors"
+          className="glass-strong flex items-center gap-2 rounded-lg px-4 py-2 text-neutral-fg3 hover:text-neutral-fg2 hover:border-stroke-active transition-all duration-200 focus:ring-2 focus:ring-brand/20"
         >
           <Search className="h-4 w-4" strokeWidth={2} />
           <span className="text-[13px]">Buscar...</span>
@@ -117,7 +117,7 @@ export function Header() {
           <button
             onClick={togglePanel}
             className={cn(
-              "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors",
+              "relative flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200",
               panelOpen
                 ? "bg-brand-light text-brand"
                 : "text-neutral-fg3 hover:bg-neutral-bg-hover",
@@ -125,7 +125,7 @@ export function Header() {
           >
             <Bell className="h-4.5 w-4.5" strokeWidth={2} />
             {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-semibold text-white">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-semibold text-white animate-pulse">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -133,7 +133,7 @@ export function Header() {
           {panelOpen && <NotificationPanel />}
         </div>
 
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-brand to-purple text-[12px] font-semibold text-white cursor-pointer">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-purple text-[12px] font-semibold text-white cursor-pointer ring-2 ring-transparent hover:ring-brand/20 transition-all duration-200">
           JP
         </div>
       </div>

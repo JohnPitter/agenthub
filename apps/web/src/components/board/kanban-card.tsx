@@ -10,10 +10,10 @@ interface KanbanCardProps {
 }
 
 const PRIORITY_COLORS = {
-  low: "bg-neutral-fg3 text-neutral-bg1",
-  medium: "bg-info text-white",
-  high: "bg-warning text-white",
-  urgent: "bg-danger text-white",
+  low: "bg-neutral-fg3/20 text-neutral-fg2",
+  medium: "bg-info-light text-info",
+  high: "bg-warning-light text-warning",
+  urgent: "bg-danger-light text-danger",
 } as const;
 
 const PRIORITY_LABELS = {
@@ -45,16 +45,16 @@ export function KanbanCard({ task, agent }: KanbanCardProps) {
       {...attributes}
       {...listeners}
       className={cn(
-        "group cursor-grab card p-4 transition-all hover:shadow-8 active:cursor-grabbing",
-        isDragging && "opacity-50 shadow-xl"
+        "group cursor-grab card-interactive p-4 active:cursor-grabbing",
+        isDragging && "opacity-40 shadow-glow ring-2 ring-brand/20"
       )}
     >
       {/* Priority badge */}
       {task.priority && (
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2.5 flex items-center justify-between">
           <span
             className={cn(
-              "rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+              "rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
               PRIORITY_COLORS[task.priority]
             )}
           >
@@ -67,7 +67,7 @@ export function KanbanCard({ task, agent }: KanbanCardProps) {
       )}
 
       {/* Task title */}
-      <h4 className="mb-3 text-[14px] font-semibold text-neutral-fg1 line-clamp-2 leading-tight">
+      <h4 className="mb-3 text-[14px] font-semibold text-neutral-fg1 line-clamp-2 leading-tight group-hover:text-brand transition-colors">
         {task.title}
       </h4>
 
@@ -77,7 +77,7 @@ export function KanbanCard({ task, agent }: KanbanCardProps) {
         {agent ? (
           <div className="flex items-center gap-2">
             <div
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold text-white"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold text-white shadow-xs"
               style={{ backgroundColor: agent.color || "#6366F1" }}
             >
               {agent.name.charAt(0)}
@@ -99,8 +99,8 @@ export function KanbanCard({ task, agent }: KanbanCardProps) {
 
       {/* Category tag if present */}
       {task.category && (
-        <div className="mt-2 pt-2 border-t border-stroke2">
-          <span className="text-[10px] text-neutral-fg3">{task.category}</span>
+        <div className="mt-2.5 pt-2.5 border-t border-stroke2">
+          <span className="badge badge-neutral text-[10px]">{task.category}</span>
         </div>
       )}
     </div>

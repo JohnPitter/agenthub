@@ -70,33 +70,31 @@ export function ProjectSettings() {
       </CommandBar>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Vertical Tab Nav */}
-        <nav className="w-[200px] shrink-0 border-r border-stroke2 bg-neutral-bg1 py-2">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={cn(
-                  "relative flex w-full items-center gap-2.5 px-5 py-2.5 text-[13px] font-medium transition-colors",
-                  isActive
-                    ? "bg-brand-light text-brand"
-                    : "text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
-                  tab.key === "avancado" && isActive && "bg-danger-light text-danger",
-                )}
-              >
-                {isActive && (
-                  <span className={cn(
-                    "absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full",
-                    tab.key === "avancado" ? "bg-danger" : "bg-brand",
-                  )} />
-                )}
-                <tab.icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+        {/* Pill Tab Nav */}
+        <nav className="w-[220px] shrink-0 border-r border-stroke2 bg-neutral-bg-subtle p-4">
+          <div className="space-y-1">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.key;
+              const isDanger = tab.key === "avancado";
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl px-4 py-2.5 text-[13px] font-medium transition-all duration-200",
+                    isActive && isDanger
+                      ? "bg-danger-light text-danger"
+                      : isActive
+                      ? "bg-gradient-to-r from-brand-light to-transparent text-brand shadow-xs"
+                      : "text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
+                  )}
+                >
+                  <tab.icon className={cn("h-4 w-4", isActive && (isDanger ? "text-danger" : "text-brand"))} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Content */}
@@ -105,34 +103,34 @@ export function ProjectSettings() {
 
             {/* Geral */}
             {activeTab === "geral" && (
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Caminho do Workspace</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-4">Diretório raiz do projeto</p>
-                </div>
-                <div className="rounded-md bg-neutral-bg2 px-4 py-3 font-mono text-[13px] text-neutral-fg2">
-                  {project.path}
+              <div className="flex flex-col gap-6 animate-fade-up">
+                <div className="card-glow p-8">
+                  <h3 className="text-title text-neutral-fg1 mb-1">Caminho do Workspace</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">Diretório raiz do projeto</p>
+                  <div className="rounded-lg bg-neutral-bg3 border border-stroke px-4 py-3 font-mono text-[13px] text-neutral-fg2">
+                    {project.path}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Agentes */}
             {activeTab === "agentes" && (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 animate-fade-up">
                 <div>
-                  <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Agentes Ativos</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-4">Ative ou desative agentes para este workspace</p>
+                  <h3 className="text-title text-neutral-fg1 mb-1">Agentes Ativos</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">Ative ou desative agentes para este workspace</p>
                 </div>
-                <div className="flex flex-col divide-y divide-stroke2 card">
+                <div className="flex flex-col divide-y divide-stroke2 card-glow overflow-hidden">
                   {agents.map((agent) => (
                     <div
                       key={agent.id}
-                      className="flex items-center justify-between px-4 py-3"
+                      className="flex items-center justify-between px-6 py-4"
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className="flex h-8 w-8 items-center justify-center rounded-md text-[11px] font-semibold text-white"
-                          style={{ backgroundColor: agent.color ?? "#0866FF" }}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-[12px] font-semibold text-white shadow-xs"
+                          style={{ backgroundColor: agent.color ?? "#6366F1" }}
                         >
                           {agent.name.charAt(0)}
                         </div>
@@ -144,21 +142,21 @@ export function ProjectSettings() {
                       <button
                         onClick={() => toggleAgent(agent.id)}
                         className={cn(
-                          "relative h-5 w-9 rounded-full transition-colors duration-200",
-                          agent.isActive ? "bg-success" : "bg-stroke",
+                          "relative h-5 w-9 rounded-full transition-all duration-200",
+                          agent.isActive ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke",
                         )}
                       >
                         <span
                           className={cn(
-                            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-                            agent.isActive ? "translate-x-4" : "translate-x-0.5",
+                            "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
+                            agent.isActive && "left-[18px]",
                           )}
                         />
                       </button>
                     </div>
                   ))}
                   {agents.length === 0 && (
-                    <div className="px-4 py-6 text-center text-[13px] text-neutral-fg-disabled">
+                    <div className="px-6 py-8 text-center text-[13px] text-neutral-fg-disabled">
                       Nenhum agente configurado
                     </div>
                   )}
@@ -168,19 +166,19 @@ export function ProjectSettings() {
 
             {/* Git */}
             {activeTab === "git" && (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 animate-fade-up">
                 <div>
-                  <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Git</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-4">Controle de versão e automação</p>
+                  <h3 className="text-title text-neutral-fg1 mb-1">Git</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">Controle de versão e automação</p>
                 </div>
 
                 {loading ? (
-                  <div className="rounded-md bg-neutral-bg2 px-4 py-6 text-center text-[13px] text-neutral-fg3">
+                  <div className="card-glow px-6 py-8 text-center text-[13px] text-neutral-fg3">
                     Carregando status do Git...
                   </div>
                 ) : !isGitRepo ? (
-                  <div className="rounded-md bg-neutral-bg2 px-4 py-6 text-center">
-                    <p className="text-[13px] text-neutral-fg3 mb-3">Repositório Git não inicializado</p>
+                  <div className="card-glow px-6 py-8 text-center">
+                    <p className="text-[13px] text-neutral-fg3 mb-4">Repositório Git não inicializado</p>
                     <button
                       onClick={async () => {
                         try {
@@ -190,19 +188,19 @@ export function ProjectSettings() {
                           addToast("error", "Erro ao inicializar", "Não foi possível criar o repositório Git");
                         }
                       }}
-                      className="rounded-md bg-purple px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-purple/90"
+                      className="btn-primary rounded-lg px-5 py-2.5 text-[12px] font-semibold text-white"
                     >
                       Inicializar Repositório
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-5">
                     {/* Git Status */}
-                    <div className="card p-5">
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="card-glow p-6">
+                      <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-neutral-fg3 uppercase">Branch Atual</span>
-                          <span className="rounded-md bg-purple-light px-2 py-0.5 text-[11px] font-semibold text-purple">
+                          <span className="text-label">Branch Atual</span>
+                          <span className="rounded-full bg-purple-light px-2.5 py-0.5 text-[11px] font-semibold text-purple">
                             {status?.branch}
                           </span>
                         </div>
@@ -216,8 +214,8 @@ export function ProjectSettings() {
                       </div>
 
                       {lastCommit && (
-                        <div className="border-t border-stroke pt-3">
-                          <div className="text-[11px] font-semibold text-neutral-fg3 uppercase mb-1">Último Commit</div>
+                        <div className="border-t border-stroke pt-4">
+                          <div className="text-label mb-2">Último Commit</div>
                           <div className="text-[12px] text-neutral-fg1 font-mono">{lastCommit.sha.slice(0, 7)}</div>
                           <div className="text-[12px] text-neutral-fg2 mt-1">{lastCommit.message}</div>
                           <div className="text-[11px] text-neutral-fg3 mt-1">
@@ -227,9 +225,9 @@ export function ProjectSettings() {
                       )}
 
                       {remoteStatus && (
-                        <div className="border-t border-stroke pt-3 mt-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="text-[11px] font-semibold text-neutral-fg3 uppercase">Remote</div>
+                        <div className="border-t border-stroke pt-4 mt-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="text-label">Remote</div>
                             <button
                               onClick={async () => {
                                 setSyncing(true);
@@ -247,7 +245,7 @@ export function ProjectSettings() {
                                 }
                               }}
                               disabled={syncing}
-                              className="flex items-center gap-1.5 rounded-md bg-purple-light px-2.5 py-1 text-[11px] font-semibold text-purple hover:bg-purple hover:text-white transition-colors disabled:opacity-50"
+                              className="btn-primary flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
                             >
                               <RefreshCw className={cn("h-3 w-3", syncing && "animate-spin")} />
                               Sync
@@ -269,8 +267,8 @@ export function ProjectSettings() {
                       )}
 
                       {status && (status.staged.length + status.unstaged.length + status.untracked.length) > 0 && (
-                        <div className="mt-3 pt-3 border-t border-stroke">
-                          <span className="rounded-md bg-danger-light px-2 py-0.5 text-[11px] font-semibold text-danger">
+                        <div className="mt-4 pt-4 border-t border-stroke">
+                          <span className="rounded-full bg-danger-light px-2.5 py-0.5 text-[11px] font-semibold text-danger">
                             {status.staged.length + status.unstaged.length + status.untracked.length} modificações
                           </span>
                         </div>
@@ -278,12 +276,12 @@ export function ProjectSettings() {
                     </div>
 
                     {/* Git Configuration */}
-                    <div className="card p-5">
-                      <div className="text-[11px] font-semibold text-neutral-fg3 uppercase mb-3">Configuração</div>
+                    <div className="card-glow p-6">
+                      <div className="text-label mb-4">Configuração</div>
 
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-4">
                         <div>
-                          <label className="text-[12px] text-neutral-fg2 mb-1 block">Remote URL</label>
+                          <label className="text-[12px] text-neutral-fg2 mb-1.5 block">Remote URL</label>
                           <input
                             type="text"
                             value={config?.remoteUrl || ""}
@@ -294,7 +292,7 @@ export function ProjectSettings() {
                         </div>
 
                         <div>
-                          <label className="text-[12px] text-neutral-fg2 mb-1 block">Branch Padrão</label>
+                          <label className="text-[12px] text-neutral-fg2 mb-1.5 block">Branch Padrão</label>
                           <select
                             value={config?.defaultBranch || "main"}
                             onChange={(e) => setGitConfigForm({ ...gitConfigForm, defaultBranch: e.target.value })}
@@ -305,6 +303,8 @@ export function ProjectSettings() {
                           </select>
                         </div>
 
+                        <div className="section-divider" />
+
                         <div className="flex items-center justify-between py-1">
                           <div>
                             <p className="text-[12px] font-semibold text-neutral-fg1">Auto-criar branch para tasks</p>
@@ -313,14 +313,14 @@ export function ProjectSettings() {
                           <button
                             onClick={() => setGitConfigForm({ ...gitConfigForm, autoCreateBranch: !gitConfigForm.autoCreateBranch })}
                             className={cn(
-                              "relative h-5 w-9 rounded-full transition-colors duration-200",
-                              (config?.autoCreateBranch ?? gitConfigForm.autoCreateBranch) ? "bg-success" : "bg-stroke"
+                              "relative h-5 w-9 rounded-full transition-all duration-200",
+                              (config?.autoCreateBranch ?? gitConfigForm.autoCreateBranch) ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke"
                             )}
                           >
                             <span
                               className={cn(
-                                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-                                (config?.autoCreateBranch ?? gitConfigForm.autoCreateBranch) ? "translate-x-4" : "translate-x-0.5"
+                                "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
+                                (config?.autoCreateBranch ?? gitConfigForm.autoCreateBranch) && "left-[18px]"
                               )}
                             />
                           </button>
@@ -334,14 +334,14 @@ export function ProjectSettings() {
                           <button
                             onClick={() => setGitConfigForm({ ...gitConfigForm, autoCommit: !gitConfigForm.autoCommit })}
                             className={cn(
-                              "relative h-5 w-9 rounded-full transition-colors duration-200",
-                              (config?.autoCommit ?? gitConfigForm.autoCommit) ? "bg-success" : "bg-stroke"
+                              "relative h-5 w-9 rounded-full transition-all duration-200",
+                              (config?.autoCommit ?? gitConfigForm.autoCommit) ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke"
                             )}
                           >
                             <span
                               className={cn(
-                                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-                                (config?.autoCommit ?? gitConfigForm.autoCommit) ? "translate-x-4" : "translate-x-0.5"
+                                "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
+                                (config?.autoCommit ?? gitConfigForm.autoCommit) && "left-[18px]"
                               )}
                             />
                           </button>
@@ -355,14 +355,14 @@ export function ProjectSettings() {
                           <button
                             onClick={() => setGitConfigForm({ ...gitConfigForm, autoPR: !gitConfigForm.autoPR })}
                             className={cn(
-                              "relative h-5 w-9 rounded-full transition-colors duration-200",
-                              (config?.autoPR ?? gitConfigForm.autoPR) ? "bg-success" : "bg-stroke"
+                              "relative h-5 w-9 rounded-full transition-all duration-200",
+                              (config?.autoPR ?? gitConfigForm.autoPR) ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke"
                             )}
                           >
                             <span
                               className={cn(
-                                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-                                (config?.autoPR ?? gitConfigForm.autoPR) ? "translate-x-4" : "translate-x-0.5"
+                                "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
+                                (config?.autoPR ?? gitConfigForm.autoPR) && "left-[18px]"
                               )}
                             />
                           </button>
@@ -377,7 +377,7 @@ export function ProjectSettings() {
                               addToast("error", "Erro ao salvar", "Não foi possível atualizar configurações");
                             }
                           }}
-                          className="mt-2 w-full rounded-md bg-purple px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-purple/90"
+                          className="mt-2 w-full btn-primary rounded-lg py-2.5 text-[12px] font-semibold text-white"
                         >
                           Salvar Configurações
                         </button>
@@ -390,19 +390,19 @@ export function ProjectSettings() {
 
             {/* Avançado (Danger Zone) */}
             {activeTab === "avancado" && (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 animate-fade-up">
                 <div>
-                  <h3 className="text-[14px] font-semibold text-danger mb-1">Zona de Perigo</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-4">Ações irreversíveis</p>
+                  <h3 className="text-title text-danger mb-1">Zona de Perigo</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">Ações irreversíveis</p>
                 </div>
-                <div className="flex items-center justify-between rounded-lg border border-danger/20 bg-danger-light/50 px-4 py-3">
+                <div className="flex items-center justify-between rounded-xl border border-danger/20 bg-danger-light/30 px-6 py-5">
                   <div>
                     <p className="text-[13px] font-semibold text-neutral-fg1">Arquivar Projeto</p>
-                    <p className="text-[11px] text-neutral-fg3">Remove o projeto do AgentHub (não afeta arquivos)</p>
+                    <p className="text-[11px] text-neutral-fg3 mt-0.5">Remove o projeto do AgentHub (não afeta arquivos)</p>
                   </div>
                   <button
                     onClick={() => setShowArchiveDialog(true)}
-                    className="rounded-md border border-danger/30 px-4 py-2 text-[12px] font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
+                    className="rounded-lg border border-danger/30 px-5 py-2.5 text-[12px] font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
                   >
                     Arquivar
                   </button>

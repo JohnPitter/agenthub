@@ -85,9 +85,11 @@ const statements = [
   )`,
   `CREATE TABLE IF NOT EXISTS integrations (
     id TEXT PRIMARY KEY,
+    project_id TEXT,
     type TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'disconnected',
     config TEXT,
+    credentials TEXT,
     linked_agent_id TEXT,
     last_connected_at INTEGER,
     created_at INTEGER NOT NULL,
@@ -99,12 +101,28 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS idx_task_logs_task ON task_logs(task_id)`,
 ];
 
+// Columns added after initial table creation — safe to re-run
+const alterStatements = [
+  `ALTER TABLE integrations ADD COLUMN project_id TEXT`,
+  `ALTER TABLE integrations ADD COLUMN credentials TEXT`,
+];
+
 async function migrate() {
   await client.execute("PRAGMA journal_mode = WAL");
   await client.execute("PRAGMA foreign_keys = ON");
 
   for (const stmt of statements) {
     await client.execute(stmt);
+  }
+
+  // Apply safe column additions (ignore "duplicate column" errors)
+  for (const stmt of alterStatements) {
+    try {
+      await client.execute(stmt);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("duplicate column")) throw err;
+    }
   }
 
   console.log("Migration completed successfully.");

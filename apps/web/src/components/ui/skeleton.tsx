@@ -32,9 +32,9 @@ export function Skeleton({
   return (
     <div
       className={cn(
-        "skeleton bg-neutral-bg2",
+        "skeleton",
         animation === "pulse" && "animate-pulse",
-        animation === "none" && "animate-none",
+        animation === "none" && "!animate-none",
         getVariantClass(),
         className,
       )}
@@ -45,7 +45,7 @@ export function Skeleton({
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-lg bg-neutral-bg1 p-5 shadow-2 border border-stroke">
+    <div className="card p-5">
       <div className="flex items-center gap-4 mb-5">
         <Skeleton variant="circular" width="40px" height="40px" />
         <div className="flex-1">
@@ -62,7 +62,7 @@ export function SkeletonCard() {
 
 export function SkeletonTable() {
   return (
-    <div className="rounded-lg bg-neutral-bg1 shadow-2 border border-stroke overflow-hidden">
+    <div className="card overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-4 px-5 py-3 border-b border-stroke">
         {[...Array(4)].map((_, i) => (
@@ -86,7 +86,7 @@ export function SkeletonStats() {
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-lg bg-neutral-bg1 p-5 shadow-2 border border-stroke">
+        <div key={i} className="stat-card">
           <Skeleton variant="rounded" width="40px" height="40px" className="mb-4" />
           <Skeleton width="60%" height="10px" className="mb-3" />
           <Skeleton width="80px" height="28px" />

@@ -46,7 +46,7 @@ export function ProjectFiles() {
                     className={
                       isLast
                         ? "font-semibold text-neutral-fg1 truncate"
-                        : "text-neutral-fg3 truncate"
+                        : "text-neutral-fg3 truncate hover:text-brand transition-colors"
                     }
                   >
                     {segment}
@@ -63,10 +63,10 @@ export function ProjectFiles() {
       {/* Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* File Tree Sidebar */}
-        <div className="w-64 shrink-0 border-r border-stroke2 bg-neutral-bg1 overflow-auto">
+        <div className="w-64 shrink-0 border-r border-stroke2 bg-neutral-bg-subtle overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-purple" />
+              <Loader2 className="h-6 w-6 animate-spin text-brand" />
             </div>
           ) : (
             <div className="p-4">
@@ -80,7 +80,7 @@ export function ProjectFiles() {
         </div>
 
         {/* File Viewer */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden glass">
           {id && <FileViewer projectId={id} filePath={selectedFile} />}
         </div>
       </div>

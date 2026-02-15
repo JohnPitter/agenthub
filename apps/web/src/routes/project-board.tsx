@@ -23,12 +23,10 @@ export function ProjectBoard() {
   const [tasks, setTasks] = useState(initialTasks);
   const [view, setView] = useState<BoardView>("kanban");
 
-  // Update local tasks when initial tasks change
   useEffect(() => {
     setTasks(initialTasks);
   }, [initialTasks]);
 
-  // Listen for real-time task status updates
   useSocket(id, {
     onTaskStatus: (data) => {
       setTasks((prevTasks) =>
@@ -42,7 +40,6 @@ export function ProjectBoard() {
   });
 
   const handleTaskUpdate = (taskId: string, updates: Partial<Task> | TaskStatus) => {
-    // Handle both Partial<Task> from TaskTable and TaskStatus from KanbanBoard
     const taskUpdates = typeof updates === "string" ? { status: updates } : updates;
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
@@ -70,14 +67,14 @@ export function ProjectBoard() {
             </span>
           </div>
 
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg bg-neutral-bg2 p-0.5">
+          {/* Pill view toggle */}
+          <div className="flex items-center rounded-full bg-neutral-bg2 p-1 border border-stroke">
             <button
               onClick={() => setView("kanban")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors",
+                "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200",
                 view === "kanban"
-                  ? "bg-brand text-white"
+                  ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
                   : "text-neutral-fg3 hover:text-neutral-fg1"
               )}
             >
@@ -87,9 +84,9 @@ export function ProjectBoard() {
             <button
               onClick={() => setView("table")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors",
+                "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200",
                 view === "table"
-                  ? "bg-brand text-white"
+                  ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
                   : "text-neutral-fg3 hover:text-neutral-fg1"
               )}
             >

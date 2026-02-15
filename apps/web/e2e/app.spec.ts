@@ -107,15 +107,15 @@ test.describe("Dashboard", () => {
     }
   });
 
-  test("Stat bar shows metrics when data loaded", async ({ page }) => {
+  test("Stat cards show metrics when data loaded", async ({ page }) => {
     await page.goto("/");
     await waitForAppShell(page);
 
     // Wait for stats to load
     await page.waitForTimeout(2000);
 
-    // StatBar should be visible with metric labels
-    // At minimum, "Projetos" and "Agentes" labels should be present in stats
+    // Inline stat cards should be visible with metric labels
+    // At minimum, "Projetos" and "Agentes Ativos" labels should be present
     const projLabel = page.getByText("Projetos");
     const count = await projLabel.count();
     // If stats loaded, at least the "Projetos" stat label should be visible

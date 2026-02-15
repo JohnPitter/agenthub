@@ -26,10 +26,12 @@ dashboardRouter.get("/stats", async (_req, res) => {
         agentName: schema.agents.name,
         agentColor: schema.agents.color,
         taskTitle: schema.tasks.title,
+        projectName: schema.projects.name,
       })
       .from(schema.taskLogs)
       .leftJoin(schema.agents, eq(schema.taskLogs.agentId, schema.agents.id))
       .leftJoin(schema.tasks, eq(schema.taskLogs.taskId, schema.tasks.id))
+      .leftJoin(schema.projects, eq(schema.tasks.projectId, schema.projects.id))
       .orderBy(desc(schema.taskLogs.createdAt))
       .limit(10),
   ]);
@@ -50,6 +52,7 @@ dashboardRouter.get("/stats", async (_req, res) => {
       agentName: log.agentName ?? "Sistema",
       agentColor: log.agentColor ?? "#FF5C35",
       taskTitle: log.taskTitle ?? "",
+      projectName: log.projectName ?? "",
       createdAt: log.createdAt,
     })),
   });

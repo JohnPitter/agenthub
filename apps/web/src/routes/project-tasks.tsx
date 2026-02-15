@@ -211,17 +211,17 @@ export function ProjectTasks() {
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, column.status)}
                   className={cn(
-                    "flex flex-col rounded-lg bg-neutral-bg2 transition-colors",
-                    isOver && "bg-brand-light ring-2 ring-brand/20",
+                    "flex flex-col rounded-xl glass transition-all duration-200",
+                    isOver && "ring-2 ring-brand/30 bg-brand-light/5",
                   )}
                 >
-                  <div className="rounded-t-lg bg-neutral-bg1 px-4 py-3">
+                  <div className="rounded-t-xl px-4 py-3 border-b border-stroke2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className={cn("h-2 w-2 rounded-full", column.dotColor)} />
                         <span className="text-[13px] font-semibold text-neutral-fg1">{column.label}</span>
                       </div>
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
                         {columnTasks.length}
                       </span>
                     </div>
@@ -244,7 +244,7 @@ export function ProjectTasks() {
                         />
                       ))
                     ) : (
-                      <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-stroke bg-neutral-bg1/50 py-10">
+                      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-stroke py-10">
                         <p className="text-[12px] text-neutral-fg-disabled">Vazio</p>
                       </div>
                     )}
@@ -257,16 +257,16 @@ export function ProjectTasks() {
       ) : (
         /* Table View */
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="card">
+          <div className="card-glow rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-stroke2 text-left">
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Status</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Prioridade</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Categoria</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Criada</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Status</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Prioridade</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Categoria</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Criada</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stroke2">
@@ -277,26 +277,26 @@ export function ProjectTasks() {
                     <tr
                       key={task.id}
                       onClick={() => setEditingTask(task)}
-                      className="hover:bg-neutral-bg-hover transition-colors cursor-pointer"
+                      className="table-row cursor-pointer"
                     >
-                      <td className="px-4 py-3">
-                        <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-semibold", badge.cls)}>
+                      <td className="px-5 py-3.5">
+                        <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold", badge.cls)}>
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[12px] text-neutral-fg3">
+                      <td className="px-5 py-3.5 text-[12px] text-neutral-fg3">
                         {PRIORITY_LABEL[task.priority] ?? task.priority}
                       </td>
-                      <td className="px-4 py-3 text-[13px] font-medium text-neutral-fg1 truncate max-w-[300px]">
+                      <td className="px-5 py-3.5 text-[13px] font-medium text-neutral-fg1 truncate max-w-[300px]">
                         {task.title}
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-neutral-fg2">
+                      <td className="px-5 py-3.5 text-[13px] text-neutral-fg2">
                         {agent?.name ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-[12px] text-neutral-fg3">
+                      <td className="px-5 py-3.5 text-[12px] text-neutral-fg3">
                         {task.category ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-neutral-fg-disabled text-right whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-[11px] text-neutral-fg-disabled text-right whitespace-nowrap">
                         {formatRelativeTime(task.createdAt)}
                       </td>
                     </tr>
@@ -304,7 +304,7 @@ export function ProjectTasks() {
                 })}
                 {tasks.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-[13px] text-neutral-fg-disabled">
+                    <td colSpan={6} className="px-5 py-10 text-center text-[13px] text-neutral-fg-disabled">
                       Nenhuma task criada ainda
                     </td>
                   </tr>

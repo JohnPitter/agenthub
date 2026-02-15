@@ -22,7 +22,7 @@ export function Tablist({ tabs, activeTab, onChange }: TablistProps) {
             key={tab.key}
             onClick={() => onChange(tab.key)}
             className={cn(
-              "relative px-3 py-3 text-[13px] font-medium transition-colors",
+              "relative px-4 py-3.5 text-[14px] font-medium transition-all duration-200",
               isActive
                 ? "text-brand"
                 : "text-neutral-fg3 hover:text-neutral-fg2",
@@ -40,7 +40,7 @@ export function Tablist({ tabs, activeTab, onChange }: TablistProps) {
               </span>
             )}
             {isActive && (
-              <span className="absolute bottom-0 left-1 right-1 h-[1.5px] bg-brand rounded-full transition-all" />
+              <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-gradient-to-r from-brand to-purple transition-all" />
             )}
           </button>
         );

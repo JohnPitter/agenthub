@@ -64,7 +64,6 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate }: KanbanBo
       });
     } catch (error) {
       console.error("Failed to update task status:", error);
-      // Rollback would happen here if needed
     }
   };
 
@@ -94,7 +93,7 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate }: KanbanBo
       {/* Drag overlay */}
       <DragOverlay>
         {activeTask ? (
-          <div className="rotate-3 opacity-90">
+          <div className="rotate-2 scale-105 opacity-90">
             <KanbanCard
               task={activeTask}
               agent={agents.find(a => a.id === activeTask.assignedAgentId)}

@@ -51,14 +51,14 @@ function CreatePRDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg rounded-lg bg-neutral-bg1 p-6 shadow-16">
-        <h2 className="mb-4 text-[16px] font-semibold text-neutral-fg1">Criar Pull Request</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-lg card-glow p-8 animate-scale-in">
+        <h2 className="mb-6 text-heading text-neutral-fg1">Criar Pull Request</h2>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-[12px] text-neutral-fg2">Head Branch</label>
+              <label className="mb-1.5 block text-label">Head Branch</label>
               <input
                 type="text"
                 value={headBranch}
@@ -66,9 +66,9 @@ function CreatePRDialog({
                 className="w-full input-fluent text-[12px]"
               />
             </div>
-            <div className="flex items-end pb-2 text-[12px] text-neutral-fg3">&rarr;</div>
+            <div className="flex items-end pb-3 text-[12px] text-neutral-fg3">&rarr;</div>
             <div className="flex-1">
-              <label className="mb-1 block text-[12px] text-neutral-fg2">Base Branch</label>
+              <label className="mb-1.5 block text-label">Base Branch</label>
               <input
                 type="text"
                 value={baseBranch}
@@ -79,7 +79,7 @@ function CreatePRDialog({
           </div>
 
           <div>
-            <label className="mb-1 block text-[12px] text-neutral-fg2">Titulo</label>
+            <label className="mb-1.5 block text-label">Titulo</label>
             <input
               type="text"
               value={title}
@@ -91,7 +91,7 @@ function CreatePRDialog({
           </div>
 
           <div>
-            <label className="mb-1 block text-[12px] text-neutral-fg2">Descricao</label>
+            <label className="mb-1.5 block text-label">Descricao</label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -112,17 +112,17 @@ function CreatePRDialog({
           </label>
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-6 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-[12px] font-semibold text-neutral-fg2 hover:bg-neutral-bg2"
+            className="btn-ghost rounded-lg px-5 py-2.5 text-[12px] font-semibold"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={!title.trim() || submitting}
-            className="btn-primary rounded-md px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
+            className="btn-primary rounded-lg px-5 py-2.5 text-[12px] font-semibold text-white disabled:opacity-50"
           >
             {submitting ? "Criando..." : "Criar PR"}
           </button>
@@ -203,13 +203,15 @@ export function ProjectPRs() {
           <span className="text-[13px] font-semibold text-neutral-fg1">Pull Requests</span>
         </CommandBar>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-          <AlertCircle className="h-12 w-12 text-neutral-fg-disabled" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-bg2 border border-stroke">
+            <AlertCircle className="h-8 w-8 text-neutral-fg-disabled" />
+          </div>
           <div className="text-center">
             <p className="text-[14px] font-semibold text-neutral-fg1">GitHub CLI nao disponivel</p>
             <p className="mt-1 text-[12px] text-neutral-fg3">
               {ghStatus?.reason ?? "Instale e autentique o gh CLI para usar Pull Requests"}
             </p>
-            <p className="mt-3 rounded-md bg-neutral-bg2 px-4 py-2 font-mono text-[11px] text-neutral-fg2">
+            <p className="mt-3 rounded-lg bg-neutral-bg2 border border-stroke px-4 py-2.5 font-mono text-[11px] text-neutral-fg2">
               brew install gh && gh auth login
             </p>
           </div>
@@ -226,7 +228,9 @@ export function ProjectPRs() {
           <span className="text-[13px] font-semibold text-neutral-fg1">Pull Requests</span>
         </CommandBar>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-          <GitPullRequest className="h-12 w-12 text-neutral-fg-disabled" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-bg2 border border-stroke">
+            <GitPullRequest className="h-8 w-8 text-neutral-fg-disabled" />
+          </div>
           <div className="text-center">
             <p className="text-[14px] font-semibold text-neutral-fg1">Nenhum remote GitHub encontrado</p>
             <p className="mt-1 text-[12px] text-neutral-fg3">
@@ -283,7 +287,7 @@ export function ProjectPRs() {
         )}
       </CommandBar>
 
-      {/* PR Table */}
+      {/* PR List */}
       <div className="flex-1 overflow-y-auto p-8">
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -291,8 +295,10 @@ export function ProjectPRs() {
           </div>
         ) : prs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <GitPullRequest className="h-10 w-10 text-neutral-fg-disabled" />
-            <p className="mt-3 text-[14px] font-semibold text-neutral-fg2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-bg2 border border-stroke mb-4">
+              <GitPullRequest className="h-8 w-8 text-neutral-fg-disabled" />
+            </div>
+            <p className="text-[14px] font-semibold text-neutral-fg2">
               Nenhum PR {filter === "open" ? "aberto" : filter === "closed" ? "fechado" : filter === "merged" ? "merged" : ""}
             </p>
             <p className="mt-1 text-[12px] text-neutral-fg3">
@@ -302,89 +308,67 @@ export function ProjectPRs() {
             </p>
           </div>
         ) : (
-          <div className="card">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-stroke2 text-left">
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-12"></th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-16">#</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Branch</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">+/−</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Arquivos</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Idade</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-28"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stroke2">
-                {prs.map((pr) => (
-                  <tr key={pr.number} className="group hover:bg-neutral-bg-hover transition-colors h-12">
-                    <td className="px-4 py-2">
-                      <PRStateIcon state={pr.state} draft={pr.draft} />
-                    </td>
-                    <td className="px-4 py-2 text-[12px] font-mono text-neutral-fg3">{pr.number}</td>
-                    <td className="px-4 py-2">
-                      <a
-                        href={pr.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[13px] font-medium text-neutral-fg1 hover:text-brand transition-colors truncate block max-w-[300px]"
-                      >
-                        {pr.title}
-                      </a>
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className="rounded bg-purple-light px-1.5 py-0.5 font-mono text-[10px] text-purple">
-                        {pr.headBranch}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-right text-[11px]">
+          <div className="space-y-3">
+            {prs.map((pr) => (
+              <div key={pr.number} className="card-interactive group flex items-center gap-4 px-5 py-4">
+                <PRStateIcon state={pr.state} draft={pr.draft} />
+                <span className="text-[12px] font-mono text-neutral-fg3 w-10">#{pr.number}</span>
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={pr.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[13px] font-medium text-neutral-fg1 hover:text-brand transition-colors truncate block"
+                  >
+                    {pr.title}
+                  </a>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="rounded-md bg-purple-light px-1.5 py-0.5 font-mono text-[10px] text-purple">
+                      {pr.headBranch}
+                    </span>
+                    <span className="text-[11px]">
                       <span className="text-success">+{pr.additions}</span>
                       {" / "}
-                      <span className="text-danger">−{pr.deletions}</span>
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <span className="flex items-center justify-end gap-1 text-[11px] text-neutral-fg3">
-                        <FileCode2 className="h-3 w-3" />
-                        {pr.changedFiles}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-right text-[11px] text-neutral-fg-disabled whitespace-nowrap">
+                      <span className="text-danger">-{pr.deletions}</span>
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] text-neutral-fg3">
+                      <FileCode2 className="h-3 w-3" />
+                      {pr.changedFiles}
+                    </span>
+                    <span className="text-[11px] text-neutral-fg-disabled">
                       {formatRelativeTime(pr.createdAt)}
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {pr.state === "open" && !pr.draft && (
-                          <>
-                            <button
-                              onClick={() => handleMerge(pr.number)}
-                              className="flex items-center gap-1 rounded-md bg-purple-light px-2 py-1 text-[10px] font-semibold text-purple hover:bg-purple hover:text-white transition-colors"
-                            >
-                              <GitMerge className="h-3 w-3" />
-                              Merge
-                            </button>
-                            <button
-                              onClick={() => handleClose(pr.number)}
-                              className="flex items-center gap-1 rounded-md bg-danger-light px-2 py-1 text-[10px] font-semibold text-danger hover:bg-danger hover:text-white transition-colors"
-                            >
-                              <XCircle className="h-3 w-3" />
-                            </button>
-                          </>
-                        )}
-                        <a
-                          href={pr.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex h-6 w-6 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {pr.state === "open" && !pr.draft && (
+                    <>
+                      <button
+                        onClick={() => handleMerge(pr.number)}
+                        className="flex items-center gap-1 rounded-lg bg-purple-light px-2.5 py-1.5 text-[10px] font-semibold text-purple hover:bg-purple hover:text-white transition-colors"
+                      >
+                        <GitMerge className="h-3 w-3" />
+                        Merge
+                      </button>
+                      <button
+                        onClick={() => handleClose(pr.number)}
+                        className="flex items-center gap-1 rounded-lg bg-danger-light px-2.5 py-1.5 text-[10px] font-semibold text-danger hover:bg-danger hover:text-white transition-colors"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </button>
+                    </>
+                  )}
+                  <a
+                    href={pr.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ export function ChatPanel() {
   const { messages, addMessage, setStreamingAgent, updateAgentActivity } = useChatStore();
   const { sendMessage: sendHttp, loadMoreMessages } = useMessages(projectId);
 
-  // Wire socket events → chat store
+  // Wire socket events -> chat store
   const { sendMessage: sendSocket } = useSocket(projectId, {
     onAgentMessage: (data) => {
       const agent = agents.find((a) => a.id === data.agentId);
@@ -212,21 +212,21 @@ export function ChatPanel() {
   return (
     <div
       className={cn(
-        "flex h-full flex-col bg-neutral-bg2 transition-all duration-300 border-r border-stroke2",
+        "flex h-full flex-col glass-strong transition-all duration-300 border-r border-stroke2",
         chatPanelOpen ? "w-[360px]" : "w-0 overflow-hidden",
       )}
     >
       {/* Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-4 border-b border-stroke2">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-light">
-            <MessageSquare className="h-4 w-4 text-brand" />
+      <div className="flex h-14 shrink-0 items-center justify-between px-4 border-b border-stroke2 bg-gradient-to-r from-brand-light/20 to-transparent">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-purple shadow-brand">
+            <MessageSquare className="h-4 w-4 text-white" />
           </div>
           <span className="text-[13px] font-semibold text-neutral-fg1">Chat</span>
         </div>
         <button
           onClick={toggleChatPanel}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg2"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg2"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>

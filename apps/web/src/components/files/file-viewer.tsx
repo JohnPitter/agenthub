@@ -150,8 +150,8 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
     return (
       <div className="flex h-full items-center justify-center text-center">
         <div>
-          <File className="mx-auto h-12 w-12 text-text-tertiary mb-3" />
-          <p className="text-[13px] text-text-tertiary">Select a file to view</p>
+          <File className="mx-auto h-12 w-12 text-neutral-fg3 mb-3" />
+          <p className="text-[13px] text-neutral-fg3">Selecione um arquivo para visualizar</p>
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-purple" />
+        <Loader2 className="h-6 w-6 animate-spin text-brand" />
       </div>
     );
   }
@@ -169,8 +169,8 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
     return (
       <div className="flex h-full items-center justify-center text-center">
         <div>
-          <AlertCircle className="mx-auto h-12 w-12 text-red mb-3" />
-          <p className="text-[13px] text-red">{error}</p>
+          <AlertCircle className="mx-auto h-12 w-12 text-danger mb-3" />
+          <p className="text-[13px] text-danger">{error}</p>
         </div>
       </div>
     );
@@ -185,52 +185,52 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
   const hasChanges = editedContent !== fileContent.content;
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-neutral-bg1">
       {/* File header */}
-      <div className="border-b border-edge px-4 py-3">
+      <div className="border-b border-stroke px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-[13px] font-semibold text-text-primary">{fileName}</h3>
-            <p className="text-[11px] text-text-tertiary mt-0.5">
-              {formatFileSize(fileContent.size)} · Modified{" "}
+            <h3 className="text-[13px] font-semibold text-neutral-fg1">{fileName}</h3>
+            <p className="text-[11px] text-neutral-fg3 mt-0.5">
+              {formatFileSize(fileContent.size)} · Modificado:{" "}
               {formatRelativeTime(new Date(fileContent.modified))}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Mode toggle */}
-            <div className="flex items-center gap-1 bg-page rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-neutral-bg2 rounded-md p-1">
               <button
                 onClick={() => setMode("view")}
                 className={cn(
                   "flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
                   mode === "view"
-                    ? "bg-white text-purple shadow-sm"
-                    : "text-text-tertiary hover:text-text-secondary"
+                    ? "bg-neutral-bg1 text-brand shadow-2"
+                    : "text-neutral-fg3 hover:text-neutral-fg2"
                 )}
               >
                 <Eye className="h-3 w-3" />
-                View
+                Visualizar
               </button>
               <button
                 onClick={() => setMode("edit")}
                 className={cn(
                   "flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
                   mode === "edit"
-                    ? "bg-white text-purple shadow-sm"
-                    : "text-text-tertiary hover:text-text-secondary"
+                    ? "bg-neutral-bg1 text-brand shadow-2"
+                    : "text-neutral-fg3 hover:text-neutral-fg2"
                 )}
               >
                 <Edit3 className="h-3 w-3" />
-                Edit
+                Editar
               </button>
               <button
                 onClick={() => setMode("diff")}
                 className={cn(
                   "flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
                   mode === "diff"
-                    ? "bg-white text-purple shadow-sm"
-                    : "text-text-tertiary hover:text-text-secondary"
+                    ? "bg-neutral-bg1 text-brand shadow-2"
+                    : "text-neutral-fg3 hover:text-neutral-fg2"
                 )}
               >
                 <GitCompare className="h-3 w-3" />
@@ -244,23 +244,23 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
                 <button
                   onClick={handleCancel}
                   disabled={saving}
-                  className="flex items-center gap-1.5 rounded-lg bg-page px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-edge transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-md bg-neutral-bg2 px-3 py-1.5 text-[11px] font-semibold text-neutral-fg2 hover:bg-neutral-bg-hover transition-colors disabled:opacity-50"
                 >
                   <X className="h-3 w-3" />
-                  Cancel
+                  Cancelar
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={!hasChanges || saving}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors",
                     hasChanges
-                      ? "bg-purple text-white hover:bg-purple/90"
-                      : "bg-purple-light text-purple cursor-not-allowed"
+                      ? "bg-brand text-white hover:bg-brand-hover"
+                      : "bg-brand-light text-brand cursor-not-allowed"
                   )}
                 >
                   <Save className={cn("h-3 w-3", saving && "animate-pulse")} />
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? "Salvando..." : "Salvar"}
                 </button>
               </>
             )}
@@ -269,9 +269,9 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
 
         {/* Version selectors for diff mode */}
         {mode === "diff" && (
-          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-edge-light">
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-stroke2">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-text-tertiary uppercase">Original:</span>
+              <span className="text-[10px] font-semibold text-neutral-fg3 uppercase">Original:</span>
               <VersionSelector
                 projectId={projectId}
                 filePath={filePath}
@@ -281,7 +281,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-text-tertiary uppercase">Modified:</span>
+              <span className="text-[10px] font-semibold text-neutral-fg3 uppercase">Modificado:</span>
               <VersionSelector
                 projectId={projectId}
                 filePath={filePath}
@@ -299,15 +299,15 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
         {mode === "diff" ? (
           loadingDiff ? (
             <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-purple" />
+              <Loader2 className="h-6 w-6 animate-spin text-brand" />
             </div>
           ) : (
             <DiffViewer
               original={originalContent}
               modified={modifiedContent}
               language={language}
-              originalLabel={originalVersion === "working" ? "Working tree" : originalVersion.slice(0, 7)}
-              modifiedLabel={modifiedVersion === "working" ? "Working tree" : modifiedVersion.slice(0, 7)}
+              originalLabel={originalVersion === "working" ? "Árvore de trabalho" : originalVersion.slice(0, 7)}
+              modifiedLabel={modifiedVersion === "working" ? "Árvore de trabalho" : modifiedVersion.slice(0, 7)}
             />
           )
         ) : (

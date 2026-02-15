@@ -4,10 +4,10 @@ import { useNotificationStore, type NotificationType } from "../../stores/notifi
 import { cn } from "../../lib/utils";
 
 const ICON_MAP: Record<NotificationType, { icon: typeof CheckCircle2; color: string; bg: string }> = {
-  success: { icon: CheckCircle2, color: "text-green", bg: "bg-green-light" },
-  error: { icon: AlertCircle, color: "text-red", bg: "bg-red-light" },
-  info: { icon: Info, color: "text-blue", bg: "bg-blue-light" },
-  warning: { icon: AlertTriangle, color: "text-yellow", bg: "bg-yellow-light" },
+  success: { icon: CheckCircle2, color: "text-success", bg: "bg-success-light" },
+  error: { icon: AlertCircle, color: "text-danger", bg: "bg-danger-light" },
+  info: { icon: Info, color: "text-info", bg: "bg-info-light" },
+  warning: { icon: AlertTriangle, color: "text-warning", bg: "bg-warning-light" },
 };
 
 export function ToastContainer() {
@@ -31,20 +31,20 @@ export function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className="flex max-w-[380px] items-start gap-3 rounded-lg bg-white p-4 shadow-lg border border-edge-light animate-slide-in-right"
+            className="flex max-w-[380px] items-start gap-3 rounded-lg bg-neutral-bg1 p-4 shadow-8 border border-stroke2 animate-slide-in-right"
           >
             <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", config.bg)}>
               <Icon className={cn("h-5 w-5", config.color)} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold text-text-primary">{toast.title}</p>
+              <p className="text-[13px] font-semibold text-neutral-fg1">{toast.title}</p>
               {toast.message && (
-                <p className="mt-1 text-[12px] text-text-secondary line-clamp-2">{toast.message}</p>
+                <p className="mt-1 text-[12px] text-neutral-fg2 line-clamp-2">{toast.message}</p>
               )}
             </div>
             <button
               onClick={() => removeToast(toast.id)}
-              className="shrink-0 rounded-lg p-1 text-text-placeholder transition-colors hover:bg-surface-hover hover:text-text-secondary"
+              className="shrink-0 rounded-md p-1 text-neutral-fg-disabled transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg2"
             >
               <X className="h-4 w-4" />
             </button>

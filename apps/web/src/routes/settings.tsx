@@ -1,7 +1,21 @@
 import { useState } from "react";
-import { FolderOpen, Palette, Info, ExternalLink } from "lucide-react";
+import { FolderOpen, Palette, Info, ExternalLink, Plug } from "lucide-react";
+import { CommandBar } from "../components/layout/command-bar";
+import { cn } from "../lib/utils";
+import { WhatsAppConfig } from "../components/integrations/whatsapp-config";
+import { TelegramConfig } from "../components/integrations/telegram-config";
+
+type SettingsTab = "geral" | "integracoes" | "aparencia" | "sobre";
+
+const TABS: { key: SettingsTab; label: string; icon: typeof FolderOpen }[] = [
+  { key: "geral", label: "Geral", icon: FolderOpen },
+  { key: "integracoes", label: "Integrações", icon: Plug },
+  { key: "aparencia", label: "Aparência", icon: Palette },
+  { key: "sobre", label: "Sobre", icon: Info },
+];
 
 export function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("geral");
   const [workspacePath, setWorkspacePath] = useState(
     () => localStorage.getItem("agenthub:workspacePath") ?? "",
   );
@@ -12,106 +26,131 @@ export function SettingsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="mx-auto flex max-w-2xl flex-col gap-6 stagger">
+      <CommandBar>
+        <span className="text-[13px] font-semibold text-neutral-fg1">Configurações</span>
+      </CommandBar>
 
-          {/* Workspace Path */}
-          <section className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg">
-            <div className="absolute inset-0 opacity-[0.02] gradient-primary" />
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary-light to-purple-light shadow-sm">
-                  <FolderOpen className="h-5 w-5 text-primary" />
-                </div>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Vertical Tab Nav */}
+        <nav className="w-[200px] shrink-0 border-r border-stroke bg-neutral-bg1 py-2">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "relative flex w-full items-center gap-2.5 px-5 py-2.5 text-[13px] font-medium transition-colors",
+                  isActive
+                    ? "bg-brand-light text-brand"
+                    : "text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
+                )}
+              >
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand" />
+                )}
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-8">
+          <div className="max-w-2xl">
+            {activeTab === "geral" && (
+              <div className="flex flex-col gap-5">
                 <div>
-                  <h3 className="text-[15px] font-bold text-text-primary">Workspace Padrão</h3>
-                  <p className="text-[12px] text-text-tertiary">Diretório padrão para escanear projetos</p>
+                  <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Workspace Padrão</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-4">Diretório padrão para escanear projetos automaticamente</p>
+                </div>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={workspacePath}
+                    onChange={(e) => setWorkspacePath(e.target.value)}
+                    placeholder="C:\Users\...\Projects"
+                    className="flex-1 input-fluent"
+                  />
+                  <button
+                    onClick={handleSaveWorkspace}
+                    className="btn-primary rounded-md px-5 py-2.5 text-[13px] font-medium text-white"
+                  >
+                    Salvar
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={workspacePath}
-                  onChange={(e) => setWorkspacePath(e.target.value)}
-                  placeholder="C:\Users\...\Projects"
-                  className="flex-1 rounded-xl border border-edge-light bg-page px-4 py-2.5 text-[13px] text-text-primary placeholder-text-placeholder outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:shadow-sm"
-                />
-                <button
-                  onClick={handleSaveWorkspace}
-                  className="btn-primary rounded-xl px-5 py-2.5 text-[13px] font-bold text-white shadow-md"
-                >
-                  Salvar
-                </button>
-              </div>
-            </div>
-          </section>
+            )}
 
-          {/* Theme */}
-          <section className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg">
-            <div className="absolute inset-0 opacity-[0.02] gradient-primary" />
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-purple-light to-purple-muted shadow-sm">
-                  <Palette className="h-5 w-5 text-purple-dark" />
-                </div>
+            {activeTab === "integracoes" && (
+              <div className="flex flex-col gap-6">
                 <div>
-                  <h3 className="text-[15px] font-bold text-text-primary">Tema</h3>
-                  <p className="text-[12px] text-text-tertiary">Personalize a aparência do AgentHub</p>
+                  <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Integrações de Mensagens</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">
+                    Conecte canais de comunicação para interagir com o Tech Lead via mensagens externas
+                  </p>
                 </div>
+                <WhatsAppConfig />
+                <TelegramConfig />
               </div>
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-light to-purple-light px-4 py-2.5 text-[13px] font-bold text-primary border border-primary/20 shadow-sm">
-                  <span className="h-4 w-4 rounded-full bg-white border-2 border-primary shadow-sm" />
-                  Claro
-                </button>
-                <button className="flex items-center gap-2 rounded-xl bg-page px-4 py-2.5 text-[13px] font-medium text-text-tertiary border border-edge-light hover:bg-surface-hover transition-all">
-                  <span className="h-4 w-4 rounded-full bg-gradient-to-br from-gray-700 to-gray-900" />
-                  Escuro
-                </button>
-                <span className="ml-2 rounded-full bg-gradient-to-r from-yellow-light to-yellow-muted px-3 py-1.5 text-[11px] font-bold text-yellow-dark shadow-sm">
-                  Em breve
-                </span>
-              </div>
-            </div>
-          </section>
+            )}
 
-          {/* About */}
-          <section className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg">
-            <div className="absolute inset-0 opacity-[0.02] gradient-primary" />
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-light to-blue-muted shadow-sm">
-                  <Info className="h-5 w-5 text-blue-dark" />
-                </div>
+            {activeTab === "aparencia" && (
+              <div className="flex flex-col gap-5">
                 <div>
-                  <h3 className="text-[15px] font-bold text-text-primary">Sobre</h3>
-                  <p className="text-[12px] text-text-tertiary">Informações do AgentHub</p>
+                  <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Tema</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-4">Personalize a aparência do AgentHub</p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <button className="flex items-center gap-3 rounded-lg border-2 border-brand bg-brand-light px-4 py-3 text-left transition-colors">
+                    <span className="h-5 w-5 rounded-full bg-white border-2 border-brand" />
+                    <div>
+                      <p className="text-[13px] font-semibold text-brand">Claro</p>
+                      <p className="text-[11px] text-neutral-fg3">Tema padrão com fundo claro</p>
+                    </div>
+                  </button>
+                  <button className="flex items-center gap-3 rounded-lg border-2 border-stroke bg-neutral-bg1 px-4 py-3 text-left transition-colors hover:border-neutral-fg3 opacity-60">
+                    <span className="h-5 w-5 rounded-full bg-gray-700" />
+                    <div>
+                      <p className="text-[13px] font-semibold text-neutral-fg2">Escuro</p>
+                      <p className="text-[11px] text-neutral-fg3">Em breve</p>
+                    </div>
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-col divide-y divide-edge-light/60 rounded-xl bg-page p-1">
-                <div className="flex items-center justify-between px-4 py-3 rounded-t-lg hover:bg-surface-hover transition-colors">
-                  <span className="text-[13px] font-medium text-text-secondary">Versão</span>
-                  <span className="text-[13px] font-bold text-text-primary bg-gradient-to-r from-primary-light to-purple-light px-3 py-1 rounded-full">0.11.0</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors">
-                  <span className="text-[13px] font-medium text-text-secondary">Agentes SDK</span>
-                  <span className="text-[13px] font-bold text-text-primary">Claude Code CLI (OAuth)</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover transition-colors">
-                  <span className="text-[13px] font-medium text-text-secondary">Database</span>
-                  <span className="text-[13px] font-bold text-text-primary">SQLite (libsql)</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 rounded-b-lg hover:bg-surface-hover transition-colors">
-                  <span className="text-[13px] font-medium text-text-secondary">Repositório</span>
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-primary hover:underline cursor-pointer">
-                    GitHub
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
+            )}
 
+            {activeTab === "sobre" && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Sobre o AgentHub</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-4">Informações sobre a aplicação</p>
+                </div>
+                <dl className="flex flex-col divide-y divide-stroke rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[13px] text-neutral-fg2">Versão</dt>
+                    <dd className="text-[13px] font-semibold text-neutral-fg1">0.11.0</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[13px] text-neutral-fg2">Agentes SDK</dt>
+                    <dd className="text-[13px] font-semibold text-neutral-fg1">Claude Code CLI (OAuth)</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[13px] text-neutral-fg2">Database</dt>
+                    <dd className="text-[13px] font-semibold text-neutral-fg1">SQLite (libsql)</dd>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <dt className="text-[13px] text-neutral-fg2">Repositório</dt>
+                    <dd className="flex items-center gap-1.5 text-[13px] font-semibold text-brand cursor-pointer hover:underline">
+                      GitHub
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

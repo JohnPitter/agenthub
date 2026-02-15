@@ -9,7 +9,7 @@ import { NotificationPanel } from "./notification-panel";
 import { CommandPalette } from "../ui/command-palette";
 
 const ROUTE_LABELS: Record<string, string> = {
-  board: "Live Board",
+  board: "Board",
   tasks: "Tasks",
   agents: "Agentes",
   files: "Arquivos",
@@ -26,12 +26,12 @@ export function Header() {
   const { open: commandOpen, setOpen: setCommandOpen } = useCommandPalette();
   const bellRef = useRef<HTMLDivElement>(null);
 
+  const { activeProjectId } = useWorkspaceStore();
   const project = projects.find((p) => p.id === projectId);
   const segment = location.pathname.split("/").pop();
   const pageLabel = segment && ROUTE_LABELS[segment] ? ROUTE_LABELS[segment] : null;
 
   const isDashboard = location.pathname === "/";
-  const isProjectRoute = location.pathname.startsWith("/project/");
 
   const PAGE_TITLES: Record<string, string> = {
     "/analytics": "Analytics",
@@ -51,62 +51,64 @@ export function Header() {
   }, [panelOpen, togglePanel]);
 
   return (
-    <header className="glass relative z-10 flex h-16 shrink-0 items-center justify-between px-8 shadow-md border-b border-edge-light/50">
-      {/* Enhanced gradient accent line with glow */}
-      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-primary opacity-70 shadow-sm" />
+    <header className="relative z-10 flex h-12 shrink-0 flex-col bg-neutral-bg1">
+      {/* Gradient accent line */}
+      <div className="h-[2px] w-full bg-gradient-to-r from-brand via-purple to-brand bg-[length:200%_100%] animate-gradient" />
 
-      {/* Left */}
+      {/* Header content */}
+      <div className="flex flex-1 items-center justify-between px-6 border-b border-stroke2">
+        {/* Left */}
       <div>
         {isDashboard ? (
-          <h1 className="text-[18px] font-bold text-text-primary tracking-tight">Dashboard</h1>
+          <h1 className="text-[15px] font-semibold text-neutral-fg1">Dashboard</h1>
         ) : standalonePageTitle ? (
-          <h1 className="text-[18px] font-bold text-text-primary tracking-tight">{standalonePageTitle}</h1>
+          <h1 className="text-[15px] font-semibold text-neutral-fg1">{standalonePageTitle}</h1>
         ) : project ? (
-          <div className="flex items-center gap-2.5 text-[15px]">
+          <div className="flex items-center gap-2 text-[14px]">
             <Link
               to={`/project/${project.id}`}
-              className="font-bold text-text-primary hover:text-primary transition-all hover:scale-105"
+              className="font-semibold text-neutral-fg1 hover:text-brand transition-colors"
             >
               {project.name}
             </Link>
             {pageLabel && (
               <>
-                <span className="text-text-placeholder font-light">/</span>
-                <span className="font-semibold text-text-secondary">{pageLabel}</span>
+                <span className="text-neutral-fg-disabled">/</span>
+                <span className="font-medium text-neutral-fg2">{pageLabel}</span>
               </>
             )}
           </div>
         ) : (
-          <span className="text-[15px] font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <span className="text-[14px] font-semibold text-brand">
             AgentHub
           </span>
         )}
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-4">
-        {isProjectRoute && (
+      <div className="flex items-center gap-3">
+        {activeProjectId && (
           <button
             onClick={toggleChatPanel}
             className={cn(
-              "flex items-center gap-2.5 rounded-xl px-5 py-2.5 text-[14px] font-bold transition-all duration-300",
+              "flex items-center gap-2 rounded-md px-4 py-2 text-[13px] font-semibold transition-colors",
               chatPanelOpen
-                ? "bg-gradient-primary text-white shadow-lg glow-primary scale-105"
-                : "bg-page text-text-secondary hover:bg-surface-hover hover:shadow-md",
+                ? "bg-brand text-white"
+                : "bg-neutral-bg2 text-neutral-fg2 hover:bg-neutral-bg-hover",
             )}
           >
-            <MessageSquare className="h-4.5 w-4.5" strokeWidth={2.2} />
+            <MessageSquare className="h-4 w-4" strokeWidth={2} />
             Chat
           </button>
         )}
 
         <button
           onClick={() => setCommandOpen(true)}
-          className="flex items-center gap-2.5 rounded-xl bg-page px-5 py-2.5 text-text-placeholder hover:bg-surface-hover hover:shadow-md transition-all duration-300"
+          className="flex items-center gap-2 rounded-md bg-neutral-bg2 px-4 py-2 text-neutral-fg3 hover:bg-neutral-bg-hover transition-colors"
         >
-          <Search className="h-4.5 w-4.5" strokeWidth={2} />
-          <span className="text-[14px] font-semibold">Buscar...</span>
-          <kbd className="ml-1 rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-bold text-text-tertiary border border-edge-light shadow-sm">
+          <Search className="h-4 w-4" strokeWidth={2} />
+          <span className="text-[13px]">Buscar...</span>
+          <kbd className="ml-1 rounded-md bg-neutral-bg1 px-2 py-1 text-[10px] font-semibold text-neutral-fg3 border border-stroke">
             ⌘K
           </kbd>
         </button>
@@ -115,15 +117,15 @@ export function Header() {
           <button
             onClick={togglePanel}
             className={cn(
-              "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300",
+              "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors",
               panelOpen
-                ? "bg-gradient-to-br from-primary-light to-purple-light text-primary shadow-lg scale-105"
-                : "text-text-tertiary hover:bg-page hover:shadow-md",
+                ? "bg-brand-light text-brand"
+                : "text-neutral-fg3 hover:bg-neutral-bg-hover",
             )}
           >
-            <Bell className="h-5 w-5" strokeWidth={2} />
+            <Bell className="h-4.5 w-4.5" strokeWidth={2} />
             {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-gradient-danger px-2 text-[11px] font-bold text-white shadow-lg glow-red">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-semibold text-white">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -131,9 +133,10 @@ export function Header() {
           {panelOpen && <NotificationPanel />}
         </div>
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary text-[14px] font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-brand to-purple text-[12px] font-semibold text-white cursor-pointer">
           JP
         </div>
+      </div>
       </div>
       <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
     </header>

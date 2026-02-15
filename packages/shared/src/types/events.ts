@@ -140,6 +140,7 @@ export interface BoardAgentCursorEvent {
 export interface IntegrationStatusEvent {
   type: "whatsapp" | "telegram";
   status: "disconnected" | "connecting" | "connected" | "error";
+  qr?: string; // QR code for WhatsApp pairing
 }
 
 export interface IntegrationMessageEvent {

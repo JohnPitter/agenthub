@@ -45,7 +45,7 @@ export function MessageList({ messages, onLoadMore }: MessageListProps) {
           <button
             onClick={onLoadMore}
             disabled={isLoadingMessages}
-            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] text-text-tertiary transition-colors hover:bg-surface-hover disabled:opacity-50"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-[12px] text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover disabled:opacity-50"
           >
             {isLoadingMessages ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -59,14 +59,14 @@ export function MessageList({ messages, onLoadMore }: MessageListProps) {
       {/* Empty state */}
       {messages.length === 0 && !isLoadingMessages && (
         <div className="flex h-full flex-col items-center justify-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary-light">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-brand-light">
             <span className="text-[20px]">💬</span>
           </div>
-          <p className="text-[13px] font-medium text-text-secondary">
+          <p className="text-[13px] font-medium text-neutral-fg2">
             Nenhuma mensagem ainda
           </p>
-          <p className="mt-1 text-[12px] text-text-tertiary">
-            Envie uma mensagem para começar
+          <p className="mt-1 text-[12px] text-neutral-fg3">
+            Envie uma mensagem para comecar
           </p>
         </div>
       )}

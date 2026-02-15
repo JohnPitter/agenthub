@@ -11,11 +11,13 @@ import { gitRouter } from "./routes/git";
 import { filesRouter } from "./routes/files";
 import { analyticsRouter } from "./routes/analytics";
 import { pullRequestsRouter } from "./routes/pull-requests";
+import { integrationsRouter } from "./routes/integrations";
 import { setupSocketHandlers } from "./realtime/socket-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { rateLimiter } from "./middleware/rate-limiter";
 import { errorHandler } from "./middleware/error-handler";
 import { logger } from "./lib/logger";
+import { taskTimeoutManager } from "./tasks/task-lifecycle";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 
 const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
@@ -38,6 +40,7 @@ app.use("/api", gitRouter);
 app.use("/api", filesRouter);
 app.use("/api", analyticsRouter);
 app.use("/api", pullRequestsRouter);
+app.use("/api", integrationsRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -56,8 +59,24 @@ const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>(httpServ
 
 setupSocketHandlers(io);
 
+// Start task timeout manager
+taskTimeoutManager.start();
+
 httpServer.listen(PORT, () => {
   logger.info(`Orchestrator running on http://localhost:${PORT}`, "server");
+});
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  logger.info("SIGINT received, shutting down gracefully", "server");
+  taskTimeoutManager.stop();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received, shutting down gracefully", "server");
+  taskTimeoutManager.stop();
+  process.exit(0);
 });
 
 export { io };

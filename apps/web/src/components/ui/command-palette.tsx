@@ -159,10 +159,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   if (!open) return null;
 
   const GROUP_CONFIG = {
-    project: { label: "Projetos", icon: Folder, color: "text-primary" },
-    task: { label: "Tasks", icon: CheckSquare, color: "text-green" },
+    project: { label: "Projetos", icon: Folder, color: "text-brand" },
+    task: { label: "Tasks", icon: CheckSquare, color: "text-success" },
     agent: { label: "Agentes", icon: Users, color: "text-purple" },
-    navigation: { label: "Navegação", icon: Layout, color: "text-blue" },
+    navigation: { label: "Navegação", icon: Layout, color: "text-info" },
   };
 
   let globalIndex = 0;
@@ -173,19 +173,19 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[560px] rounded-lg bg-white shadow-lg border border-edge-light overflow-hidden animate-fade-up"
+        className="w-full max-w-[560px] rounded-lg bg-neutral-bg1 shadow-16 border border-stroke2 overflow-hidden animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}
-        <div className="flex items-center gap-3 border-b border-edge-light px-4 py-3">
-          <Search className="h-5 w-5 text-text-tertiary" />
+        <div className="flex items-center gap-3 border-b border-stroke2 px-4 py-3">
+          <Search className="h-5 w-5 text-neutral-fg3" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar projetos, tasks, agentes..."
-            className="flex-1 text-[14px] text-text-primary placeholder-text-placeholder outline-none bg-transparent"
+            className="flex-1 text-[14px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none bg-transparent"
           />
         </div>
 
@@ -193,8 +193,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         <div className="max-h-[400px] overflow-y-auto">
           {filteredCommands.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6">
-              <Search className="h-10 w-10 text-text-placeholder mb-3" />
-              <p className="text-[13px] text-text-tertiary">Nenhum resultado encontrado</p>
+              <Search className="h-10 w-10 text-neutral-fg-disabled mb-3" />
+              <p className="text-[13px] text-neutral-fg3">Nenhum resultado encontrado</p>
             </div>
           ) : (
             <>
@@ -205,10 +205,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                   const Icon = config.icon;
 
                   return (
-                    <div key={groupType} className="border-b border-edge-light last:border-0">
-                      <div className="flex items-center gap-2 px-4 py-2 bg-surface-hover">
+                    <div key={groupType} className="border-b border-stroke2 last:border-0">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-neutral-bg-hover">
                         <Icon className={cn("h-3.5 w-3.5", config.color)} />
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">
                           {config.label}
                         </span>
                       </div>
@@ -222,20 +222,20 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                             onClick={item.action}
                             className={cn(
                               "flex w-full items-center justify-between px-4 py-3 text-left transition-colors",
-                              isSelected ? "bg-primary-light" : "hover:bg-surface-hover",
+                              isSelected ? "bg-brand-light" : "hover:bg-neutral-bg-hover",
                             )}
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="text-[13px] font-medium text-text-primary truncate">
+                              <p className="text-[13px] font-medium text-neutral-fg1 truncate">
                                 {item.label}
                               </p>
                               {item.description && (
-                                <p className="text-[11px] text-text-tertiary truncate">
+                                <p className="text-[11px] text-neutral-fg3 truncate">
                                   {item.description}
                                 </p>
                               )}
                             </div>
-                            {isSelected && <ArrowRight className="h-4 w-4 shrink-0 text-primary ml-3" />}
+                            {isSelected && <ArrowRight className="h-4 w-4 shrink-0 text-brand ml-3" />}
                           </button>
                         );
                       })}
@@ -248,15 +248,15 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-center gap-4 border-t border-edge-light px-4 py-2 bg-surface-hover">
-          <span className="text-[10px] text-text-placeholder">
-            <kbd className="rounded bg-white px-1.5 py-0.5 border border-edge text-text-tertiary">Esc</kbd> para fechar
+        <div className="flex items-center justify-center gap-4 border-t border-stroke2 px-4 py-2 bg-neutral-bg-hover">
+          <span className="text-[10px] text-neutral-fg-disabled">
+            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">Esc</kbd> para fechar
           </span>
-          <span className="text-[10px] text-text-placeholder">
-            <kbd className="rounded bg-white px-1.5 py-0.5 border border-edge text-text-tertiary">↑↓</kbd> para navegar
+          <span className="text-[10px] text-neutral-fg-disabled">
+            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">↑↓</kbd> para navegar
           </span>
-          <span className="text-[10px] text-text-placeholder">
-            <kbd className="rounded bg-white px-1.5 py-0.5 border border-edge text-text-tertiary">Enter</kbd> para selecionar
+          <span className="text-[10px] text-neutral-fg-disabled">
+            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">Enter</kbd> para selecionar
           </span>
         </div>
       </div>

@@ -14,8 +14,8 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
   if (isSystem) {
     return (
       <div className="flex justify-center">
-        <div className="rounded-lg bg-surface-hover px-4 py-2">
-          <p className="text-[12px] text-text-tertiary">{message.content}</p>
+        <div className="rounded-md bg-neutral-bg-hover px-4 py-2">
+          <p className="text-[12px] text-neutral-fg3">{message.content}</p>
         </div>
       </div>
     );
@@ -31,7 +31,7 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
       {/* Agent avatar */}
       {!isUser && (
         <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
           style={{ backgroundColor: agent?.color ?? "#0866FF" }}
         >
           {agent?.name?.charAt(0) ?? "A"}
@@ -46,7 +46,7 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
       >
         {/* Agent name */}
         {!isUser && agent && (
-          <span className="text-[11px] font-medium text-text-secondary">
+          <span className="text-[11px] font-medium text-neutral-fg2">
             {agent.name}
           </span>
         )}
@@ -54,17 +54,17 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
         {/* Bubble */}
         <div
           className={cn(
-            "rounded-lg px-4 py-2.5",
+            "rounded-md px-4 py-2.5",
             isUser
-              ? "bg-primary text-white"
-              : "border border-edge bg-white",
+              ? "bg-brand text-white"
+              : "bg-neutral-bg2 border border-stroke",
           )}
         >
           <MessageContent message={message} />
         </div>
 
         {/* Timestamp */}
-        <span className="text-[10px] text-text-placeholder">
+        <span className="text-[10px] text-neutral-fg-disabled">
           {formatDate(message.createdAt)}
         </span>
       </div>

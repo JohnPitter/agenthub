@@ -536,5 +536,13 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
     io.to(`project:${data.projectId}`).emit("board:agent_cursor", data);
   });
 
+  eventBus.on("integration:status", (data) => {
+    io.emit("integration:status", data);
+  });
+
+  eventBus.on("integration:message", (data) => {
+    io.emit("integration:message", data);
+  });
+
   logger.info("EventBus → Socket.io bridge established", "socket");
 }

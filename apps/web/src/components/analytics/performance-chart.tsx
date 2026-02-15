@@ -24,8 +24,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-edge-light rounded-lg shadow-md p-3">
-          <p className="text-[11px] font-semibold text-text-primary mb-1.5">
+        <div className="bg-neutral-bg1 border border-stroke2 rounded-md shadow-4 p-3">
+          <p className="text-[11px] font-semibold text-neutral-fg1 mb-1.5">
             {new Date(payload[0].payload.date).toLocaleDateString("en-US", {
               weekday: "short",
               month: "short",
@@ -34,19 +34,19 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
           </p>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green" />
-              <span className="text-[10px] text-text-tertiary">Completed:</span>
-              <span className="text-[11px] font-semibold text-green">{payload[0].value}</span>
+              <div className="w-2 h-2 rounded-full bg-success" />
+              <span className="text-[10px] text-neutral-fg3">Completed:</span>
+              <span className="text-[11px] font-semibold text-success">{payload[0].value}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red" />
-              <span className="text-[10px] text-text-tertiary">Failed:</span>
-              <span className="text-[11px] font-semibold text-red">{payload[1].value}</span>
+              <div className="w-2 h-2 rounded-full bg-danger" />
+              <span className="text-[10px] text-neutral-fg3">Failed:</span>
+              <span className="text-[11px] font-semibold text-danger">{payload[1].value}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-[10px] text-text-tertiary">Total:</span>
-              <span className="text-[11px] font-semibold text-primary">{payload[2].value}</span>
+              <div className="w-2 h-2 rounded-full bg-brand" />
+              <span className="text-[10px] text-neutral-fg3">Total:</span>
+              <span className="text-[11px] font-semibold text-brand">{payload[2].value}</span>
             </div>
           </div>
         </div>
@@ -59,17 +59,17 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
     return (
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={formattedData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#DADDE1" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
           <XAxis
             dataKey="displayDate"
-            tick={{ fontSize: 10, fill: "#8A8D91" }}
+            tick={{ fontSize: 10, fill: "#9E9E9E" }}
             tickLine={false}
-            axisLine={{ stroke: "#DADDE1" }}
+            axisLine={{ stroke: "#E0E0E0" }}
           />
           <YAxis
-            tick={{ fontSize: 10, fill: "#8A8D91" }}
+            tick={{ fontSize: 10, fill: "#9E9E9E" }}
             tickLine={false}
-            axisLine={{ stroke: "#DADDE1" }}
+            axisLine={{ stroke: "#E0E0E0" }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
@@ -81,8 +81,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             type="monotone"
             dataKey="completed"
             name="Completed"
-            stroke="#31A24C"
-            fill="#31A24C"
+            stroke="#107C10"
+            fill="#107C10"
             fillOpacity={0.15}
             strokeWidth={2}
           />
@@ -90,8 +90,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             type="monotone"
             dataKey="failed"
             name="Failed"
-            stroke="#E4405F"
-            fill="#E4405F"
+            stroke="#B10E1C"
+            fill="#B10E1C"
             fillOpacity={0.15}
             strokeWidth={2}
           />
@@ -99,8 +99,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             type="monotone"
             dataKey="total"
             name="Total"
-            stroke="#0866FF"
-            fill="#0866FF"
+            stroke="#0F6CBD"
+            fill="#0F6CBD"
             fillOpacity={0.08}
             strokeWidth={2}
           />
@@ -112,17 +112,17 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={formattedData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#DADDE1" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
         <XAxis
           dataKey="displayDate"
-          tick={{ fontSize: 10, fill: "#8A8D91" }}
+          tick={{ fontSize: 10, fill: "#9E9E9E" }}
           tickLine={false}
-          axisLine={{ stroke: "#DADDE1" }}
+          axisLine={{ stroke: "#E0E0E0" }}
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#8A8D91" }}
+          tick={{ fontSize: 10, fill: "#9E9E9E" }}
           tickLine={false}
-          axisLine={{ stroke: "#DADDE1" }}
+          axisLine={{ stroke: "#E0E0E0" }}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
@@ -134,27 +134,27 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
           type="monotone"
           dataKey="completed"
           name="Completed"
-          stroke="#31A24C"
+          stroke="#107C10"
           strokeWidth={2}
-          dot={{ fill: "#31A24C", r: 3 }}
+          dot={{ fill: "#107C10", r: 3 }}
           activeDot={{ r: 5 }}
         />
         <Line
           type="monotone"
           dataKey="failed"
           name="Failed"
-          stroke="#E4405F"
+          stroke="#B10E1C"
           strokeWidth={2}
-          dot={{ fill: "#E4405F", r: 3 }}
+          dot={{ fill: "#B10E1C", r: 3 }}
           activeDot={{ r: 5 }}
         />
         <Line
           type="monotone"
           dataKey="total"
           name="Total"
-          stroke="#0866FF"
+          stroke="#0F6CBD"
           strokeWidth={2}
-          dot={{ fill: "#0866FF", r: 3 }}
+          dot={{ fill: "#0F6CBD", r: 3 }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

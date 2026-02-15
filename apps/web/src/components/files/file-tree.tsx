@@ -58,14 +58,14 @@ function FileTreeNode({ node, level, onFileSelect, selectedPath }: FileTreeNodeP
       <div
         onClick={handleClick}
         className={cn(
-          "flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-lg transition-colors",
-          isSelected && "bg-purple-light",
-          !isSelected && "hover:bg-page"
+          "flex items-center gap-1.5 px-2 py-1 cursor-pointer rounded-md transition-colors",
+          isSelected && "bg-brand-light",
+          !isSelected && "hover:bg-neutral-bg-hover"
         )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
       >
         {isDirectory && (
-          <span className="text-text-tertiary">
+          <span className="text-neutral-fg3">
             {isExpanded ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
@@ -76,20 +76,20 @@ function FileTreeNode({ node, level, onFileSelect, selectedPath }: FileTreeNodeP
 
         {isDirectory ? (
           isExpanded ? (
-            <FolderOpen className="h-3.5 w-3.5 text-purple" />
+            <FolderOpen className="h-3.5 w-3.5 text-brand" />
           ) : (
-            <Folder className="h-3.5 w-3.5 text-purple" />
+            <Folder className="h-3.5 w-3.5 text-brand" />
           )
         ) : (
-          <File className="h-3.5 w-3.5 text-text-tertiary" />
+          <File className="h-3.5 w-3.5 text-neutral-fg3" />
         )}
 
-        <span className={cn("flex-1", isSelected && "font-semibold text-purple")}>
+        <span className={cn("flex-1", isSelected && "font-semibold text-brand")}>
           {node.name}
         </span>
 
         {!isDirectory && node.size && (
-          <span className="text-[10px] text-text-tertiary">
+          <span className="text-[10px] text-neutral-fg3">
             {formatFileSize(node.size)}
           </span>
         )}

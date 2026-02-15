@@ -8,16 +8,18 @@ export const TASK_STATES = {
   CHANGES_REQUESTED: "changes_requested",
   DONE: "done",
   BLOCKED: "blocked",
+  FAILED: "failed",
 } as const;
 
 export const TASK_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   created: ["assigned", "in_progress"],
   assigned: ["in_progress", "blocked"],
-  in_progress: ["review", "blocked"],
+  in_progress: ["review", "blocked", "failed"],
   review: ["done", "changes_requested"],
   changes_requested: ["in_progress"],
   done: [],
   blocked: ["created", "assigned"],
+  failed: [],
 };
 
 export const TRANSITION_ACTORS: Record<string, "user" | "agent" | "system" | "any"> = {

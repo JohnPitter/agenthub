@@ -38,15 +38,15 @@ export function ChatInput({ onSend, agents }: ChatInputProps) {
   const activeAgents = agents.filter((a) => a.isActive);
 
   return (
-    <div className="border-t border-edge-light p-4">
+    <div className="border-t border-stroke2 p-4">
       {/* Agent selector */}
       <div className="mb-2">
         <select
           value={selectedAgent}
           onChange={(e) => setSelectedAgent(e.target.value)}
-          className="w-full rounded-lg border border-edge bg-white px-3 py-2 text-[12px] text-text-secondary outline-none transition-colors focus:border-primary"
+          className="w-full rounded-md border border-stroke bg-neutral-bg1 px-3 py-2 text-[12px] text-neutral-fg2 outline-none transition-colors focus:border-brand"
         >
-          <option value="">Tech Lead (padrão)</option>
+          <option value="">Tech Lead (padrao)</option>
           {activeAgents.map((agent) => (
             <option key={agent.id} value={agent.id}>
               {agent.name}
@@ -63,13 +63,13 @@ export function ChatInput({ onSend, agents }: ChatInputProps) {
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           placeholder="Digite sua mensagem..."
-          className="max-h-[120px] flex-1 resize-none rounded-xl border border-edge bg-white px-3 py-2.5 text-[13px] text-text-primary outline-none transition-colors placeholder:text-text-placeholder focus:border-primary focus:ring-2 focus:ring-primary-muted"
+          className="max-h-[120px] flex-1 resize-none rounded-lg border border-stroke bg-neutral-bg1 px-3 py-2.5 text-[13px] text-neutral-fg1 outline-none transition-colors placeholder:text-neutral-fg-disabled focus:border-brand focus:ring-2 focus:ring-brand-light"
           rows={1}
         />
         <button
           onClick={handleSubmit}
           disabled={!message.trim()}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white transition-all duration-200 hover:bg-primary-hover hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand text-white transition-all duration-200 hover:bg-brand-hover disabled:opacity-40"
         >
           <Send className="h-4 w-4" />
         </button>

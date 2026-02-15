@@ -28,10 +28,10 @@ function CodeBlock({ code }: { code: string }) {
   };
 
   return (
-    <div className="relative rounded-lg bg-hero-from p-3 font-mono text-[12px] text-white">
+    <div className="relative rounded-md bg-neutral-fg1 p-3 font-mono text-[12px] text-white">
       <button
         onClick={handleCopy}
-        className="absolute right-2 top-2 rounded-lg bg-white/10 p-1.5 transition-colors hover:bg-white/20"
+        className="absolute right-2 top-2 rounded-md bg-white/10 p-1.5 transition-colors hover:bg-white/20"
       >
         {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       </button>
@@ -45,25 +45,25 @@ function ThinkingBlock({ content }: { content: string }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-lg border border-purple/20 bg-purple-light p-3">
+    <div className="rounded-md border border-brand/20 bg-brand-light p-3">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4 text-purple" />
-          <span className="text-[12px] font-medium text-purple">Pensando...</span>
+          <Brain className="h-4 w-4 text-brand" />
+          <span className="text-[12px] font-medium text-brand">Pensando...</span>
         </div>
         <ChevronDown
           className={cn(
-            "h-4 w-4 text-purple transition-transform",
+            "h-4 w-4 text-brand transition-transform",
             expanded && "rotate-180",
           )}
         />
       </button>
 
       {expanded && (
-        <p className="mt-2 whitespace-pre-wrap text-[12px] text-text-secondary">
+        <p className="mt-2 whitespace-pre-wrap text-[12px] text-neutral-fg2">
           {content}
         </p>
       )}
@@ -90,15 +90,15 @@ function ToolUseCard({ metadata }: { metadata: string | null }) {
   const Icon = toolIcons[tool] || Wrench;
 
   return (
-    <div className="rounded-lg border border-blue/20 bg-blue-light p-3">
+    <div className="rounded-md border border-info/20 bg-info-light p-3">
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-blue" />
-        <span className="text-[12px] font-medium text-blue">{tool}</span>
+        <Icon className="h-4 w-4 text-info" />
+        <span className="text-[12px] font-medium text-info">{tool}</span>
         {input != null && (
           <button onClick={() => setExpanded(!expanded)}>
             <ChevronDown
               className={cn(
-                "h-3 w-3 text-blue transition-transform",
+                "h-3 w-3 text-info transition-transform",
                 expanded && "rotate-180",
               )}
             />
@@ -107,7 +107,7 @@ function ToolUseCard({ metadata }: { metadata: string | null }) {
       </div>
 
       {expanded && input != null && (
-        <pre className="mt-2 overflow-x-auto text-[11px] text-text-tertiary">
+        <pre className="mt-2 overflow-x-auto text-[11px] text-neutral-fg3">
           {typeof input === "string" ? input : JSON.stringify(input as object, null, 2)}
         </pre>
       )}
@@ -129,7 +129,7 @@ export function MessageContent({ message }: { message: Message }) {
 
     case "error":
       return (
-        <div className="flex items-start gap-2 text-red">
+        <div className="flex items-start gap-2 text-danger">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <p className="text-[13px]">{message.content}</p>
         </div>
@@ -141,9 +141,9 @@ export function MessageContent({ message }: { message: Message }) {
     case "system":
       return (
         <div className="flex items-center justify-center my-2">
-          <div className="flex items-center gap-2 rounded-full bg-surface-hover px-3 py-1.5">
-            <Info className="h-3 w-3 text-text-tertiary" />
-            <p className="text-[11px] text-text-tertiary">{message.content}</p>
+          <div className="flex items-center gap-2 rounded-full bg-neutral-bg-hover px-3 py-1.5">
+            <Info className="h-3 w-3 text-neutral-fg3" />
+            <p className="text-[11px] text-neutral-fg3">{message.content}</p>
           </div>
         </div>
       );

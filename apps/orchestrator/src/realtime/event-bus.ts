@@ -22,6 +22,8 @@ export interface EventMap {
   "task:pr_merged": { taskId: string; projectId: string; prNumber: number; method: string };
   "board:activity": { projectId: string; agentId: string; action: string; detail: string; timestamp: number };
   "board:agent_cursor": { projectId: string; agentId: string; filePath?: string; lineNumber?: number; action: string };
+  "integration:status": { type: "whatsapp" | "telegram"; status: "disconnected" | "connecting" | "connected" | "error"; qr?: string };
+  "integration:message": { type: "whatsapp" | "telegram"; from: string; content: string };
 }
 
 class TypedEventBus {

@@ -5,7 +5,8 @@ export type TaskStatus =
   | "review"
   | "changes_requested"
   | "done"
-  | "blocked";
+  | "blocked"
+  | "failed";
 
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 

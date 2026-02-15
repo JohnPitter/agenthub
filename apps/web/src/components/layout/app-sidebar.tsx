@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
-import { LayoutDashboard, BarChart3, Settings, Zap, FolderOpen } from "lucide-react";
+import { LayoutDashboard, BarChart3, Settings, Zap, FolderOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace-store";
+import { useChatStore } from "../../stores/chat-store";
 import { api } from "../../lib/utils";
 import { cn } from "../../lib/utils";
 import type { Project } from "@agenthub/shared";
@@ -13,10 +14,23 @@ const NAV_ITEMS = [
   { to: "/settings", icon: Settings, label: "Configurações" },
 ];
 
+const AGENT_STATUS_COLORS: Record<string, string> = {
+  idle: "bg-neutral-fg-disabled",
+  running: "bg-success",
+  paused: "bg-warning",
+  error: "bg-danger",
+  // Fallback statuses from chat activity
+  busy: "bg-warning",
+  thinking: "bg-info",
+  working: "bg-success",
+};
+
 export function AppSidebar() {
-  const { projects, setProjects, activeProjectId, setActiveProject } = useWorkspaceStore();
+  const { projects, setProjects, activeProjectId, setActiveProject, agents } = useWorkspaceStore();
+  const { agentActivity } = useChatStore();
   const { id: routeProjectId } = useParams();
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     api<{ projects: Project[] }>("/projects").then(({ projects }) => {
@@ -34,22 +48,35 @@ export function AppSidebar() {
   };
 
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col border-r border-edge-light/60 bg-white/80 backdrop-blur-sm">
+    <aside className={cn(
+      "relative flex shrink-0 flex-col border-r border-stroke glass transition-all duration-300",
+      collapsed ? "w-[72px]" : "w-[240px]"
+    )}>
+      {/* Collapse button */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute -right-3 top-6 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-bg2 border border-stroke text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
+      >
+        {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+      </button>
+
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-primary shadow-md">
+      <div className={cn(
+        "flex h-16 items-center border-b border-stroke2 transition-all duration-300",
+        collapsed ? "justify-center px-3" : "gap-3 px-5"
+      )}>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-purple">
           <Zap className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
         </div>
-        <div className="flex flex-col">
-          <span className="text-[15px] font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple">
-            AgentHub
-          </span>
-          <span className="text-[10px] font-medium text-text-placeholder -mt-0.5">v0.11.0</span>
-        </div>
+        {!collapsed && (
+          <div className="flex flex-col">
+            <span className="text-[15px] font-semibold text-neutral-fg1 leading-none">
+              AgentHub
+            </span>
+            <span className="text-[10px] font-semibold text-neutral-fg3 mt-0.5 tracking-wider uppercase">AI Orchestration</span>
+          </div>
+        )}
       </div>
-
-      {/* Divider */}
-      <div className="mx-5 border-t border-edge-light/60" />
 
       {/* Main Nav */}
       <nav className="mt-4 flex flex-col gap-1 px-3">
@@ -60,41 +87,37 @@ export function AppSidebar() {
               key={item.to}
               to={item.to}
               className={cn(
-                "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
+                "group relative flex items-center rounded-lg py-2 text-[13px] font-medium transition-colors",
+                collapsed ? "justify-center px-2" : "gap-3 px-3",
                 active
-                  ? "bg-gradient-to-r from-primary-light to-purple-light text-primary font-semibold shadow-sm"
-                  : "text-sidebar-text hover:bg-surface-hover hover:text-text-primary",
+                  ? "bg-brand-light text-brand font-semibold"
+                  : "text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
               )}
+              title={collapsed ? item.label : undefined}
             >
               {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-gradient-to-b from-primary to-purple" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand" />
               )}
-              <div className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                active ? "bg-white/80 shadow-xs" : "",
-              )}>
-                <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.2 : 1.6} />
-              </div>
-              {item.label}
+              <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.2 : 1.8} />
+              {!collapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* Divider */}
-      <div className="mx-5 my-4 border-t border-edge-light/60" />
-
       {/* Projects section */}
       {projects.length > 0 && (
         <>
-          <div className="mx-5 mb-3 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">
-              Projetos
-            </span>
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-light px-1.5 text-[10px] font-bold text-primary">
-              {projects.length}
-            </span>
-          </div>
+          {!collapsed && (
+            <div className="mx-5 mt-6 mb-3 flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-fg3">
+                Projetos
+              </span>
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
+                {projects.length}
+              </span>
+            </div>
+          )}
 
           <nav className="flex flex-1 flex-col gap-1 overflow-auto px-3 pb-4">
             {projects.map((project) => {
@@ -109,24 +132,30 @@ export function AppSidebar() {
                   key={project.id}
                   to={`/project/${project.id}`}
                   className={cn(
-                    "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
+                    "group relative flex items-center rounded-lg py-2 transition-colors",
+                    collapsed ? "justify-center px-2" : "gap-3 px-3",
                     isActive
-                      ? "bg-gradient-to-r from-primary-light to-purple-light text-text-primary font-semibold shadow-sm"
-                      : "text-text-secondary hover:bg-surface-hover hover:text-text-primary",
+                      ? "bg-brand-light text-neutral-fg1 font-semibold"
+                      : "text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
                   )}
+                  title={collapsed ? project.name : undefined}
                 >
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-gradient-to-b from-primary to-purple" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand" />
                   )}
                   <span className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold transition-all",
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[12px] font-semibold transition-colors",
                     isActive
-                      ? "gradient-primary text-white shadow-sm"
-                      : "bg-page text-text-secondary group-hover:bg-primary-light group-hover:text-primary",
+                      ? "bg-gradient-to-br from-brand to-purple text-white"
+                      : "bg-neutral-bg2 text-neutral-fg2 group-hover:bg-brand-light group-hover:text-brand",
                   )}>
                     {icon}
                   </span>
-                  <span className="truncate text-[13px]">{project.name}</span>
+                  {!collapsed && (
+                    <span className="truncate text-[13px] font-medium">
+                      {project.name}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -135,14 +164,47 @@ export function AppSidebar() {
       )}
 
       {/* Empty state for projects */}
-      {projects.length === 0 && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 pb-8">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-light to-purple-light">
-            <FolderOpen className="h-7 w-7 text-primary" />
+      {projects.length === 0 && !collapsed && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 pb-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-light">
+            <FolderOpen className="h-5 w-5 text-brand" />
           </div>
-          <p className="text-center text-[12px] font-medium text-text-tertiary leading-relaxed">
+          <p className="text-center text-[12px] text-neutral-fg3 leading-relaxed">
             Escaneie um workspace<br />para começar
           </p>
+        </div>
+      )}
+
+      {/* Agent status indicators */}
+      {agents.length > 0 && (
+        <div className={cn(
+          "border-t border-stroke2 p-3",
+          collapsed ? "flex flex-col gap-2" : "flex flex-wrap gap-2"
+        )}>
+          {agents.slice(0, collapsed ? 4 : 5).map((agent) => {
+            const activity = agentActivity.get(agent.id);
+            const status = activity?.status ?? "idle";
+            const statusColor = AGENT_STATUS_COLORS[status];
+
+            return (
+              <div
+                key={agent.id}
+                className="relative group"
+                title={collapsed ? agent.name : `${agent.name} - ${status}`}
+              >
+                <div className={cn(
+                  "flex items-center justify-center rounded-md bg-neutral-bg2 text-[10px] font-semibold text-neutral-fg1 transition-colors hover:bg-neutral-bg-hover",
+                  collapsed ? "h-9 w-9" : "h-8 w-8"
+                )}>
+                  {agent.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
+                <span className={cn(
+                  "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-neutral-bg1",
+                  statusColor
+                )} />
+              </div>
+            );
+          })}
         </div>
       )}
     </aside>

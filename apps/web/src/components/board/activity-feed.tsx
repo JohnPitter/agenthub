@@ -18,10 +18,10 @@ export function ActivityFeed({ activities, agents }: ActivityFeedProps) {
   }, [activities.length]);
 
   return (
-    <div className="flex flex-1 flex-col rounded-xl bg-white p-5 shadow-card">
+    <div className="flex flex-1 flex-col rounded-lg bg-neutral-bg1 p-5 shadow-2">
       <div className="mb-3 flex items-center gap-2">
-        <Zap className="h-4 w-4 text-primary" />
-        <h3 className="text-[13px] font-semibold text-text-primary">
+        <Zap className="h-4 w-4 text-brand" />
+        <h3 className="text-[13px] font-semibold text-neutral-fg1">
           Atividades Recentes
         </h3>
       </div>
@@ -29,8 +29,8 @@ export function ActivityFeed({ activities, agents }: ActivityFeedProps) {
       <div ref={feedRef} className="flex-1 space-y-1.5 overflow-y-auto">
         {activities.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <Clock className="mb-2 h-8 w-8 text-text-placeholder" />
-            <p className="text-[12px] text-text-tertiary">
+            <Clock className="mb-2 h-8 w-8 text-neutral-fg-disabled" />
+            <p className="text-[12px] text-neutral-fg3">
               Aguardando atividades...
             </p>
           </div>

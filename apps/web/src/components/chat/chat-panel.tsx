@@ -1,4 +1,4 @@
-import { MessageSquare, ChevronRight } from "lucide-react";
+import { MessageSquare, ChevronLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useChatStore } from "../../stores/chat-store";
@@ -8,12 +8,9 @@ import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
 import type { Message } from "@agenthub/shared";
 
-interface ChatPanelProps {
-  projectId: string;
-}
-
-export function ChatPanel({ projectId }: ChatPanelProps) {
-  const { chatPanelOpen, toggleChatPanel, agents } = useWorkspaceStore();
+export function ChatPanel() {
+  const { chatPanelOpen, toggleChatPanel, agents, activeProjectId } = useWorkspaceStore();
+  const projectId = activeProjectId ?? "";
   const { messages, addMessage, setStreamingAgent, updateAgentActivity } = useChatStore();
   const { sendMessage: sendHttp, loadMoreMessages } = useMessages(projectId);
 
@@ -126,8 +123,8 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
       const statusMessages: Record<string, string> = {
         in_progress: "Task iniciada",
         review: "Task enviada para review",
-        done: "Task concluída",
-        changes_requested: "Alterações solicitadas",
+        done: "Task concluida",
+        changes_requested: "Alteracoes solicitadas",
       };
 
       const message = statusMessages[data.status];
@@ -174,7 +171,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
         taskId: data.taskId,
         agentId: data.agentId,
         source: "system",
-        content: `Task na fila (posição ${data.queuePosition})`,
+        content: `Task na fila (posicao ${data.queuePosition})`,
         contentType: "system",
         metadata: null,
         parentMessageId: null,
@@ -207,26 +204,31 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
     sendSocket(content, agentId);
   };
 
+  // Don't render if no active project
+  if (!activeProjectId) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
-        "flex h-full flex-col bg-white shadow-md transition-all duration-300",
-        chatPanelOpen ? "w-[380px]" : "w-0 overflow-hidden",
+        "flex h-full flex-col bg-neutral-bg2 transition-all duration-300 glass border-r border-stroke2",
+        chatPanelOpen ? "w-[360px]" : "w-0 overflow-hidden",
       )}
     >
       {/* Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-4 shadow-xs">
+      <div className="flex h-14 shrink-0 items-center justify-between px-4 border-b border-stroke2">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-light">
-            <MessageSquare className="h-4 w-4 text-primary" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-light">
+            <MessageSquare className="h-4 w-4 text-brand" />
           </div>
-          <span className="text-[13px] font-semibold text-text-primary">Chat</span>
+          <span className="text-[13px] font-semibold text-neutral-fg1">Chat</span>
         </div>
         <button
           onClick={toggleChatPanel}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-page hover:text-text-secondary"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg2"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
       </div>
 

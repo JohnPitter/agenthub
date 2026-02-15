@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { FolderOpen, Loader2 } from "lucide-react";
+import { Loader2, ChevronRight } from "lucide-react";
 import { FileTree, type FileNode } from "../components/files/file-tree";
 import { FileViewer } from "../components/files/file-viewer";
+import { CommandBar } from "../components/layout/command-bar";
 import { api } from "../lib/utils";
 
 export function ProjectFiles() {
@@ -28,27 +29,41 @@ export function ProjectFiles() {
     fetchFiles();
   }, [id]);
 
+  const pathSegments = selectedFile ? selectedFile.split(/[/\\]/).filter(Boolean) : [];
+
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="relative z-10 bg-white px-8 py-5 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-light">
-            <FolderOpen className="h-5 w-5 text-purple" />
+      {/* Command Bar with breadcrumb */}
+      <CommandBar>
+        {selectedFile ? (
+          <div className="flex items-center gap-1 text-[13px] min-w-0">
+            {pathSegments.map((segment, i) => {
+              const isLast = i === pathSegments.length - 1;
+              return (
+                <span key={i} className="flex items-center gap-1 min-w-0">
+                  {i > 0 && <ChevronRight className="h-3 w-3 shrink-0 text-neutral-fg-disabled" />}
+                  <span
+                    className={
+                      isLast
+                        ? "font-semibold text-neutral-fg1 truncate"
+                        : "text-neutral-fg3 truncate"
+                    }
+                  >
+                    {segment}
+                  </span>
+                </span>
+              );
+            })}
           </div>
-          <div>
-            <h1 className="text-[18px] font-semibold text-text-primary">Arquivos</h1>
-            <p className="text-[12px] text-text-tertiary">
-              Navegue pelos arquivos do projeto
-            </p>
-          </div>
-        </div>
-      </div>
+        ) : (
+          <span className="text-[13px] text-neutral-fg3">Selecione um arquivo</span>
+        )}
+      </CommandBar>
 
       {/* Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* File Tree Sidebar */}
-        <div className="w-80 border-r border-edge bg-white overflow-auto">
+        <div className="w-64 shrink-0 border-r border-stroke bg-neutral-bg1 overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-purple" />

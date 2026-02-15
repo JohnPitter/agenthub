@@ -26,7 +26,7 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg animate-fade-up"
+        className="w-full max-w-md rounded-lg bg-neutral-bg1 p-6 shadow-16 animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-5">
@@ -34,37 +34,37 @@ export function ConfirmDialog({
             <div
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-lg",
-                variant === "danger" ? "bg-red-light" : "bg-primary-light",
+                variant === "danger" ? "bg-danger-light" : "bg-brand-light",
               )}
             >
               <AlertTriangle
-                className={cn("h-5 w-5", variant === "danger" ? "text-red" : "text-primary")}
+                className={cn("h-5 w-5", variant === "danger" ? "text-danger" : "text-brand")}
               />
             </div>
-            <h2 className="text-[16px] font-semibold text-text-primary">{title}</h2>
+            <h2 className="text-[16px] font-semibold text-neutral-fg1">{title}</h2>
           </div>
           <button
             onClick={onCancel}
-            className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-page hover:text-text-primary"
+            className="rounded-md p-2 text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="text-[14px] text-text-secondary leading-relaxed mb-6">{message}</p>
+        <p className="text-[14px] text-neutral-fg2 leading-relaxed mb-6">{message}</p>
 
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="rounded-lg px-5 py-2.5 text-[14px] font-medium text-text-secondary transition-colors hover:bg-page"
+            className="rounded-md px-5 py-2.5 text-[14px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             className={cn(
-              "rounded-lg px-5 py-2.5 text-[14px] font-medium text-white transition-all hover:opacity-90",
-              variant === "danger" ? "bg-red" : "bg-primary",
+              "rounded-md px-5 py-2.5 text-[14px] font-medium text-white transition-all hover:opacity-90",
+              variant === "danger" ? "bg-danger" : "bg-brand",
             )}
           >
             {confirmLabel}

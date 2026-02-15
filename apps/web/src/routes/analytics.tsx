@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, Loader2, TrendingDown, Target } from "lucide-react";
-import { AgentMetricsCard } from "../components/analytics/agent-metrics-card";
+import { BarChart3 } from "lucide-react";
 import { PerformanceChart } from "../components/analytics/performance-chart";
+import { CommandBar } from "../components/layout/command-bar";
+import { StatBar } from "../components/ui/stat-bar";
+import { Tablist } from "../components/ui/tablist";
+import { EmptyState } from "../components/ui/empty-state";
+import { SkeletonStats, SkeletonTable } from "../components/ui/skeleton";
 import { api, cn } from "../lib/utils";
 
 interface AgentMetrics {
@@ -34,6 +38,7 @@ type Period = "7d" | "30d" | "all";
 
 export function Analytics() {
   const [period, setPeriod] = useState<Period>("30d");
+  const [activeTab, setActiveTab] = useState<"overview" | "agents">("overview");
   const [metrics, setMetrics] = useState<AgentMetrics[]>([]);
   const [trends, setTrends] = useState<TrendDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,112 +69,118 @@ export function Analytics() {
   const totalFailed = metrics.reduce((sum, m) => sum + m.failedTasks, 0);
   const overallSuccessRate = totalTasks > 0 ? (totalCompleted / totalTasks) * 100 : 0;
 
-  const summaryStats = [
-    { label: "Total Tasks", value: totalTasks.toString(), icon: BarChart3, color: "text-primary", bg: "from-primary-light to-purple-light" },
-    { label: "Completed", value: totalCompleted.toString(), icon: TrendingUp, color: "text-green", bg: "from-green-light to-green-muted" },
-    { label: "Failed", value: totalFailed.toString(), icon: TrendingDown, color: "text-red", bg: "from-red-light to-red-muted" },
-    { label: "Success Rate", value: `${overallSuccessRate.toFixed(1)}%`, icon: Target, color: "text-primary", bg: "from-primary-light to-purple-light" },
-  ];
+  const formatTime = (ms: number | null) => {
+    if (ms === null) return "—";
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 1) return "<1m";
+    if (minutes < 60) return `${minutes}m`;
+    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  };
 
   return (
     <div className="flex h-full flex-col">
-      {/* Period Selector */}
-      <div className="glass relative z-10 flex items-center justify-between px-8 py-4 shadow-sm border-b border-edge-light/50">
-        <div className="flex items-center gap-2">
-          <div className="h-1 w-6 rounded-full bg-gradient-primary" />
-          <h2 className="text-[15px] font-bold text-text-primary">Performance Analytics</h2>
-        </div>
-        <div className="flex items-center gap-1 rounded-xl bg-page p-1">
-          {(["7d", "30d", "all"] as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={cn(
-                "rounded-lg px-4 py-2 text-[13px] font-bold transition-all duration-200",
-                period === p
-                  ? "bg-white text-primary shadow-md"
-                  : "text-text-tertiary hover:text-text-secondary"
-              )}
-            >
-              {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-[13px] text-text-tertiary">Carregando analytics...</p>
+      {/* Command Bar */}
+      <CommandBar
+        actions={
+          <div className="flex items-center gap-1 rounded-md bg-neutral-bg2 p-0.5">
+            {(["7d", "30d", "all"] as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                  period === p
+                    ? "bg-brand text-white"
+                    : "text-neutral-fg3 hover:text-neutral-fg2 hover:bg-neutral-bg1"
+                )}
+              >
+                {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
+              </button>
+            ))}
           </div>
+        }
+      >
+        <Tablist
+          tabs={[
+            { key: "overview", label: "Visão Geral" },
+            { key: "agents", label: "Agentes" },
+          ]}
+          activeTab={activeTab}
+          onChange={(key) => setActiveTab(key as "overview" | "agents")}
+        />
+      </CommandBar>
+
+      {/* Stat Bar */}
+      <StatBar
+        stats={[
+          { label: "Total de Tasks", value: totalTasks },
+          { label: "Concluídas", value: totalCompleted, color: "var(--color-success)" },
+          { label: "Falhadas", value: totalFailed, color: "var(--color-danger)" },
+          { label: "Taxa de Sucesso", value: `${overallSuccessRate.toFixed(1)}%`, color: "var(--color-brand)" },
+        ]}
+      />
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex-1 overflow-auto p-6 flex flex-col gap-6">
+          <SkeletonStats />
+          <SkeletonTable />
         </div>
       ) : (
-        <div className="flex-1 overflow-auto p-8">
-          <div className="stagger flex flex-col gap-8">
-            {/* Summary Stats */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {summaryStats.map((stat, index) => (
-                <div
-                  key={stat.label}
-                  className="card-hover relative overflow-hidden rounded-2xl bg-white p-6 shadow-card"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="absolute inset-0 opacity-[0.03] gradient-primary" />
-                  <div className="relative">
-                    <div className={cn("mb-3 inline-flex items-center justify-center rounded-xl bg-gradient-to-br p-2.5", stat.bg)}>
-                      <stat.icon className={cn("h-5 w-5", stat.color)} />
-                    </div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary mb-1">
-                      {stat.label}
-                    </p>
-                    <p className={cn("text-[28px] font-bold leading-none", stat.color)}>{stat.value}</p>
-                  </div>
-                </div>
-              ))}
+        <div className="flex-1 overflow-auto p-6">
+          {activeTab === "overview" ? (
+            /* Chart view */
+            <div className="rounded-lg bg-neutral-bg1 p-6 border border-stroke shadow-2">
+              <h2 className="text-[14px] font-semibold text-neutral-fg1 mb-6">Tendências de Performance</h2>
+              <PerformanceChart data={trends} type="area" />
             </div>
-
-            {/* Performance Trends Chart */}
-            <div className="relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg">
-              <div className="absolute inset-0 opacity-[0.02] gradient-primary" />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="h-1 w-6 rounded-full bg-gradient-primary" />
-                  <h2 className="text-[15px] font-bold text-text-primary">Performance Trends</h2>
-                </div>
-                <PerformanceChart data={trends} type="area" />
-              </div>
+          ) : (
+            /* Agents table view */
+            <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-stroke text-left">
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-12">#</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Total</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Completas</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Falhadas</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Taxa</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Tempo Médio</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stroke">
+                  {metrics.map((metric, index) => (
+                    <tr key={metric.agentId} className="hover:bg-neutral-bg-hover transition-colors">
+                      <td className="px-4 py-3 text-[12px] font-semibold text-neutral-fg3">{index + 1}</td>
+                      <td className="px-4 py-3 text-[13px] font-semibold text-neutral-fg1">{metric.agentName}</td>
+                      <td className="px-4 py-3 text-[13px] text-neutral-fg2 text-right">{metric.totalTasks}</td>
+                      <td className="px-4 py-3 text-[13px] text-success text-right">{metric.completedTasks}</td>
+                      <td className="px-4 py-3 text-[13px] text-danger text-right">{metric.failedTasks}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={cn(
+                          "text-[13px] font-semibold",
+                          metric.successRate >= 80 ? "text-success" : metric.successRate >= 50 ? "text-warning" : "text-danger"
+                        )}>
+                          {metric.successRate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-[12px] text-neutral-fg3 text-right font-mono">
+                        {formatTime(metric.avgCompletionTime)}
+                      </td>
+                    </tr>
+                  ))}
+                  {metrics.length === 0 && (
+                    <tr>
+                      <td colSpan={7}>
+                        <EmptyState icon={BarChart3} title="Sem dados de analytics" variant="compact" />
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-
-            {/* Agent Metrics Cards */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-1 w-6 rounded-full bg-gradient-primary" />
-                <h2 className="text-[13px] font-bold uppercase tracking-wider text-text-primary">
-                  Agent Performance
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {metrics.map((metric, index) => (
-                  <AgentMetricsCard
-                    key={metric.agentId}
-                    metrics={metric}
-                    rank={index + 1}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {metrics.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-light to-purple-light mb-4">
-                  <BarChart3 className="h-8 w-8 text-primary" />
-                </div>
-                <p className="text-[14px] font-semibold text-text-secondary mb-1">Sem dados de analytics</p>
-                <p className="text-[12px] text-text-tertiary">Execute tasks para ver métricas aqui</p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
     </div>

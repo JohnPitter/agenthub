@@ -90,3 +90,90 @@ export async function logTaskAction(
     createdAt: new Date(),
   });
 }
+
+/**
+ * TaskTimeoutManager monitors in_progress tasks and marks them as failed after timeout
+ */
+class TaskTimeoutManager {
+  private intervalId: NodeJS.Timeout | null = null;
+  private readonly TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  private readonly CHECK_INTERVAL_MS = 60 * 1000; // 60 seconds
+
+  start(): void {
+    if (this.intervalId) {
+      logger.warn("TaskTimeoutManager already running", "task-timeout");
+      return;
+    }
+
+    logger.info("Starting TaskTimeoutManager", "task-timeout");
+
+    this.intervalId = setInterval(() => {
+      this.checkTimeouts().catch((err) => {
+        logger.error(`TaskTimeoutManager check failed: ${err}`, "task-timeout");
+      });
+    }, this.CHECK_INTERVAL_MS);
+
+    // Run initial check immediately
+    this.checkTimeouts().catch((err) => {
+      logger.error(`Initial timeout check failed: ${err}`, "task-timeout");
+    });
+  }
+
+  stop(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+      logger.info("TaskTimeoutManager stopped", "task-timeout");
+    }
+  }
+
+  private async checkTimeouts(): Promise<void> {
+    const now = new Date();
+    const timeoutThreshold = new Date(now.getTime() - this.TIMEOUT_MS);
+
+    // Find all in_progress tasks that have been running too long
+    const timedOutTasks = await db
+      .select()
+      .from(schema.tasks)
+      .where(eq(schema.tasks.status, "in_progress"))
+      .all();
+
+    for (const task of timedOutTasks) {
+      // Check if task has been in_progress for more than TIMEOUT_MS
+      const taskUpdatedAt = new Date(task.updatedAt);
+
+      if (taskUpdatedAt < timeoutThreshold) {
+        logger.warn(
+          `Task ${task.id} timed out (started at ${taskUpdatedAt.toISOString()})`,
+          "task-timeout"
+        );
+
+        // Transition to failed
+        const success = await transitionTask(
+          task.id,
+          "failed",
+          undefined,
+          `Task timed out after ${this.TIMEOUT_MS / 1000 / 60} minutes`
+        );
+
+        if (success) {
+          // Log the timeout
+          await logTaskAction(
+            task.id,
+            "timeout",
+            task.assignedAgentId ?? undefined,
+            `Automatically failed due to ${this.TIMEOUT_MS / 1000 / 60} minute timeout`
+          );
+
+          logger.info(
+            `Task ${task.id} marked as failed due to timeout`,
+            "task-timeout"
+          );
+        }
+      }
+    }
+  }
+}
+
+// Singleton instance
+export const taskTimeoutManager = new TaskTimeoutManager();

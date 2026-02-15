@@ -5,9 +5,7 @@ import {
   GitMerge,
   ExternalLink,
   Plus,
-  CheckCircle2,
   XCircle,
-  Clock,
   FileCode2,
   RefreshCw,
   AlertCircle,
@@ -16,42 +14,15 @@ import { usePullRequests, type PullRequest } from "../hooks/use-pull-requests";
 import { useGitStatus } from "../hooks/use-git-status";
 import { useSocket } from "../hooks/use-socket";
 import { useNotificationStore } from "../stores/notification-store";
+import { CommandBar } from "../components/layout/command-bar";
+import { Tablist } from "../components/ui/tablist";
 import { cn, formatRelativeTime } from "../lib/utils";
 
 function PRStateIcon({ state, draft }: { state: string; draft: boolean }) {
-  if (draft) return <Clock className="h-4 w-4 text-text-tertiary" />;
-  if (state === "merged") return <GitMerge className="h-4 w-4 text-purple" />;
-  if (state === "closed") return <XCircle className="h-4 w-4 text-red" />;
-  return <GitPullRequest className="h-4 w-4 text-green" />;
-}
-
-function PRStateBadge({ state, draft }: { state: string; draft: boolean }) {
-  if (draft) {
-    return (
-      <span className="rounded-lg bg-page px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">
-        Draft
-      </span>
-    );
-  }
-  if (state === "merged") {
-    return (
-      <span className="rounded-lg bg-purple-light px-2 py-0.5 text-[10px] font-semibold text-purple">
-        Merged
-      </span>
-    );
-  }
-  if (state === "closed") {
-    return (
-      <span className="rounded-lg bg-red-light px-2 py-0.5 text-[10px] font-semibold text-red">
-        Closed
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-lg bg-green-light px-2 py-0.5 text-[10px] font-semibold text-green">
-      Open
-    </span>
-  );
+  if (draft) return <GitPullRequest className="h-3.5 w-3.5 text-neutral-fg3" />;
+  if (state === "merged") return <GitMerge className="h-3.5 w-3.5 text-purple" />;
+  if (state === "closed") return <XCircle className="h-3.5 w-3.5 text-danger" />;
+  return <GitPullRequest className="h-3.5 w-3.5 text-success" />;
 }
 
 function CreatePRDialog({
@@ -81,56 +52,56 @@ function CreatePRDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-[16px] font-semibold text-text-primary">Criar Pull Request</h2>
+      <div className="w-full max-w-lg rounded-lg bg-neutral-bg1 p-6 shadow-16">
+        <h2 className="mb-4 text-[16px] font-semibold text-neutral-fg1">Criar Pull Request</h2>
 
         <div className="flex flex-col gap-3">
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-[12px] text-text-secondary">Head Branch</label>
+              <label className="mb-1 block text-[12px] text-neutral-fg2">Head Branch</label>
               <input
                 type="text"
                 value={headBranch}
                 onChange={(e) => setHeadBranch(e.target.value)}
-                className="w-full rounded-lg border border-edge bg-page px-3 py-2 text-[12px] text-text-primary"
+                className="w-full input-fluent text-[12px]"
               />
             </div>
-            <div className="flex items-end pb-2 text-[12px] text-text-tertiary">→</div>
+            <div className="flex items-end pb-2 text-[12px] text-neutral-fg3">&rarr;</div>
             <div className="flex-1">
-              <label className="mb-1 block text-[12px] text-text-secondary">Base Branch</label>
+              <label className="mb-1 block text-[12px] text-neutral-fg2">Base Branch</label>
               <input
                 type="text"
                 value={baseBranch}
                 onChange={(e) => setBaseBranch(e.target.value)}
-                className="w-full rounded-lg border border-edge bg-page px-3 py-2 text-[12px] text-text-primary"
+                className="w-full input-fluent text-[12px]"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-[12px] text-text-secondary">Titulo</label>
+            <label className="mb-1 block text-[12px] text-neutral-fg2">Titulo</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="feat: add new feature"
-              className="w-full rounded-lg border border-edge bg-page px-3 py-2 text-[13px] text-text-primary"
+              className="w-full input-fluent text-[13px]"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[12px] text-text-secondary">Descricao</label>
+            <label className="mb-1 block text-[12px] text-neutral-fg2">Descricao</label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="## Summary&#10;&#10;- What changed&#10;- Why"
               rows={5}
-              className="w-full resize-none rounded-lg border border-edge bg-page px-3 py-2 text-[12px] text-text-primary font-mono"
+              className="w-full resize-none input-fluent text-[12px] font-mono"
             />
           </div>
 
-          <label className="flex items-center gap-2 text-[12px] text-text-secondary">
+          <label className="flex items-center gap-2 text-[12px] text-neutral-fg2">
             <input
               type="checkbox"
               checked={draft}
@@ -144,120 +115,17 @@ function CreatePRDialog({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-[12px] font-semibold text-text-secondary hover:bg-page"
+            className="rounded-md px-4 py-2 text-[12px] font-semibold text-neutral-fg2 hover:bg-neutral-bg2"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={!title.trim() || submitting}
-            className="rounded-lg bg-green px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-green/90 disabled:opacity-50"
+            className="btn-primary rounded-md px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
           >
             {submitting ? "Criando..." : "Criar PR"}
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PRCard({
-  pr,
-  onMerge,
-  onClose,
-}: {
-  pr: PullRequest;
-  onMerge: (prNumber: number) => void;
-  onClose: (prNumber: number) => void;
-}) {
-  return (
-    <div className="rounded-xl bg-white p-5 shadow-card transition-all hover:shadow-card-hover">
-      <div className="flex items-start gap-3">
-        <PRStateIcon state={pr.state} draft={pr.draft} />
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <a
-              href={pr.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[14px] font-semibold text-text-primary hover:text-primary transition-colors"
-            >
-              {pr.title}
-            </a>
-            <PRStateBadge state={pr.state} draft={pr.draft} />
-          </div>
-
-          <div className="mt-1 flex items-center gap-3 text-[11px] text-text-tertiary">
-            <span className="font-mono">#{pr.number}</span>
-            <span>{pr.author}</span>
-            <span>
-              <span className="rounded bg-purple-light px-1.5 py-0.5 font-mono text-[10px] text-purple">
-                {pr.headBranch}
-              </span>
-              {" → "}
-              <span className="rounded bg-page px-1.5 py-0.5 font-mono text-[10px] text-text-secondary">
-                {pr.baseBranch}
-              </span>
-            </span>
-            <span>{formatRelativeTime(pr.createdAt)}</span>
-          </div>
-
-          <div className="mt-2 flex items-center gap-4 text-[11px]">
-            <span className="flex items-center gap-1 text-green">
-              +{pr.additions}
-            </span>
-            <span className="flex items-center gap-1 text-red">
-              -{pr.deletions}
-            </span>
-            <span className="flex items-center gap-1 text-text-tertiary">
-              <FileCode2 className="h-3 w-3" />
-              {pr.changedFiles} files
-            </span>
-            {pr.labels.length > 0 && (
-              <div className="flex gap-1">
-                {pr.labels.map((label) => (
-                  <span
-                    key={label}
-                    className="rounded bg-primary-light px-1.5 py-0.5 text-[10px] font-semibold text-primary"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5">
-          {pr.state === "open" && !pr.draft && (
-            <>
-              <button
-                onClick={() => onMerge(pr.number)}
-                className="flex items-center gap-1 rounded-lg bg-purple-light px-2.5 py-1.5 text-[11px] font-semibold text-purple transition-colors hover:bg-purple hover:text-white"
-                title="Merge PR"
-              >
-                <GitMerge className="h-3 w-3" />
-                Merge
-              </button>
-              <button
-                onClick={() => onClose(pr.number)}
-                className="flex items-center gap-1 rounded-lg bg-red-light px-2.5 py-1.5 text-[11px] font-semibold text-red transition-colors hover:bg-red hover:text-white"
-                title="Close PR"
-              >
-                <XCircle className="h-3 w-3" />
-              </button>
-            </>
-          )}
-          <a
-            href={pr.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-page hover:text-text-primary"
-            title="Abrir no GitHub"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
         </div>
       </div>
     </div>
@@ -281,7 +149,6 @@ export function ProjectPRs() {
   const { status } = useGitStatus(id);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  // Real-time PR updates via socket
   useSocket(id, {
     onTaskPRCreated: () => refresh(),
     onTaskPRMerged: () => refresh(),
@@ -332,23 +199,17 @@ export function ProjectPRs() {
   if (ghStatus && (!ghStatus.available || !ghStatus.authenticated)) {
     return (
       <div className="flex h-full flex-col">
-        <div className="relative z-10 flex items-center gap-3 bg-white px-8 py-5 shadow-xs">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-light">
-            <GitPullRequest className="h-5 w-5 text-green" />
-          </div>
-          <div>
-            <h1 className="text-[18px] font-semibold text-text-primary">Pull Requests</h1>
-            <p className="text-[12px] text-text-tertiary">GitHub integration</p>
-          </div>
-        </div>
+        <CommandBar>
+          <span className="text-[13px] font-semibold text-neutral-fg1">Pull Requests</span>
+        </CommandBar>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-          <AlertCircle className="h-12 w-12 text-text-placeholder" />
+          <AlertCircle className="h-12 w-12 text-neutral-fg-disabled" />
           <div className="text-center">
-            <p className="text-[14px] font-semibold text-text-primary">GitHub CLI nao disponivel</p>
-            <p className="mt-1 text-[12px] text-text-tertiary">
+            <p className="text-[14px] font-semibold text-neutral-fg1">GitHub CLI nao disponivel</p>
+            <p className="mt-1 text-[12px] text-neutral-fg3">
               {ghStatus?.reason ?? "Instale e autentique o gh CLI para usar Pull Requests"}
             </p>
-            <p className="mt-3 rounded-lg bg-page px-4 py-2 font-mono text-[11px] text-text-secondary">
+            <p className="mt-3 rounded-md bg-neutral-bg2 px-4 py-2 font-mono text-[11px] text-neutral-fg2">
               brew install gh && gh auth login
             </p>
           </div>
@@ -361,20 +222,14 @@ export function ProjectPRs() {
   if (ghStatus && !ghStatus.repoSlug) {
     return (
       <div className="flex h-full flex-col">
-        <div className="relative z-10 flex items-center gap-3 bg-white px-8 py-5 shadow-xs">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-light">
-            <GitPullRequest className="h-5 w-5 text-green" />
-          </div>
-          <div>
-            <h1 className="text-[18px] font-semibold text-text-primary">Pull Requests</h1>
-            <p className="text-[12px] text-text-tertiary">GitHub integration</p>
-          </div>
-        </div>
+        <CommandBar>
+          <span className="text-[13px] font-semibold text-neutral-fg1">Pull Requests</span>
+        </CommandBar>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-          <GitPullRequest className="h-12 w-12 text-text-placeholder" />
+          <GitPullRequest className="h-12 w-12 text-neutral-fg-disabled" />
           <div className="text-center">
-            <p className="text-[14px] font-semibold text-text-primary">Nenhum remote GitHub encontrado</p>
-            <p className="mt-1 text-[12px] text-text-tertiary">
+            <p className="text-[14px] font-semibold text-neutral-fg1">Nenhum remote GitHub encontrado</p>
+            <p className="mt-1 text-[12px] text-neutral-fg3">
               Configure um remote GitHub nas configuracoes do projeto para usar Pull Requests.
             </p>
           </div>
@@ -383,100 +238,157 @@ export function ProjectPRs() {
     );
   }
 
-  const filterOptions = [
-    { value: "open" as const, label: "Open" },
-    { value: "closed" as const, label: "Closed" },
-    { value: "merged" as const, label: "Merged" },
-    { value: "all" as const, label: "All" },
-  ];
-
   const openCount = prs.filter((pr) => pr.state === "open").length;
+  const closedCount = prs.filter((pr) => pr.state === "closed").length;
+  const mergedCount = prs.filter((pr) => pr.state === "merged").length;
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="relative z-10 flex items-center justify-between bg-white px-8 py-5 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-light">
-            <GitPullRequest className="h-5 w-5 text-green" />
+      {/* Command Bar */}
+      <CommandBar
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refresh}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1"
+              title="Atualizar"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setShowCreateDialog(true)}
+              className="btn-primary flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Novo PR
+            </button>
           </div>
-          <div>
-            <h1 className="text-[18px] font-semibold text-text-primary">Pull Requests</h1>
-            <p className="text-[12px] text-text-tertiary">
-              {ghStatus?.repoSlug}
-              {filter === "open" && prs.length > 0 && ` — ${openCount} open`}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={refresh}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-page hover:text-text-primary"
-            title="Atualizar"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setShowCreateDialog(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-green px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-green/90"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Novo PR
-          </button>
-        </div>
-      </div>
+        }
+      >
+        <Tablist
+          tabs={[
+            { key: "open", label: "Abertos", count: openCount },
+            { key: "closed", label: "Fechados", count: closedCount },
+            { key: "merged", label: "Merged", count: mergedCount },
+            { key: "all", label: "Todos", count: prs.length },
+          ]}
+          activeTab={filter}
+          onChange={(key) => setFilter(key as typeof filter)}
+        />
+        {ghStatus?.repoSlug && (
+          <>
+            <span className="mx-2 h-5 w-px bg-stroke" />
+            <span className="text-[12px] font-mono text-neutral-fg3">{ghStatus.repoSlug}</span>
+          </>
+        )}
+      </CommandBar>
 
-      {/* Filters */}
-      <div className="flex items-center gap-1 bg-white px-8 py-3">
-        {filterOptions.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setFilter(opt.value)}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors",
-              filter === opt.value
-                ? "bg-text-primary text-white"
-                : "text-text-tertiary hover:bg-page hover:text-text-primary"
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {/* PR List */}
-      <div className="flex-1 overflow-y-auto p-8">
+      {/* PR Table */}
+      <div className="flex-1 overflow-y-auto p-6">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <RefreshCw className="h-5 w-5 animate-spin text-text-placeholder" />
+            <RefreshCw className="h-5 w-5 animate-spin text-neutral-fg-disabled" />
           </div>
         ) : prs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <GitPullRequest className="h-10 w-10 text-text-placeholder" />
-            <p className="mt-3 text-[14px] font-semibold text-text-secondary">
+            <GitPullRequest className="h-10 w-10 text-neutral-fg-disabled" />
+            <p className="mt-3 text-[14px] font-semibold text-neutral-fg2">
               Nenhum PR {filter === "open" ? "aberto" : filter === "closed" ? "fechado" : filter === "merged" ? "merged" : ""}
             </p>
-            <p className="mt-1 text-[12px] text-text-tertiary">
+            <p className="mt-1 text-[12px] text-neutral-fg3">
               {filter === "open"
                 ? "Crie um novo PR para comecar"
                 : "Mude o filtro para ver outros PRs"}
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {prs.map((pr) => (
-              <PRCard
-                key={pr.number}
-                pr={pr}
-                onMerge={handleMerge}
-                onClose={handleClose}
-              />
-            ))}
+          <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-stroke text-left">
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-12"></th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-16">#</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Branch</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">+/−</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Arquivos</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Idade</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-28"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stroke">
+                {prs.map((pr) => (
+                  <tr key={pr.number} className="group hover:bg-neutral-bg-hover transition-colors h-12">
+                    <td className="px-4 py-2">
+                      <PRStateIcon state={pr.state} draft={pr.draft} />
+                    </td>
+                    <td className="px-4 py-2 text-[12px] font-mono text-neutral-fg3">{pr.number}</td>
+                    <td className="px-4 py-2">
+                      <a
+                        href={pr.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[13px] font-medium text-neutral-fg1 hover:text-brand transition-colors truncate block max-w-[300px]"
+                      >
+                        {pr.title}
+                      </a>
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className="rounded bg-purple-light px-1.5 py-0.5 font-mono text-[10px] text-purple">
+                        {pr.headBranch}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right text-[11px]">
+                      <span className="text-success">+{pr.additions}</span>
+                      {" / "}
+                      <span className="text-danger">−{pr.deletions}</span>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <span className="flex items-center justify-end gap-1 text-[11px] text-neutral-fg3">
+                        <FileCode2 className="h-3 w-3" />
+                        {pr.changedFiles}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right text-[11px] text-neutral-fg-disabled whitespace-nowrap">
+                      {formatRelativeTime(pr.createdAt)}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {pr.state === "open" && !pr.draft && (
+                          <>
+                            <button
+                              onClick={() => handleMerge(pr.number)}
+                              className="flex items-center gap-1 rounded-md bg-purple-light px-2 py-1 text-[10px] font-semibold text-purple hover:bg-purple hover:text-white transition-colors"
+                            >
+                              <GitMerge className="h-3 w-3" />
+                              Merge
+                            </button>
+                            <button
+                              onClick={() => handleClose(pr.number)}
+                              className="flex items-center gap-1 rounded-md bg-danger-light px-2 py-1 text-[10px] font-semibold text-danger hover:bg-danger hover:text-white transition-colors"
+                            >
+                              <XCircle className="h-3 w-3" />
+                            </button>
+                          </>
+                        )}
+                        <a
+                          href={pr.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Create PR Dialog */}
       {showCreateDialog && (
         <CreatePRDialog
           branches={{

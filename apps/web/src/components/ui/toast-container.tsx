@@ -31,7 +31,7 @@ export function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className="flex max-w-[380px] items-start gap-3 rounded-lg bg-neutral-bg1 p-4 shadow-8 border border-stroke2 animate-slide-in-right"
+            className="flex max-w-[380px] items-start gap-3 rounded-lg bg-neutral-bg1 p-4 shadow-8 animate-slide-in-right"
           >
             <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", config.bg)}>
               <Icon className={cn("h-5 w-5", config.color)} />

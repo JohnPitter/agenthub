@@ -14,7 +14,7 @@ export function NotificationPanel() {
 
   if (notifications.length === 0) {
     return (
-      <div className="absolute right-0 top-full mt-2 w-[340px] rounded-lg bg-neutral-bg1 shadow-16 border border-stroke overflow-hidden">
+      <div className="absolute right-0 top-full mt-2 w-[360px] rounded-xl bg-neutral-bg1 shadow-8 overflow-hidden">
         <div className="flex flex-col items-center justify-center py-10 px-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-bg2 mb-3">
             <Info className="h-5 w-5 text-neutral-fg-disabled" />
@@ -26,7 +26,7 @@ export function NotificationPanel() {
   }
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-[340px] rounded-lg bg-neutral-bg1 shadow-16 border border-stroke overflow-hidden">
+    <div className="absolute right-0 top-full mt-2 w-[360px] rounded-xl bg-neutral-bg1 shadow-8 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stroke px-4 py-3">
         <span className="text-[13px] font-semibold text-neutral-fg1">Notificações</span>

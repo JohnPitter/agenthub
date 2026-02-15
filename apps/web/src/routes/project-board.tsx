@@ -71,7 +71,7 @@ export function ProjectBoard() {
           </div>
 
           {/* View toggle */}
-          <div className="flex items-center rounded-lg border border-stroke bg-neutral-bg1 p-0.5">
+          <div className="flex items-center rounded-lg bg-neutral-bg2 p-0.5">
             <button
               onClick={() => setView("kanban")}
               className={cn(
@@ -101,7 +101,7 @@ export function ProjectBoard() {
       </CommandBar>
 
       {/* Board content */}
-      <div className="flex-1 overflow-hidden p-6">
+      <div className="flex-1 overflow-hidden p-8">
         {view === "kanban" ? (
           <KanbanBoard
             projectId={id || ""}

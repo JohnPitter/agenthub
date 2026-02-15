@@ -18,7 +18,7 @@ export function Skeleton({
   const getVariantClass = () => {
     switch (variant) {
       case "text":
-        return "h-4 rounded";
+        return "h-4 rounded-lg";
       case "circular":
         return "rounded-full";
       case "rounded":

@@ -32,7 +32,7 @@ export function SettingsPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Vertical Tab Nav */}
-        <nav className="w-[200px] shrink-0 border-r border-stroke bg-neutral-bg1 py-2">
+        <nav className="w-[200px] shrink-0 border-r border-stroke2 bg-neutral-bg1 py-2">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
@@ -57,10 +57,10 @@ export function SettingsPage() {
         </nav>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-10">
           <div className="max-w-2xl">
             {activeTab === "geral" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Workspace Padrão</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-4">Diretório padrão para escanear projetos automaticamente</p>
@@ -84,7 +84,7 @@ export function SettingsPage() {
             )}
 
             {activeTab === "integracoes" && (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-8">
                 <div>
                   <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Integrações de Mensagens</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-6">
@@ -97,7 +97,7 @@ export function SettingsPage() {
             )}
 
             {activeTab === "aparencia" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Tema</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-4">Personalize a aparência do AgentHub</p>
@@ -122,12 +122,12 @@ export function SettingsPage() {
             )}
 
             {activeTab === "sobre" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Sobre o AgentHub</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-4">Informações sobre a aplicação</p>
                 </div>
-                <dl className="flex flex-col divide-y divide-stroke rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+                <dl className="flex flex-col divide-y divide-stroke2 card">
                   <div className="flex items-center justify-between px-4 py-3">
                     <dt className="text-[13px] text-neutral-fg2">Versão</dt>
                     <dd className="text-[13px] font-semibold text-neutral-fg1">0.11.0</dd>

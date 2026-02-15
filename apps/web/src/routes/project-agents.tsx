@@ -61,9 +61,9 @@ export function ProjectAgents() {
                   key={agent.id}
                   onClick={() => setSelectedAgentId(agent.id)}
                   className={cn(
-                    "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors",
+                    "flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
                     selectedAgentId === agent.id
-                      ? "bg-brand-light"
+                      ? "bg-neutral-bg3"
                       : "hover:bg-neutral-bg-hover",
                   )}
                 >
@@ -102,7 +102,7 @@ export function ProjectAgents() {
           </div>
 
           {/* Detail panel — col-span-8 */}
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="flex-1 overflow-y-auto p-10">
             {selectedAgent ? (
               <AgentConfigPanel
                 agent={selectedAgent}

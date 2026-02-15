@@ -18,7 +18,7 @@ export function KanbanColumn({ id, title, tasks, agents, color }: KanbanColumnPr
   return (
     <div className="flex h-full min-w-[280px] flex-col">
       {/* Column header */}
-      <div className="mb-3 flex items-center justify-between px-1">
+      <div className="mb-4 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <div
             className="h-2 w-2 rounded-full"
@@ -38,7 +38,7 @@ export function KanbanColumn({ id, title, tasks, agents, color }: KanbanColumnPr
         <div
           ref={setNodeRef}
           className={cn(
-            "flex-1 space-y-3 rounded-lg border-2 border-dashed p-3 transition-colors",
+            "flex-1 space-y-3 rounded-lg border-2 border-dashed p-4 transition-colors",
             isOver ? "border-brand bg-brand-light/10" : "border-transparent bg-neutral-bg2/30"
           )}
         >

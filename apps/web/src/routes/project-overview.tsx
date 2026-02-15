@@ -108,20 +108,20 @@ export function ProjectOverview() {
       />
 
       {/* 12-col grid content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-12 gap-6">
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="grid grid-cols-12 gap-8">
           {/* Recent Tasks DataGrid — col-span-8 */}
           <div className="col-span-8">
-            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-3">
+            <h3 className="section-heading mb-3">
               Tasks Recentes
             </h3>
             {!tasksLoaded ? (
               <SkeletonTable />
             ) : (
-              <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+              <div className="card">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-stroke text-left">
+                    <tr className="border-b border-stroke2 text-left">
                       <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Status</th>
                       <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
                       <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
@@ -129,7 +129,7 @@ export function ProjectOverview() {
                       <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Atualizada</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stroke">
+                  <tbody className="divide-y divide-stroke2">
                     {recentTasks.map((task) => {
                       const badge = STATUS_BADGE[task.status] ?? { label: task.status, cls: "bg-neutral-bg2 text-neutral-fg2" };
                       const agent = agents.find((a) => a.id === task.assignedAgentId);
@@ -171,14 +171,14 @@ export function ProjectOverview() {
           {/* Agent Team compact list — col-span-4 */}
           <div className="col-span-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg3">
+              <h3 className="section-heading">
                 Equipe de Agentes
               </h3>
               <span className="text-[11px] text-success font-semibold">{activeAgents.length} online</span>
             </div>
-            <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+            <div className="card">
               {activeAgents.length > 0 ? (
-                <div className="divide-y divide-stroke">
+                <div className="divide-y divide-stroke2">
                   {activeAgents.map((agent) => (
                     <div key={agent.id} className="flex items-center gap-3 px-4 py-3">
                       <div

@@ -22,7 +22,7 @@ export function ActiveAgentBar() {
   const progress = activity?.progress ?? 0;
 
   return (
-    <div className="flex h-11 shrink-0 items-center justify-between border-t border-stroke bg-neutral-bg1 px-6">
+    <div className="flex h-11 shrink-0 items-center justify-between border-t border-stroke2 bg-neutral-bg1 px-6">
       {/* Left: Agent info */}
       <div className="flex items-center gap-3">
         <div

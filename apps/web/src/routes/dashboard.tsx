@@ -146,14 +146,14 @@ export function Dashboard() {
 
       {/* Scanned results banner */}
       {scannedProjects.length > 0 && (
-        <div className="border-b border-stroke bg-success-light px-6 py-3">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="border-b border-stroke bg-success-light px-8 py-4">
+          <div className="flex items-center gap-2.5 mb-3">
             <Sparkles className="h-3.5 w-3.5 text-success-dark" />
             <span className="text-[12px] font-semibold text-success-dark">
               {scannedProjects.length} projeto(s) encontrado(s)
             </span>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             {scannedProjects.map((scanned) => {
               const alreadyAdded = existingPaths.has(scanned.path);
               return (
@@ -190,20 +190,20 @@ export function Dashboard() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-8">
         {/* Projects grid */}
-        <div className="mb-8">
-          <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-4">
+        <div className="mb-10">
+          <h3 className="section-heading mb-4">
             Projetos
           </h3>
           {!stats ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
                 <SkeletonCard key={i} />
               ))}
             </div>
           ) : projects.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => {
                 const projectStat = stats.projectStats?.find(ps => ps.projectId === project.id);
                 return (
@@ -218,7 +218,7 @@ export function Dashboard() {
               })}
             </div>
           ) : (
-            <div className="rounded-lg border border-stroke glass p-12">
+            <div className="card p-12">
               <EmptyState
                 icon={FolderOpen}
                 title="Nenhum projeto adicionado"
@@ -231,10 +231,10 @@ export function Dashboard() {
         {/* Recent activities */}
         {stats && stats.recentActivities.length > 0 && (
           <div>
-            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-4">
+            <h3 className="section-heading mb-4">
               Atividades Recentes
             </h3>
-            <div className="rounded-lg border border-stroke glass shadow-2">
+            <div className="card shadow-2">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-stroke2 text-left">

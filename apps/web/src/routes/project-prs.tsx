@@ -284,7 +284,7 @@ export function ProjectPRs() {
       </CommandBar>
 
       {/* PR Table */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-8">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <RefreshCw className="h-5 w-5 animate-spin text-neutral-fg-disabled" />
@@ -302,10 +302,10 @@ export function ProjectPRs() {
             </p>
           </div>
         ) : (
-          <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+          <div className="card">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-stroke text-left">
+                <tr className="border-b border-stroke2 text-left">
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-12"></th>
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-16">#</th>
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
@@ -316,7 +316,7 @@ export function ProjectPRs() {
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-28"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stroke">
+              <tbody className="divide-y divide-stroke2">
                 {prs.map((pr) => (
                   <tr key={pr.number} className="group hover:bg-neutral-bg-hover transition-colors h-12">
                     <td className="px-4 py-2">

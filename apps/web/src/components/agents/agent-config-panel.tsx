@@ -83,15 +83,15 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
       </div>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="rounded-lg border border-stroke bg-neutral-bg2 p-4">
+      <div className="grid grid-cols-2 gap-5 mb-6">
+        <div className="card p-5">
           <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">Modelo</dt>
           <dd className="text-[13px] text-neutral-fg1 font-mono">
             {MODEL_LABELS[agent.model] ?? agent.model}
           </dd>
         </div>
 
-        <div className="rounded-lg border border-stroke bg-neutral-bg2 p-4">
+        <div className="card p-5">
           <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">Status</dt>
           <dd>
             {agent.isActive ? (
@@ -107,14 +107,14 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
           </dd>
         </div>
 
-        <div className="rounded-lg border border-stroke bg-neutral-bg2 p-4">
+        <div className="card p-5">
           <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">Permissões</dt>
           <dd className="text-[13px] text-neutral-fg1">
             {PERMISSION_LABELS[agent.permissionMode] ?? agent.permissionMode}
           </dd>
         </div>
 
-        <div className="rounded-lg border border-stroke bg-neutral-bg2 p-4">
+        <div className="card p-5">
           <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">Thinking Tokens</dt>
           <dd className="text-[13px] text-neutral-fg1">
             {agent.maxThinkingTokens ? agent.maxThinkingTokens.toLocaleString() : "Desabilitado"}
@@ -147,7 +147,7 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
           <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2 mb-2">
             System Prompt
           </h3>
-          <div className="rounded-lg border border-stroke bg-neutral-bg2 px-4 py-3">
+          <div className="card px-5 py-4">
             <p className="text-[12px] text-neutral-fg2 whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto font-mono">
               {agent.systemPrompt}
             </p>
@@ -159,7 +159,7 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
       <div className="border-t border-stroke pt-6">
         <button
           onClick={() => setShowActivity(!showActivity)}
-          className="flex w-full items-center justify-between rounded-lg border border-stroke bg-neutral-bg1 px-4 py-3 text-left transition-colors hover:bg-neutral-bg-hover"
+          className="flex w-full items-center justify-between card px-5 py-4 text-left transition-colors hover:bg-neutral-bg-hover"
         >
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-brand" />
@@ -172,7 +172,7 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
 
         {/* Activity Logs */}
         {showActivity && (
-          <div className="mt-4 rounded-lg border border-stroke bg-neutral-bg2 divide-y divide-stroke max-h-[400px] overflow-y-auto">
+          <div className="mt-4 card divide-y divide-stroke2 max-h-[400px] overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />

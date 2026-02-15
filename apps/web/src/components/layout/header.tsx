@@ -51,9 +51,9 @@ export function Header() {
   }, [panelOpen, togglePanel]);
 
   return (
-    <header className="relative z-10 flex h-12 shrink-0 flex-col bg-neutral-bg1">
+    <header className="relative z-10 flex h-11 shrink-0 flex-col bg-neutral-bg1">
       {/* Gradient accent line */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-brand via-purple to-brand bg-[length:200%_100%] animate-gradient" />
+      <div className="h-[1px] w-full bg-gradient-to-r from-brand/40 via-purple/30 to-brand/40 bg-[length:200%_100%] animate-gradient" />
 
       {/* Header content */}
       <div className="flex flex-1 items-center justify-between px-6 border-b border-stroke2">

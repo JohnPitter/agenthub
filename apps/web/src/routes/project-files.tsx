@@ -63,13 +63,13 @@ export function ProjectFiles() {
       {/* Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* File Tree Sidebar */}
-        <div className="w-64 shrink-0 border-r border-stroke bg-neutral-bg1 overflow-auto">
+        <div className="w-64 shrink-0 border-r border-stroke2 bg-neutral-bg1 overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-purple" />
             </div>
           ) : (
-            <div className="p-3">
+            <div className="p-4">
               <FileTree
                 files={files}
                 onFileSelect={setSelectedFile}

@@ -198,8 +198,8 @@ export function ProjectTasks() {
         </div>
       ) : viewMode === "kanban" ? (
         /* Kanban View */
-        <div className="flex-1 overflow-x-auto px-6 pb-6 pt-4">
-          <div className="grid h-full grid-cols-4 gap-4">
+        <div className="flex-1 overflow-x-auto px-8 pb-8 pt-4">
+          <div className="grid h-full grid-cols-4 gap-5">
             {KANBAN_COLUMNS.map((column) => {
               const columnTasks = getFilteredTasks(column.status);
               const isOver = dragOverColumn === column.status;
@@ -256,11 +256,11 @@ export function ProjectTasks() {
         </div>
       ) : (
         /* Table View */
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+        <div className="flex-1 overflow-y-auto p-8">
+          <div className="card">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-stroke text-left">
+                <tr className="border-b border-stroke2 text-left">
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Status</th>
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Prioridade</th>
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
@@ -269,7 +269,7 @@ export function ProjectTasks() {
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Criada</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stroke">
+              <tbody className="divide-y divide-stroke2">
                 {getAllFilteredTasks().map((task) => {
                   const badge = STATUS_BADGE[task.status] ?? { label: task.status, cls: "bg-neutral-bg2 text-neutral-fg2" };
                   const agent = agents.find((a) => a.id === task.assignedAgentId);

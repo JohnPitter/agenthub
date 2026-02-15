@@ -36,13 +36,13 @@ export function EmptyState({
     >
       <div
         className={cn(
-          "flex items-center justify-center rounded-lg bg-brand-light",
+          "flex items-center justify-center rounded-lg bg-neutral-bg2",
           isCompact || isInline ? "h-12 w-12" : "h-16 w-16",
         )}
       >
         <Icon
-          className={cn("text-brand", isCompact || isInline ? "h-6 w-6" : "h-8 w-8")}
-          strokeWidth={2}
+          className={cn("text-neutral-fg3", isCompact || isInline ? "h-6 w-6" : "h-8 w-8")}
+          strokeWidth={1.5}
         />
       </div>
 

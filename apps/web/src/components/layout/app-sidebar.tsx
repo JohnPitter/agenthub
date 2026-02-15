@@ -49,7 +49,7 @@ export function AppSidebar() {
 
   return (
     <aside className={cn(
-      "relative flex shrink-0 flex-col border-r border-stroke glass transition-all duration-300",
+      "relative flex shrink-0 flex-col border-r border-stroke bg-[var(--bg-subtle)] transition-all duration-300",
       collapsed ? "w-[72px]" : "w-[240px]"
     )}>
       {/* Collapse button */}
@@ -79,7 +79,7 @@ export function AppSidebar() {
       </div>
 
       {/* Main Nav */}
-      <nav className="mt-4 flex flex-col gap-1 px-3">
+      <nav className="mt-4 flex flex-col gap-1.5 px-3">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(item.to);
           return (
@@ -90,7 +90,7 @@ export function AppSidebar() {
                 "group relative flex items-center rounded-lg py-2 text-[13px] font-medium transition-colors",
                 collapsed ? "justify-center px-2" : "gap-3 px-3",
                 active
-                  ? "bg-brand-light text-brand font-semibold"
+                  ? "text-brand font-semibold"
                   : "text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
               )}
               title={collapsed ? item.label : undefined}
@@ -98,7 +98,7 @@ export function AppSidebar() {
               {active && (
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand" />
               )}
-              <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.2 : 1.8} />
+              <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 1.8 : 1.5} />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
@@ -132,7 +132,7 @@ export function AppSidebar() {
                   key={project.id}
                   to={`/project/${project.id}`}
                   className={cn(
-                    "group relative flex items-center rounded-lg py-2 transition-colors",
+                    "group relative flex items-center rounded-lg py-2.5 transition-colors",
                     collapsed ? "justify-center px-2" : "gap-3 px-3",
                     isActive
                       ? "bg-brand-light text-neutral-fg1 font-semibold"
@@ -178,7 +178,7 @@ export function AppSidebar() {
       {/* Agent status indicators */}
       {agents.length > 0 && (
         <div className={cn(
-          "border-t border-stroke2 p-3",
+          "border-t border-stroke2 p-4",
           collapsed ? "flex flex-col gap-2" : "flex flex-wrap gap-2"
         )}>
           {agents.slice(0, collapsed ? 4 : 5).map((agent) => {

@@ -212,7 +212,7 @@ export function ChatPanel() {
   return (
     <div
       className={cn(
-        "flex h-full flex-col bg-neutral-bg2 transition-all duration-300 glass border-r border-stroke2",
+        "flex h-full flex-col bg-neutral-bg2 transition-all duration-300 border-r border-stroke2",
         chatPanelOpen ? "w-[360px]" : "w-0 overflow-hidden",
       )}
     >

@@ -71,7 +71,7 @@ export function ProjectSettings() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Vertical Tab Nav */}
-        <nav className="w-[200px] shrink-0 border-r border-stroke bg-neutral-bg1 py-2">
+        <nav className="w-[200px] shrink-0 border-r border-stroke2 bg-neutral-bg1 py-2">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
@@ -100,12 +100,12 @@ export function ProjectSettings() {
         </nav>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-10">
           <div className="max-w-xl">
 
             {/* Geral */}
             {activeTab === "geral" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Caminho do Workspace</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-4">Diretório raiz do projeto</p>
@@ -118,12 +118,12 @@ export function ProjectSettings() {
 
             {/* Agentes */}
             {activeTab === "agentes" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Agentes Ativos</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-4">Ative ou desative agentes para este workspace</p>
                 </div>
-                <div className="flex flex-col divide-y divide-stroke rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+                <div className="flex flex-col divide-y divide-stroke2 card">
                   {agents.map((agent) => (
                     <div
                       key={agent.id}
@@ -168,7 +168,7 @@ export function ProjectSettings() {
 
             {/* Git */}
             {activeTab === "git" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-[14px] font-semibold text-neutral-fg1 mb-1">Git</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-4">Controle de versão e automação</p>
@@ -198,7 +198,7 @@ export function ProjectSettings() {
                 ) : (
                   <div className="flex flex-col gap-4">
                     {/* Git Status */}
-                    <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2 p-4">
+                    <div className="card p-5">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-neutral-fg3 uppercase">Branch Atual</span>
@@ -278,7 +278,7 @@ export function ProjectSettings() {
                     </div>
 
                     {/* Git Configuration */}
-                    <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2 p-4">
+                    <div className="card p-5">
                       <div className="text-[11px] font-semibold text-neutral-fg3 uppercase mb-3">Configuração</div>
 
                       <div className="flex flex-col gap-3">
@@ -390,7 +390,7 @@ export function ProjectSettings() {
 
             {/* Avançado (Danger Zone) */}
             {activeTab === "avancado" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-[14px] font-semibold text-danger mb-1">Zona de Perigo</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-4">Ações irreversíveis</p>

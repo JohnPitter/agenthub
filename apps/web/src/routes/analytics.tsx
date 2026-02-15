@@ -122,24 +122,24 @@ export function Analytics() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex-1 overflow-auto p-6 flex flex-col gap-6">
+        <div className="flex-1 overflow-auto p-8 flex flex-col gap-8">
           <SkeletonStats />
           <SkeletonTable />
         </div>
       ) : (
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-8">
           {activeTab === "overview" ? (
             /* Chart view */
-            <div className="rounded-lg bg-neutral-bg1 p-6 border border-stroke shadow-2">
+            <div className="card p-6">
               <h2 className="text-[14px] font-semibold text-neutral-fg1 mb-6">Tendências de Performance</h2>
               <PerformanceChart data={trends} type="area" />
             </div>
           ) : (
             /* Agents table view */
-            <div className="rounded-lg border border-stroke bg-neutral-bg1 shadow-2">
+            <div className="card">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-stroke text-left">
+                  <tr className="border-b border-stroke2 text-left">
                     <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-12">#</th>
                     <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
                     <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Total</th>
@@ -149,7 +149,7 @@ export function Analytics() {
                     <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Tempo Médio</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stroke">
+                <tbody className="divide-y divide-stroke2">
                   {metrics.map((metric, index) => (
                     <tr key={metric.agentId} className="hover:bg-neutral-bg-hover transition-colors">
                       <td className="px-4 py-3 text-[12px] font-semibold text-neutral-fg3">{index + 1}</td>

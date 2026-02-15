@@ -45,7 +45,7 @@ export function KanbanCard({ task, agent }: KanbanCardProps) {
       {...attributes}
       {...listeners}
       className={cn(
-        "group relative cursor-grab rounded-lg border border-stroke glass p-3 transition-all hover:border-brand/30 hover:shadow-lg active:cursor-grabbing",
+        "group cursor-grab card p-4 transition-all hover:shadow-8 active:cursor-grabbing",
         isDragging && "opacity-50 shadow-xl"
       )}
     >

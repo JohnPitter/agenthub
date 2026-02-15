@@ -78,7 +78,7 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate }: KanbanBo
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full gap-4 overflow-x-auto pb-4">
+      <div className="flex h-full gap-5 overflow-x-auto pb-4">
         {COLUMNS.map((column) => (
           <KanbanColumn
             key={column.id}

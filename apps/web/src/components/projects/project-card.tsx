@@ -22,7 +22,7 @@ export function ProjectCard({ project, taskCount = 0, agentCount = 0, lastActivi
   return (
     <button
       onClick={() => navigate(`/project/${project.id}`)}
-      className="group relative flex flex-col gap-4 rounded-lg border border-stroke glass p-5 text-left transition-all hover:scale-[1.02] hover:border-brand/30 hover:shadow-lg hover:shadow-brand/10"
+      className="group flex flex-col gap-4 card p-6 text-left transition-all hover:shadow-8"
     >
       {/* Stack icon */}
       <div className="flex items-start justify-between">
@@ -44,7 +44,7 @@ export function ProjectCard({ project, taskCount = 0, agentCount = 0, lastActivi
 
       {/* Project name */}
       <div>
-        <h3 className="text-[16px] font-semibold text-neutral-fg1 group-hover:text-brand transition-colors line-clamp-1">
+        <h3 className="text-[17px] font-semibold text-neutral-fg1 group-hover:text-brand transition-colors line-clamp-1">
           {project.name}
         </h3>
         {stack.length > 0 && (
@@ -55,7 +55,7 @@ export function ProjectCard({ project, taskCount = 0, agentCount = 0, lastActivi
       </div>
 
       {/* Stats row */}
-      <div className="flex items-center gap-4 text-[12px] text-neutral-fg2">
+      <div className="flex items-center gap-5 text-[12px] text-neutral-fg2">
         <div className="flex items-center gap-1.5">
           <ListTodo className="h-3.5 w-3.5 text-neutral-fg3" />
           <span className="font-medium">{taskCount}</span>
@@ -71,14 +71,12 @@ export function ProjectCard({ project, taskCount = 0, agentCount = 0, lastActivi
 
       {/* Last activity */}
       {lastActivity && (
-        <div className="flex items-center gap-1.5 border-t border-stroke2 pt-3 text-[11px] text-neutral-fg-disabled">
+        <div className="flex items-center gap-1.5 border-t border-stroke2 pt-4 text-[11px] text-neutral-fg-disabled">
           <Clock className="h-3 w-3" />
           <span>{formatRelativeTime(lastActivity)}</span>
         </div>
       )}
 
-      {/* Hover glow effect */}
-      <div className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-brand/0 to-purple/0 opacity-0 blur-xl transition-opacity group-hover:from-brand/20 group-hover:to-purple/20 group-hover:opacity-100" />
     </button>
   );
 }

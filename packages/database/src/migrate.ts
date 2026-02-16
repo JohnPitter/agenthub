@@ -95,6 +95,17 @@ const statements = [
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    github_id INTEGER NOT NULL UNIQUE,
+    login TEXT NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    avatar_url TEXT,
+    access_token TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`,
   `CREATE INDEX IF NOT EXISTS idx_messages_project ON messages(project_id)`,
@@ -111,6 +122,7 @@ const statements = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_agent_memories_agent ON agent_memories(agent_id)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_memories_project ON agent_memories(agent_id, project_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_github_id ON users(github_id)`,
 ];
 
 // Columns added after initial table creation — safe to re-run

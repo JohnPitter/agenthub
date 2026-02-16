@@ -6,3 +6,4 @@ export { taskLogs } from "./task-logs";
 export { agentProjectConfigs } from "./agent-configs";
 export { integrations } from "./integrations";
 export { agentMemories } from "./agent-memories";
+export { users } from "./users";

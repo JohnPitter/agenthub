@@ -10,7 +10,7 @@ import type { Project } from "@agenthub/shared";
 import { getStackIcon } from "@agenthub/shared";
 
 const NAV_ITEMS = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/agents", icon: Users, label: "Agentes" },
   { to: "/tasks", icon: ListTodo, label: "Tarefas" },
   { to: "/analytics", icon: BarChart3, label: "Analytics" },
@@ -252,7 +252,7 @@ export function AppSidebar() {
   }, [routeProjectId, setActiveProject]);
 
   const isNavActive = (to: string) => {
-    if (to === "/") return location.pathname === "/";
+    if (to === "/dashboard") return location.pathname === "/dashboard";
     return location.pathname.startsWith(to);
   };
 

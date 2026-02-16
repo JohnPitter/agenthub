@@ -20,6 +20,10 @@ import { setupSocketHandlers } from "./realtime/socket-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { rateLimiter } from "./middleware/rate-limiter";
 import { errorHandler } from "./middleware/error-handler";
+import cookieParser from "cookie-parser";
+import { authRouter } from "./routes/auth.js";
+import { authMiddleware } from "./middleware/auth.js";
+import { verifyJWT } from "./services/auth-service.js";
 import { logger } from "./lib/logger";
 import { taskTimeoutManager } from "./tasks/task-lifecycle";
 import { taskWatcher } from "./tasks/task-watcher.js";
@@ -32,10 +36,17 @@ const app = express();
 // Middleware stack
 app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
 app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 app.use(requestLogger);
 app.use(rateLimiter);
 
-// REST API routes
+// Public auth routes (no auth required)
+app.use("/api/auth", authRouter);
+
+// Auth middleware for all other API routes
+app.use("/api", authMiddleware);
+
+// REST API routes (protected)
 app.use("/api/projects", projectsRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/agents", agentsRouter);
@@ -63,6 +74,19 @@ const httpServer = createServer(app);
 const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"] },
   transports: ["websocket", "polling"],
+});
+
+io.use((socket, next) => {
+  const cookie = socket.handshake.headers.cookie;
+  if (!cookie) return next(new Error("Authentication required"));
+  const match = cookie.match(/agenthub_token=([^;]+)/);
+  if (!match) return next(new Error("Authentication required"));
+  try {
+    verifyJWT(match[1]);
+    next();
+  } catch {
+    next(new Error("Invalid token"));
+  }
 });
 
 setupSocketHandlers(io);

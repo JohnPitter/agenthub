@@ -6,6 +6,7 @@ import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useNotificationStore, useUnreadCount } from "../../stores/notification-store";
 import { useCommandPalette } from "../../hooks/use-command-palette";
 import { useUserStore } from "../../stores/user-store";
+import { useAuthStore } from "../../stores/auth-store";
 import { getAgentAvatarUrl } from "../../lib/agent-avatar";
 import { NotificationPanel } from "./notification-panel";
 import { CommandPalette } from "../ui/command-palette";
@@ -28,12 +29,15 @@ export function Header() {
   const { panelOpen, togglePanel } = useNotificationStore();
   const { open: commandOpen, setOpen: setCommandOpen } = useCommandPalette();
   const { name: userName, avatar: userAvatar, color: userColor } = useUserStore();
+  const authUser = useAuthStore((s) => s.user);
   const bellRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const userAvatarUrl = getAgentAvatarUrl(userAvatar, 36);
-  const userInitials = userName
+  const displayAvatar = authUser?.avatarUrl ?? userAvatarUrl;
+  const displayName = authUser?.name ?? userName;
+  const userInitials = displayName
     .split(" ")
     .map((w) => w[0])
     .filter(Boolean)
@@ -46,7 +50,7 @@ export function Header() {
   const segment = location.pathname.split("/").pop();
   const pageLabel = segment && ROUTE_LABELS[segment] ? ROUTE_LABELS[segment] : null;
 
-  const isDashboard = location.pathname === "/";
+  const isDashboard = location.pathname === "/dashboard";
 
   const PAGE_TITLES: Record<string, string> = {
     "/analytics": "Analytics",
@@ -158,10 +162,10 @@ export function Header() {
               "flex h-9 w-9 items-center justify-center rounded-lg text-[12px] font-semibold text-white ring-2 transition-all duration-200 overflow-hidden",
               profileOpen ? "ring-brand/40" : "ring-transparent hover:ring-brand/20",
             )}
-            style={!userAvatarUrl ? { backgroundColor: userColor } : undefined}
+            style={!displayAvatar ? { backgroundColor: userColor } : undefined}
           >
-            {userAvatarUrl ? (
-              <img src={userAvatarUrl} alt={userName} className="h-full w-full object-cover" />
+            {displayAvatar ? (
+              <img src={displayAvatar} alt={displayName} className="h-full w-full object-cover" />
             ) : (
               userInitials
             )}
@@ -171,8 +175,8 @@ export function Header() {
             <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-neutral-bg1 border border-stroke2 shadow-16 animate-fade-up overflow-hidden">
               {/* User info */}
               <div className="px-4 py-3 border-b border-stroke2">
-                <p className="text-[13px] font-semibold text-neutral-fg1">{userName}</p>
-                <p className="text-[11px] text-neutral-fg3 mt-0.5">Administrador</p>
+                <p className="text-[13px] font-semibold text-neutral-fg1">{authUser?.name ?? userName}</p>
+                <p className="text-[11px] text-neutral-fg3 mt-0.5">{authUser?.login ? `@${authUser.login}` : "Administrador"}</p>
               </div>
 
               {/* Menu items */}
@@ -199,10 +203,7 @@ export function Header() {
                 <button
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={() => {
-                    localStorage.removeItem("agenthub:userProfile");
-                    localStorage.removeItem("agenthub:workspacePath");
-                    localStorage.removeItem("agenthub:theme");
-                    window.location.href = "/";
+                    useAuthStore.getState().logout();
                   }}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-danger transition-colors hover:bg-danger-light"
                 >

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Play, Settings, Users, CheckCircle2, ListTodo, Loader2, Zap, Activity } from "lucide-react";
+import { Settings, Users, CheckCircle2, ListTodo, Loader2, Zap, Activity } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useSocket } from "../hooks/use-socket";
-import { TaskExecuteDialog } from "../components/tasks/task-execute-dialog";
+
 import { CommandBar } from "../components/layout/command-bar";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonTable } from "../components/ui/skeleton";
@@ -39,8 +39,7 @@ export function ProjectOverview() {
   const project = projects.find((p) => p.id === id);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoaded, setTasksLoaded] = useState(false);
-  const [showExecuteDialog, setShowExecuteDialog] = useState(false);
-  const { executeTask } = useSocket(id);
+  useSocket(id);
 
   useEffect(() => {
     if (!id) return;
@@ -92,15 +91,7 @@ export function ProjectOverview() {
             <Settings className="h-4 w-4" />
           </Link>
         }
-      >
-        <button
-          onClick={() => setShowExecuteDialog(true)}
-          className="btn-primary flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
-        >
-          <Play className="h-3.5 w-3.5" />
-          Executar Agents
-        </button>
-      </CommandBar>
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-10">
@@ -231,14 +222,6 @@ export function ProjectOverview() {
         </div>
       </div>
 
-      {showExecuteDialog && (
-        <TaskExecuteDialog
-          tasks={tasks}
-          agents={agents}
-          onExecute={(taskId, agentId) => executeTask(taskId, agentId)}
-          onClose={() => setShowExecuteDialog(false)}
-        />
-      )}
     </div>
   );
 }

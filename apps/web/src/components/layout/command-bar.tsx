@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 interface CommandBarProps {
-  children: ReactNode;
+  children?: ReactNode;
   actions?: ReactNode;
 }
 

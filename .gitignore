@@ -18,5 +18,12 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Claude Code (local only)
+.claude/
+CLAUDE.md
+
+# Playwright
+apps/web/test-results/
+
 # WhatsApp browser session data
 apps/orchestrator/data/whatsapp-auth/

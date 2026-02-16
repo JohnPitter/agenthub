@@ -1,7 +1,10 @@
-import { useState } from "react";
-import { X, Brain } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Brain, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
-import type { Agent, AgentModel, PermissionMode } from "@agenthub/shared";
+import { AVATAR_PRESETS, getAgentAvatarUrl } from "../../lib/agent-avatar";
+import { useUsageStore } from "../../stores/usage-store";
+import type { Agent, AgentModel, AgentRole, PermissionMode } from "@agenthub/shared";
+import { DEFAULT_SOULS } from "@agenthub/shared";
 
 interface AgentConfigDialogProps {
   agent: Agent;
@@ -9,10 +12,19 @@ interface AgentConfigDialogProps {
   onClose: () => void;
 }
 
-const MODELS: { value: AgentModel; label: string }[] = [
+const FALLBACK_MODELS: { value: string; label: string }[] = [
   { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
   { value: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
+  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
 ];
+
+// SDK returns shorthand aliases — map to actual model IDs
+const SDK_ALIAS_TO_MODEL: Record<string, { value: string; label: string }> = {
+  default: { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
+  opus: { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
+  sonnet: { value: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
+  haiku: { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
+};
 
 const PERMISSION_MODES: { value: PermissionMode; label: string; description: string }[] = [
   { value: "default", label: "Padrão", description: "Requer aprovação para ações arriscadas" },
@@ -20,9 +32,41 @@ const PERMISSION_MODES: { value: PermissionMode; label: string; description: str
   { value: "bypassPermissions", label: "Bypass total", description: "Sem verificação de permissões (use com cautela)" },
 ];
 
+const LEVELS: { value: Agent["level"]; label: string; description: string }[] = [
+  { value: "junior", label: "Junior", description: "Executa tarefas simples, requer supervisão constante" },
+  { value: "pleno", label: "Pleno", description: "Autonomia moderada, segue diretrizes estabelecidas" },
+  { value: "senior", label: "Senior", description: "Autonomia alta, decisões complexas e independentes" },
+  { value: "especialista", label: "Especialista", description: "Domínio profundo em área específica, referência técnica" },
+  { value: "arquiteto", label: "Arquiteto", description: "Visão sistêmica, define padrões e arquitetura" },
+];
+
 const ALL_TOOLS = ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task", "WebSearch", "WebFetch"];
 
 export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogProps) {
+  const { models: sdkModels, fetchModels } = useUsageStore();
+
+  useEffect(() => {
+    fetchModels();
+  }, [fetchModels]);
+
+  const modelOptions = (() => {
+    if (sdkModels.length === 0) return FALLBACK_MODELS;
+
+    const seen = new Set<string>();
+    const mapped: { value: string; label: string }[] = [];
+
+    for (const m of sdkModels) {
+      const alias = SDK_ALIAS_TO_MODEL[m.value];
+      const entry = alias ?? { value: m.value, label: m.displayName };
+      if (!seen.has(entry.value)) {
+        seen.add(entry.value);
+        mapped.push(entry);
+      }
+    }
+
+    return mapped.length > 0 ? mapped : FALLBACK_MODELS;
+  })();
+
   const parsedTools: string[] = typeof agent.allowedTools === "string"
     ? JSON.parse(agent.allowedTools)
     : agent.allowedTools ?? [];
@@ -32,6 +76,10 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
   const [tools, setTools] = useState<string[]>(parsedTools);
   const [systemPrompt, setSystemPrompt] = useState(agent.systemPrompt ?? "");
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(agent.permissionMode ?? "default");
+  const [level, setLevel] = useState<Agent["level"]>(agent.level ?? "senior");
+  const [avatar, setAvatar] = useState(agent.avatar ?? "");
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [soul, setSoul] = useState(agent.soul ?? "");
 
   const handleToggleTool = (tool: string) => {
     setTools((prev) =>
@@ -42,10 +90,13 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
   const handleSave = () => {
     onSave(agent.id, {
       model,
+      level,
+      avatar: avatar || undefined,
       maxThinkingTokens: thinkingTokens > 0 ? thinkingTokens : null,
       allowedTools: tools,
       systemPrompt: systemPrompt.trim() || undefined,
       permissionMode,
+      soul: soul.trim() || null,
     });
     onClose();
   };
@@ -59,12 +110,20 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-md text-[14px] font-semibold text-white"
-              style={{ backgroundColor: agent.color ?? "#0866FF" }}
-            >
-              {agent.name.charAt(0)}
-            </div>
+            {getAgentAvatarUrl(avatar) ? (
+              <img
+                src={getAgentAvatarUrl(avatar, 40)!}
+                alt={agent.name}
+                className="h-10 w-10 rounded-md bg-neutral-bg2"
+              />
+            ) : (
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-md text-[14px] font-semibold text-white"
+                style={{ backgroundColor: agent.color ?? "#0866FF" }}
+              >
+                {agent.name.charAt(0)}
+              </div>
+            )}
             <div>
               <h2 className="text-[18px] font-semibold text-neutral-fg1">{agent.name}</h2>
               <p className="text-[12px] text-neutral-fg3">{agent.role}</p>
@@ -76,6 +135,105 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
         </div>
 
         <div className="flex flex-col gap-5">
+          {/* Avatar Picker */}
+          <div>
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
+              Avatar
+            </label>
+
+            {/* First category always visible */}
+            <div className="grid grid-cols-8 gap-2">
+              {AVATAR_PRESETS[0].avatars.map((preset) => {
+                const isSelected = avatar === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => setAvatar(isSelected ? "" : preset.value)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-lg p-1.5 transition-all",
+                      isSelected
+                        ? "bg-brand-light ring-2 ring-brand"
+                        : "hover:bg-neutral-bg-hover",
+                    )}
+                    title={preset.label}
+                  >
+                    <img
+                      src={getAgentAvatarUrl(preset.value, 48)!}
+                      alt={preset.label}
+                      className="h-10 w-10 rounded-md"
+                      loading="lazy"
+                    />
+                    <span className="text-[9px] font-medium text-neutral-fg3 truncate w-full text-center">
+                      {preset.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Expand to show all categories */}
+            <button
+              type="button"
+              onClick={() => setAvatarOpen(!avatarOpen)}
+              className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-brand hover:text-brand-hover transition-colors"
+            >
+              {avatarOpen ? "Menos avatares" : `Ver todos (${AVATAR_PRESETS.reduce((a, g) => a + g.avatars.length, 0)})`}
+              {avatarOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+
+            {avatarOpen && (
+              <div className="mt-2 space-y-4 rounded-lg border border-stroke bg-neutral-bg2 p-4 animate-fade-up">
+                {AVATAR_PRESETS.slice(1).map((group) => (
+                  <div key={group.category}>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">
+                      {group.category}
+                    </p>
+                    <div className="grid grid-cols-8 gap-2">
+                      {group.avatars.map((preset) => {
+                        const isSelected = avatar === preset.value;
+                        return (
+                          <button
+                            key={preset.value}
+                            type="button"
+                            onClick={() => setAvatar(isSelected ? "" : preset.value)}
+                            className={cn(
+                              "flex flex-col items-center gap-1 rounded-lg p-1.5 transition-all",
+                              isSelected
+                                ? "bg-brand-light ring-2 ring-brand"
+                                : "hover:bg-neutral-bg-hover",
+                            )}
+                            title={preset.label}
+                          >
+                            <img
+                              src={getAgentAvatarUrl(preset.value, 48)!}
+                              alt={preset.label}
+                              className="h-10 w-10 rounded-md"
+                              loading="lazy"
+                            />
+                            <span className="text-[9px] font-medium text-neutral-fg3 truncate w-full text-center">
+                              {preset.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {avatar && (
+              <button
+                type="button"
+                onClick={() => setAvatar("")}
+                className="mt-2 text-[11px] font-medium text-danger hover:underline"
+              >
+                Remover avatar
+              </button>
+            )}
+          </div>
+
           {/* Model */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
@@ -86,7 +244,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               onChange={(e) => setModel(e.target.value as AgentModel)}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
-              {MODELS.map((m) => (
+              {modelOptions.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
@@ -108,6 +266,25 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
             </select>
             <p className="mt-1.5 text-[11px] text-neutral-fg3">
               {PERMISSION_MODES.find((pm) => pm.value === permissionMode)?.description}
+            </p>
+          </div>
+
+          {/* Level */}
+          <div>
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
+              Nível
+            </label>
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value as Agent["level"])}
+              className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
+            >
+              {LEVELS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[11px] text-neutral-fg3">
+              {LEVELS.find((l) => l.value === level)?.description}
             </p>
           </div>
 
@@ -191,6 +368,35 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
                 );
               })}
             </div>
+          </div>
+
+          {/* Soul (Personality) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple" />
+                <label className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
+                  Soul (Personalidade)
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSoul(DEFAULT_SOULS[agent.role as AgentRole] ?? "")}
+                className="text-[11px] font-medium text-brand hover:text-brand-hover transition-colors"
+              >
+                Usar template padrao
+              </button>
+            </div>
+            <p className="mb-2 text-[11px] text-neutral-fg3">
+              Define a personalidade, valores e estilo do agente. Injetado antes do prompt base.
+            </p>
+            <textarea
+              value={soul}
+              onChange={(e) => setSoul(e.target.value)}
+              placeholder="# Soul: Agent Name&#10;&#10;## Personality&#10;...&#10;&#10;## Values&#10;...&#10;&#10;## Style&#10;..."
+              rows={6}
+              className="w-full resize-none rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[13px] text-neutral-fg1 placeholder-neutral-fg-disabled font-mono outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
+            />
           </div>
 
           {/* System Prompt */}

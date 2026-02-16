@@ -17,3 +17,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# WhatsApp browser session data
+apps/orchestrator/data/whatsapp-auth/

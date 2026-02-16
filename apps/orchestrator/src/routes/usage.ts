@@ -1,0 +1,357 @@
+import { Router } from "express";
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import { readFile } from "fs/promises";
+import { homedir } from "os";
+import { join } from "path";
+import { db, schema } from "@agenthub/database";
+import { gte, and } from "drizzle-orm";
+import { logger } from "../lib/logger.js";
+
+const router = Router();
+
+// Cache account info for 10 minutes to avoid repeated SDK calls
+let accountCache: { data: Record<string, unknown>; fetchedAt: number } | null = null;
+const ACCOUNT_CACHE_TTL = 10 * 60 * 1000;
+
+/**
+ * Reads OAuth access token from ~/.claude/.credentials.json
+ */
+async function getOAuthToken(): Promise<string | null> {
+  try {
+    const credPath = join(homedir(), ".claude", ".credentials.json");
+    const raw = await readFile(credPath, "utf-8");
+    const creds = JSON.parse(raw);
+    return creds?.claudeAiOauth?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Cache usage limits for 2 minutes (they change frequently)
+let usageLimitsCache: { data: Record<string, unknown>; fetchedAt: number } | null = null;
+const USAGE_LIMITS_CACHE_TTL = 2 * 60 * 1000;
+
+/**
+ * GET /api/usage/summary
+ * Aggregated cost and token usage from task executions.
+ * Query params: period (24h, 7d, 30d, all)
+ */
+router.get("/usage/summary", async (req, res) => {
+  try {
+    const { period = "24h" } = req.query;
+
+    let dateThreshold: Date | null = null;
+    if (period === "24h") {
+      dateThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    } else if (period === "7d") {
+      dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - 7);
+    } else if (period === "30d") {
+      dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - 30);
+    }
+
+    const conditions = dateThreshold
+      ? [gte(schema.tasks.createdAt, dateThreshold)]
+      : [];
+
+    const tasks = conditions.length > 0
+      ? await db.select().from(schema.tasks).where(and(...conditions)).all()
+      : await db.select().from(schema.tasks).all();
+
+    let totalCostUsd = 0;
+    let totalTokens = 0;
+    let completedTasks = 0;
+    let failedTasks = 0;
+    const costByModel: Record<string, { cost: number; tasks: number }> = {};
+
+    for (const task of tasks) {
+      const cost = task.costUsd ? parseFloat(task.costUsd) : 0;
+      const tokens = task.tokensUsed ?? 0;
+
+      totalCostUsd += cost;
+      totalTokens += tokens;
+
+      if (task.status === "done") completedTasks++;
+      if (task.status === "failed") failedTasks++;
+
+      // Group by agent (as proxy for model)
+      if (task.assignedAgentId) {
+        if (!costByModel[task.assignedAgentId]) {
+          costByModel[task.assignedAgentId] = { cost: 0, tasks: 0 };
+        }
+        costByModel[task.assignedAgentId].cost += cost;
+        costByModel[task.assignedAgentId].tasks += 1;
+      }
+    }
+
+    // Get agent names for the cost breakdown
+    const agents = await db.select().from(schema.agents).all();
+    const agentMap = new Map(agents.map((a) => [a.id, a]));
+
+    const costBreakdown = Object.entries(costByModel).map(([agentId, data]) => {
+      const agent = agentMap.get(agentId);
+      return {
+        agentId,
+        agentName: agent?.name ?? "Desconhecido",
+        model: agent?.model ?? "unknown",
+        cost: data.cost,
+        tasks: data.tasks,
+      };
+    }).sort((a, b) => b.cost - a.cost);
+
+    // Aggregate cost per model (not per agent)
+    const modelCosts: Record<string, { cost: number; tasks: number; inputTokens: number; outputTokens: number }> = {};
+    for (const entry of costBreakdown) {
+      if (!modelCosts[entry.model]) {
+        modelCosts[entry.model] = { cost: 0, tasks: 0, inputTokens: 0, outputTokens: 0 };
+      }
+      modelCosts[entry.model].cost += entry.cost;
+      modelCosts[entry.model].tasks += entry.tasks;
+    }
+
+    res.json({
+      period,
+      totalCostUsd,
+      totalTokens,
+      totalTasks: tasks.length,
+      completedTasks,
+      failedTasks,
+      costBreakdown,
+      modelCosts,
+    });
+  } catch (error) {
+    logger.error("Failed to get usage summary", { error });
+    res.status(500).json({ error: "Failed to get usage summary" });
+  }
+});
+
+/**
+ * GET /api/usage/account
+ * Returns Claude Code account info (subscription type, email, etc.)
+ * Uses SDK query().accountInfo() with 10-min cache.
+ */
+router.get("/usage/account", async (_req, res) => {
+  try {
+    // Return cache if fresh
+    if (accountCache && Date.now() - accountCache.fetchedAt < ACCOUNT_CACHE_TTL) {
+      return res.json(accountCache.data);
+    }
+
+    // Spawn a minimal SDK query to extract account info
+    const conversation = query({
+      prompt: "Say OK",
+      options: {
+        maxTurns: 1,
+        permissionMode: "plan",
+        allowedTools: [],
+      },
+    });
+
+    const info = await conversation.accountInfo();
+
+    // Consume the generator to avoid dangling process
+    conversation.close();
+
+    const data = {
+      email: info.email ?? null,
+      organization: info.organization ?? null,
+      subscriptionType: info.subscriptionType ?? null,
+      tokenSource: info.tokenSource ?? null,
+      apiKeySource: info.apiKeySource ?? null,
+    };
+
+    accountCache = { data, fetchedAt: Date.now() };
+    res.json(data);
+  } catch (error) {
+    logger.error("Failed to get account info", { error });
+
+    // If cache exists but expired, still return stale data as fallback
+    if (accountCache) {
+      return res.json(accountCache.data);
+    }
+    res.status(500).json({ error: "Failed to get account info" });
+  }
+});
+
+// Cache supported models for 10 minutes
+let modelsCache: { data: { value: string; displayName: string; description: string }[]; fetchedAt: number } | null = null;
+const MODELS_CACHE_TTL = 10 * 60 * 1000;
+
+/**
+ * GET /api/usage/models
+ * Returns all models available in the Claude Code CLI.
+ * Uses SDK query().supportedModels() with 10-min cache.
+ */
+router.get("/usage/models", async (_req, res) => {
+  try {
+    if (modelsCache && Date.now() - modelsCache.fetchedAt < MODELS_CACHE_TTL) {
+      return res.json({ models: modelsCache.data });
+    }
+
+    const conversation = query({
+      prompt: "Say OK",
+      options: {
+        maxTurns: 1,
+        permissionMode: "plan",
+        allowedTools: [],
+      },
+    });
+
+    const models = await conversation.supportedModels();
+    conversation.close();
+
+    const data = models.map((m) => ({
+      value: m.value,
+      displayName: m.displayName,
+      description: m.description,
+    }));
+
+    modelsCache = { data, fetchedAt: Date.now() };
+    res.json({ models: data });
+  } catch (error) {
+    logger.error("Failed to get supported models", { error });
+
+    if (modelsCache) {
+      return res.json({ models: modelsCache.data });
+    }
+
+    // Fallback with known models if SDK is unavailable
+    res.json({
+      models: [
+        { value: "claude-opus-4-6", displayName: "Claude Opus 4.6", description: "Most capable model" },
+        { value: "claude-sonnet-4-5-20250929", displayName: "Claude Sonnet 4.5", description: "Fast and intelligent" },
+      ],
+    });
+  }
+});
+
+/**
+ * GET /api/usage/connection
+ * Checks if Claude Code CLI is connected via OAuth.
+ * Returns connection status, account email, and plan info.
+ */
+router.get("/usage/connection", async (_req, res) => {
+  try {
+    // Reuse account cache if fresh
+    if (accountCache && Date.now() - accountCache.fetchedAt < ACCOUNT_CACHE_TTL) {
+      return res.json({
+        connected: true,
+        email: accountCache.data.email,
+        subscriptionType: accountCache.data.subscriptionType,
+        tokenSource: accountCache.data.tokenSource,
+        apiKeySource: accountCache.data.apiKeySource,
+      });
+    }
+
+    const conversation = query({
+      prompt: "Say OK",
+      options: {
+        maxTurns: 1,
+        permissionMode: "plan",
+        allowedTools: [],
+      },
+    });
+
+    const info = await conversation.accountInfo();
+    conversation.close();
+
+    const data = {
+      email: info.email ?? null,
+      organization: info.organization ?? null,
+      subscriptionType: info.subscriptionType ?? null,
+      tokenSource: info.tokenSource ?? null,
+      apiKeySource: info.apiKeySource ?? null,
+    };
+
+    // Update account cache as well
+    accountCache = { data, fetchedAt: Date.now() };
+
+    res.json({
+      connected: true,
+      email: data.email,
+      subscriptionType: data.subscriptionType,
+      tokenSource: data.tokenSource,
+      apiKeySource: data.apiKeySource,
+    });
+  } catch (error) {
+    logger.error("Failed to check connection", { error });
+    res.json({
+      connected: false,
+      email: null,
+      subscriptionType: null,
+      tokenSource: null,
+      apiKeySource: null,
+      error: "Claude Code CLI não está conectado",
+    });
+  }
+});
+
+/**
+ * GET /api/usage/limits
+ * Fetches real-time usage limits from Anthropic OAuth API.
+ * Returns session (5h), weekly (all models), weekly (Sonnet only), and extra usage data.
+ */
+router.get("/usage/limits", async (_req, res) => {
+  try {
+    // Return cache if fresh
+    if (usageLimitsCache && Date.now() - usageLimitsCache.fetchedAt < USAGE_LIMITS_CACHE_TTL) {
+      return res.json(usageLimitsCache.data);
+    }
+
+    const token = await getOAuthToken();
+    if (!token) {
+      return res.status(401).json({ error: "OAuth token não encontrado" });
+    }
+
+    const response = await fetch("https://api.anthropic.com/api/oauth/usage", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "anthropic-beta": "oauth-2025-04-20",
+        "User-Agent": "claude-code/2.0.32",
+      },
+    });
+
+    if (!response.ok) {
+      logger.warn("Anthropic usage API returned non-OK", { status: response.status });
+      return res.status(response.status).json({ error: "Falha ao buscar limites de uso" });
+    }
+
+    const raw = await response.json() as Record<string, unknown>;
+
+    const normalize = (entry: Record<string, unknown> | undefined) => {
+      if (!entry) return null;
+      return {
+        utilization: (entry.utilization as number) ?? 0,
+        resetsAt: (entry.resets_at as string) ?? null,
+      };
+    };
+
+    const extraRaw = raw.extra_usage as Record<string, unknown> | undefined;
+
+    const data = {
+      fiveHour: normalize(raw.five_hour as Record<string, unknown>),
+      sevenDay: normalize(raw.seven_day as Record<string, unknown>),
+      sevenDaySonnet: normalize(raw.seven_day_sonnet as Record<string, unknown>),
+      extraUsage: extraRaw ? {
+        isEnabled: (extraRaw.is_enabled as boolean) ?? false,
+        monthlyLimit: (extraRaw.monthly_limit as number) ?? 0,
+        usedCredits: (extraRaw.used_credits as number) ?? 0,
+        utilization: (extraRaw.utilization as number) ?? 0,
+      } : null,
+    };
+
+    usageLimitsCache = { data, fetchedAt: Date.now() };
+    res.json(data);
+  } catch (error) {
+    logger.error("Failed to fetch usage limits", { error });
+
+    // Return stale cache as fallback
+    if (usageLimitsCache) {
+      return res.json(usageLimitsCache.data);
+    }
+    res.status(500).json({ error: "Failed to fetch usage limits" });
+  }
+});
+
+export { router as usageRouter };

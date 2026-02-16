@@ -34,10 +34,20 @@ export function useAgents() {
     return updateAgent(agentId, { isActive: !current.isActive });
   }, [updateAgent]);
 
+  const createAgent = useCallback(async (data: Partial<Agent>) => {
+    const { agent } = await api<{ agent: Agent }>("/agents", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    setAgents([...useWorkspaceStore.getState().agents, agent]);
+    return agent;
+  }, [setAgents]);
+
   return {
     agents,
     fetchAgents,
     updateAgent,
     toggleAgent,
+    createAgent,
   };
 }

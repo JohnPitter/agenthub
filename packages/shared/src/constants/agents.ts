@@ -8,9 +8,10 @@ export interface AgentBlueprint {
   description: string;
   allowedTools: string[];
   permissionMode: PermissionMode;
-  level: "senior" | "mid" | "junior";
+  level: "junior" | "pleno" | "senior" | "especialista" | "arquiteto";
   color: string;
   avatar: string;
+  soul?: string;
 }
 
 export const DEFAULT_AGENTS: AgentBlueprint[] = [

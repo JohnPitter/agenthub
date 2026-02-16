@@ -49,7 +49,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
               );
             }
             return (
-              <code className="block rounded-md bg-neutral-fg1 p-3 text-[12px] font-mono text-white overflow-x-auto my-2">
+              <code className="block rounded-md bg-[var(--code-block-bg)] p-3 text-[12px] font-mono text-white overflow-x-auto my-2">
                 {children}
               </code>
             );

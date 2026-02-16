@@ -5,6 +5,7 @@ import { logger } from "../lib/logger";
 import { db, schema } from "@agenthub/database";
 import { nanoid } from "nanoid";
 import type { Agent, AgentRole } from "@agenthub/shared";
+import { agentMemory } from "./agent-memory.js";
 
 export interface SessionConfig {
   agent: Agent;
@@ -52,7 +53,18 @@ export class AgentSession {
       ? JSON.parse(agent.allowedTools)
       : agent.allowedTools ?? [];
 
-    const systemPrompt = getAgentPrompt(agent.role as AgentRole, agent.systemPrompt);
+    const systemPrompt = getAgentPrompt(agent.role as AgentRole, agent.systemPrompt, agent.soul);
+
+    // Inject agent memories into system prompt
+    let fullSystemPrompt = systemPrompt;
+    try {
+      const memoriesBlock = await agentMemory.retrieve(agent.id, projectId);
+      if (memoriesBlock) {
+        fullSystemPrompt = systemPrompt + memoriesBlock;
+      }
+    } catch (err) {
+      logger.warn(`Failed to retrieve memories for agent ${agent.id}: ${err}`, "agent-session");
+    }
 
     logger.info(
       `Starting session for ${agent.name} on task ${taskId}`,
@@ -72,7 +84,7 @@ export class AgentSession {
         prompt,
         options: {
           model: agent.model,
-          systemPrompt,
+          systemPrompt: fullSystemPrompt,
           allowedTools: parsedTools,
           cwd: projectPath,
           permissionMode: agent.permissionMode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits",

@@ -54,7 +54,7 @@ agentsRouter.post("/", async (req, res) => {
 agentsRouter.patch("/:id", async (req, res) => {
   const updates: Record<string, unknown> = { updatedAt: new Date() };
 
-  const allowedFields = ["name", "model", "maxThinkingTokens", "systemPrompt", "description", "allowedTools", "permissionMode", "level", "isActive", "color", "avatar"];
+  const allowedFields = ["name", "model", "maxThinkingTokens", "systemPrompt", "description", "allowedTools", "permissionMode", "level", "isActive", "color", "avatar", "soul"];
   for (const field of allowedFields) {
     if (req.body[field] !== undefined) {
       updates[field] = field === "allowedTools" ? JSON.stringify(req.body[field]) : req.body[field];

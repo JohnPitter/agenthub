@@ -12,12 +12,15 @@ import { filesRouter } from "./routes/files";
 import { analyticsRouter } from "./routes/analytics";
 import { pullRequestsRouter } from "./routes/pull-requests";
 import { integrationsRouter } from "./routes/integrations";
+import { usageRouter } from "./routes/usage";
+import { memoriesRouter } from "./routes/memories.js";
 import { setupSocketHandlers } from "./realtime/socket-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { rateLimiter } from "./middleware/rate-limiter";
 import { errorHandler } from "./middleware/error-handler";
 import { logger } from "./lib/logger";
 import { taskTimeoutManager } from "./tasks/task-lifecycle";
+import { taskWatcher } from "./tasks/task-watcher.js";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 
 const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
@@ -34,6 +37,7 @@ app.use(rateLimiter);
 app.use("/api/projects", projectsRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/agents", agentsRouter);
+app.use("/api/agents", memoriesRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api", gitRouter);
@@ -41,6 +45,7 @@ app.use("/api", filesRouter);
 app.use("/api", analyticsRouter);
 app.use("/api", pullRequestsRouter);
 app.use("/api", integrationsRouter);
+app.use("/api", usageRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -61,6 +66,7 @@ setupSocketHandlers(io);
 
 // Start task timeout manager
 taskTimeoutManager.start();
+taskWatcher.start();
 
 httpServer.listen(PORT, () => {
   logger.info(`Orchestrator running on http://localhost:${PORT}`, "server");
@@ -70,12 +76,14 @@ httpServer.listen(PORT, () => {
 process.on("SIGINT", () => {
   logger.info("SIGINT received, shutting down gracefully", "server");
   taskTimeoutManager.stop();
+  taskWatcher.stop();
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
   logger.info("SIGTERM received, shutting down gracefully", "server");
   taskTimeoutManager.stop();
+  taskWatcher.stop();
   process.exit(0);
 });
 

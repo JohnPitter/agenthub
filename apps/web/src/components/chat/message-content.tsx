@@ -12,6 +12,7 @@ import {
   Pencil,
   Wrench,
   Info,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { MarkdownContent } from "../../lib/markdown";
@@ -28,7 +29,7 @@ function CodeBlock({ code }: { code: string }) {
   };
 
   return (
-    <div className="relative rounded-md bg-neutral-fg1 p-3 font-mono text-[12px] text-white">
+    <div className="relative rounded-md bg-[var(--code-block-bg)] p-3 font-mono text-[12px] text-white">
       <button
         onClick={handleCopy}
         className="absolute right-2 top-2 rounded-md bg-white/10 p-1.5 transition-colors hover:bg-white/20"
@@ -67,6 +68,70 @@ function ThinkingBlock({ content }: { content: string }) {
           {content}
         </p>
       )}
+    </div>
+  );
+}
+
+// --- AskUserQuestion Card ---
+interface AskQuestion {
+  question: string;
+  header?: string;
+  options: { label: string; description?: string }[];
+  multiSelect?: boolean;
+}
+
+function AskUserQuestionCard({
+  questions,
+  onAnswer,
+}: {
+  questions: AskQuestion[];
+  onAnswer?: (questionIdx: number, optionLabel: string) => void;
+}) {
+  const [selected, setSelected] = useState<Record<number, string>>({});
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <HelpCircle className="h-4 w-4 text-brand" />
+        <span className="text-[12px] font-medium text-brand">Pergunta do Agente</span>
+      </div>
+      {questions.map((q, qi) => (
+        <div key={qi} className="flex flex-col gap-2">
+          <p className="text-[12px] font-medium text-neutral-fg1">{q.question}</p>
+          <div className="flex flex-col gap-1.5">
+            {q.options.map((opt) => {
+              const isSelected = selected[qi] === opt.label;
+              return (
+                <button
+                  key={opt.label}
+                  onClick={() => {
+                    setSelected((prev) => ({ ...prev, [qi]: opt.label }));
+                    onAnswer?.(qi, opt.label);
+                  }}
+                  className={cn(
+                    "flex flex-col items-start rounded-md border px-3 py-2 text-left transition-all",
+                    isSelected
+                      ? "border-brand bg-brand-light"
+                      : "border-stroke bg-neutral-bg1 hover:border-stroke-active hover:bg-neutral-bg-hover",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-[12px] font-medium",
+                      isSelected ? "text-brand" : "text-neutral-fg1",
+                    )}
+                  >
+                    {opt.label}
+                  </span>
+                  {opt.description && (
+                    <span className="text-[11px] text-neutral-fg3">{opt.description}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -124,8 +189,13 @@ export function MessageContent({ message }: { message: Message }) {
     case "thinking":
       return <ThinkingBlock content={message.content} />;
 
-    case "tool_use":
+    case "tool_use": {
+      const toolMeta = message.metadata ? JSON.parse(message.metadata) : {};
+      if (toolMeta.tool === "AskUserQuestion" && toolMeta.input?.questions) {
+        return <AskUserQuestionCard questions={toolMeta.input.questions} />;
+      }
       return <ToolUseCard metadata={message.metadata} />;
+    }
 
     case "error":
       return (
@@ -149,6 +219,6 @@ export function MessageContent({ message }: { message: Message }) {
       );
 
     default:
-      return <p className="whitespace-pre-wrap text-[13px]">{message.content}</p>;
+      return <p className="whitespace-pre-wrap text-[13px] text-neutral-fg1">{message.content}</p>;
   }
 }

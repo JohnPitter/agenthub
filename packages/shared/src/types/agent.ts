@@ -6,7 +6,7 @@ export type AgentRole =
   | "qa"
   | "custom";
 
-export type AgentModel = "claude-opus-4-6" | "claude-sonnet-4-5-20250929";
+export type AgentModel = string;
 
 export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions";
 
@@ -22,16 +22,51 @@ export interface Agent {
   description: string;
   allowedTools: string[];
   permissionMode: PermissionMode;
-  level: "senior" | "mid" | "junior";
+  level: "junior" | "pleno" | "senior" | "especialista" | "arquiteto";
   isDefault: boolean;
   isActive: boolean;
   color: string;
   avatar: string;
+  soul: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export type AgentMemoryType = "lesson" | "pattern" | "preference" | "decision" | "error";
+
+export interface AgentMemory {
+  id: string;
+  agentId: string;
+  projectId: string | null;
+  type: AgentMemoryType;
+  content: string;
+  context: string | null;
+  importance: number;
+  createdAt: Date;
 }
 
 export interface AgentWithStatus extends Agent {
   status: AgentStatus;
   currentTaskId: string | null;
+}
+
+/** A single step in an agent workflow */
+export interface WorkflowStep {
+  id: string;
+  agentId: string;
+  label: string;
+  /** IDs of steps that follow this one */
+  nextSteps: string[];
+}
+
+/** Defines the execution hierarchy of agents */
+export interface AgentWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  /** The step that receives incoming tasks */
+  entryStepId: string;
+  steps: WorkflowStep[];
+  createdAt: Date;
+  updatedAt: Date;
 }

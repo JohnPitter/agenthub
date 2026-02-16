@@ -99,12 +99,25 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`,
   `CREATE INDEX IF NOT EXISTS idx_messages_project ON messages(project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_task_logs_task ON task_logs(task_id)`,
+  `CREATE TABLE IF NOT EXISTS agent_memories (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    project_id TEXT,
+    type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    context TEXT,
+    importance INTEGER NOT NULL DEFAULT 3,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_memories_agent ON agent_memories(agent_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_memories_project ON agent_memories(agent_id, project_id)`,
 ];
 
 // Columns added after initial table creation — safe to re-run
 const alterStatements = [
   `ALTER TABLE integrations ADD COLUMN project_id TEXT`,
   `ALTER TABLE integrations ADD COLUMN credentials TEXT`,
+  `ALTER TABLE agents ADD COLUMN soul TEXT`,
 ];
 
 async function migrate() {

@@ -5,6 +5,7 @@ import { TASK_TRANSITIONS } from "@agenthub/shared";
 import type { TaskStatus } from "@agenthub/shared";
 import { eventBus } from "../realtime/event-bus";
 import { logger } from "../lib/logger";
+import { agentManager } from "../agents/agent-manager.js";
 
 export function canTransition(from: TaskStatus, to: TaskStatus): boolean {
   const allowed = TASK_TRANSITIONS[from];
@@ -67,6 +68,13 @@ export async function transitionTask(
 
   const updated = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
   eventBus.emit("task:updated", { task: updated });
+
+  // Check if parent task should advance when subtask completes
+  if (newStatus === "done" && task.parentTaskId) {
+    agentManager.checkSubtaskCompletion(task.parentTaskId).catch((err) => {
+      logger.warn(`Failed to check subtask completion: ${err}`, "task-lifecycle");
+    });
+  }
 
   return true;
 }

@@ -20,6 +20,7 @@ export interface ServerToClientEvents {
   "task:git_push_error": (data: TaskGitPushErrorEvent) => void;
   "task:pr_created": (data: TaskPRCreatedEvent) => void;
   "task:pr_merged": (data: TaskPRMergedEvent) => void;
+  "workflow:phase": (data: WorkflowPhaseEvent) => void;
   "board:activity": (data: BoardActivityEvent) => void;
   "board:agent_cursor": (data: BoardAgentCursorEvent) => void;
   "integration:status": (data: IntegrationStatusEvent) => void;
@@ -81,6 +82,16 @@ export interface AgentNotificationEvent {
   projectId: string;
   message: string;
   title?: string;
+  level?: "info" | "warn" | "error";
+}
+
+export interface WorkflowPhaseEvent {
+  taskId: string;
+  projectId: string;
+  phase: string;
+  agentId: string;
+  agentName: string;
+  detail?: string;
 }
 
 export interface AgentResultEvent {

@@ -9,6 +9,8 @@ import { ProjectSettings } from "./routes/project-settings";
 import { ProjectFiles } from "./routes/project-files";
 import { ProjectPRs } from "./routes/project-prs";
 import { Analytics } from "./routes/analytics";
+import { AgentsPage } from "./routes/agents";
+import { TasksPage } from "./routes/tasks";
 import { SettingsPage } from "./routes/settings";
 
 export function App() {
@@ -23,6 +25,8 @@ export function App() {
         <Route path="/project/:id/files" element={<ProjectFiles />} />
         <Route path="/project/:id/prs" element={<ProjectPRs />} />
         <Route path="/project/:id/settings" element={<ProjectSettings />} />
+        <Route path="/agents" element={<AgentsPage />} />
+        <Route path="/tasks" element={<TasksPage />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/integrations" element={<div className="p-6">Integrations (Phase 6)</div>} />

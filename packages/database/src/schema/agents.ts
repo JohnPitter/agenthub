@@ -12,11 +12,12 @@ export const agents = sqliteTable("agents", {
   permissionMode: text("permission_mode", {
     enum: ["default", "acceptEdits", "bypassPermissions"],
   }).default("acceptEdits").notNull(),
-  level: text("level", { enum: ["senior", "mid", "junior"] }).default("senior").notNull(),
+  level: text("level", { enum: ["junior", "pleno", "senior", "especialista", "arquiteto"] }).default("senior").notNull(),
   isDefault: integer("is_default", { mode: "boolean" }).default(false).notNull(),
   isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
   color: text("color"),
   avatar: text("avatar"),
+  soul: text("soul"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });

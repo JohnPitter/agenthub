@@ -1,5 +1,6 @@
 import { Settings, Power } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { AgentAvatar } from "./agent-avatar";
 import type { Agent } from "@agenthub/shared";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -30,12 +31,7 @@ export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
     )}>
       {/* Status indicator */}
       <div className="flex items-center justify-between mb-4">
-        <div
-          className="flex h-12 w-12 items-center justify-center rounded-lg text-[18px] font-semibold text-white"
-          style={{ backgroundColor: agent.color ?? "#6366F1" }}
-        >
-          {agent.name.charAt(0)}
-        </div>
+        <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="md" className="!h-12 !w-12 !text-[18px]" />
         <span className={cn(
           "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
           agent.isActive ? "bg-success-light" : "bg-neutral-bg2",

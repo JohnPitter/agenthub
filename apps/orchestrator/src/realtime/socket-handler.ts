@@ -37,19 +37,15 @@ export function setupSocketHandlers(
       socket.leave(`project:${projectId}`);
     });
 
-    // User sends a message → route to Tech Lead
+    // User sends a message → route through workflow (Tech Lead → Architect → Dev)
     socket.on("user:message", async ({ projectId, content, agentId }) => {
       logger.info(`User message in ${projectId}: ${content.slice(0, 100)}`, "socket");
 
-      // Find Tech Lead or specified agent
-      let targetAgentId = agentId;
-      if (!targetAgentId) {
-        const agents = await db.select().from(schema.agents);
-        const techLead = agents.find((a) => a.role === "tech_lead" && a.isActive);
-        targetAgentId = techLead?.id;
-      }
+      // Find Tech Lead
+      const agents = await db.select().from(schema.agents);
+      const techLead = agents.find((a) => a.role === "tech_lead" && a.isActive);
 
-      if (!targetAgentId) {
+      if (!techLead) {
         logger.warn("No Tech Lead agent available", "socket");
         return;
       }
@@ -62,7 +58,7 @@ export function setupSocketHandlers(
         description: content,
         priority: "medium" as const,
         category: null,
-        assignedAgentId: targetAgentId,
+        assignedAgentId: techLead.id,
         status: "created" as const,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -71,8 +67,13 @@ export function setupSocketHandlers(
       await db.insert(schema.tasks).values(task);
       eventBus.emit("task:created", { task });
 
-      // Assign to agent
-      await agentManager.assignTask(task.id, targetAgentId);
+      // If a specific agent was requested, assign directly (skip workflow)
+      if (agentId) {
+        await agentManager.assignTask(task.id, agentId);
+      } else {
+        // Run the full workflow: Tech Lead → Architect → Dev
+        await agentManager.runWorkflow(task.id, techLead.id);
+      }
     });
 
     // User explicitly creates a task
@@ -526,6 +527,10 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
 
   eventBus.on("task:pr_merged", (data) => {
     io.to(`project:${data.projectId}`).emit("task:pr_merged", data);
+  });
+
+  eventBus.on("workflow:phase", (data) => {
+    io.to(`project:${data.projectId}`).emit("workflow:phase", data);
   });
 
   eventBus.on("board:activity", (data) => {

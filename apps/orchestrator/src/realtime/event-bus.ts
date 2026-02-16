@@ -6,7 +6,7 @@ export interface EventMap {
   "agent:message": { agentId: string; projectId: string; taskId?: string; content: string; contentType: string; sessionId: string };
   "agent:stream": { agentId: string; projectId: string; event: unknown; sessionId: string };
   "agent:tool_use": { agentId: string; projectId: string; taskId?: string; tool: string; input: unknown; response: unknown; sessionId: string };
-  "agent:notification": { agentId: string; projectId: string; message: string; title?: string };
+  "agent:notification": { agentId: string; projectId: string; message: string; title?: string; level?: "info" | "warn" | "error" };
   "agent:result": { agentId: string; projectId: string; taskId?: string; result?: string; cost: number; duration: number; isError: boolean; errors?: string[] };
   "agent:error": { agentId: string; projectId: string; error: string };
   "task:status": { taskId: string; status: string; agentId?: string };
@@ -20,6 +20,7 @@ export interface EventMap {
   "task:git_push_error": { taskId: string; projectId: string; error: string };
   "task:pr_created": { taskId: string; projectId: string; prNumber: number; prUrl: string; prTitle: string; headBranch: string; baseBranch: string };
   "task:pr_merged": { taskId: string; projectId: string; prNumber: number; method: string };
+  "workflow:phase": { taskId: string; projectId: string; phase: string; agentId: string; agentName: string; detail?: string };
   "board:activity": { projectId: string; agentId: string; action: string; detail: string; timestamp: number };
   "board:agent_cursor": { projectId: string; agentId: string; filePath?: string; lineNumber?: number; action: string };
   "integration:status": { type: "whatsapp" | "telegram"; status: "disconnected" | "connecting" | "connected" | "error"; qr?: string };

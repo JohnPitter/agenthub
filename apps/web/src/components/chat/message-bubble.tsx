@@ -57,7 +57,7 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
             "rounded-md px-4 py-2.5",
             isUser
               ? "bg-brand text-white"
-              : "bg-neutral-bg2 border border-stroke",
+              : "bg-neutral-bg2 border border-stroke text-neutral-fg1",
           )}
         >
           <MessageContent message={message} />

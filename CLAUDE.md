@@ -182,3 +182,12 @@ pnpm db:seed              # Seed database
 - Respostas concisas e diretas
 - Não gerar documentação desnecessária (só quando pedido)
 - Agrupar operações similares em blocos
+
+### 4. Quando Usar Agent Teams
+- Considerar spawnar um agent team quando:
+  - Trabalho paralelo em frontend + backend (ex: nova feature full-stack)
+  - Code review com múltiplos focos (segurança, performance, testes)
+  - Tarefas independentes que não escrevem no mesmo arquivo
+  - Refactoring grande que afeta múltiplos packages
+- Não usar teams para tarefas simples, single-file, ou sequenciais
+- Preferir subagents (Task tool) para delegação leve sem overhead de coordenação

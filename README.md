@@ -1,264 +1,238 @@
 # AgentHub
 
-> **Multi-Agent Task Orchestration Platform powered by Claude Agent SDK**
+<div align="center">
 
-AgentHub é uma plataforma moderna de orquestração de agentes de IA para automação de desenvolvimento de software. Ele permite que múltiplos agents Claude trabalhem em paralelo em diferentes tasks, com gerenciamento completo de projetos, code review, git integration e analytics.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.14.0-purple?style=for-the-badge)](CHANGELOG.md)
 
-![Version](https://img.shields.io/badge/version-0.11.0-purple)
-![License](https://img.shields.io/badge/license-MIT-blue)
+**Multi-Agent Task Orchestration Platform powered by Claude Agent SDK**
 
-## 🎯 Visão Geral
+*Autonomous AI agents working in parallel to automate software development*
 
-O AgentHub transforma o desenvolvimento de software através de agentes autônomos que:
-- ✅ Executam tasks de código usando Claude Agent SDK
-- ✅ Trabalham em branches git isoladas
-- ✅ Passam por code review antes de merge
-- ✅ Reportam progresso em tempo real
-- ✅ Integram com Git, WhatsApp e Telegram
-- ✅ Fornecem analytics detalhados de performance
+[Installation](#installation) •
+[Features](#features) •
+[Screenshots](#screenshots) •
+[Configuration](#configuration) •
+[Documentation](#documentation)
 
-## 🚀 Features Implementadas
+</div>
 
-### ✅ Fase 1-5: Core Functionality
-- **Agent Execution** — Agents executam tasks reais usando Claude Agent SDK
-- **Review Cycle** — Approve/reject tasks com feedback estruturado
-- **Real-time Updates** — WebSocket notifications para progresso de tasks
-- **Command Palette** — Quick actions com ⌘K
-- **Dashboard** — Métricas em tempo real de projetos e agents
+---
 
-### ✅ Fase 6: Git Integration (Completa)
-- **Git Detection** — Auto-detecção de repositórios git
-- **Branch Management** — Criação automática de branches por task (`task/{id}-{slug}`)
-- **Auto-commit** — Commit automático após task approval
-- **Git UI** — Status git, branches, commits no settings
-- **Activity Log** — Rastreamento completo de operações git
+## Overview
 
-### ✅ Fase 7: Git Remote Operations (Completa)
-- **Credential Management** — Armazenamento seguro (AES-256-GCM) de SSH keys e tokens
-- **Push Operations** — Auto-push opcional após commits
-- **Pull/Sync** — Sincronização com remote, detecção de conflitos
-- **Remote Status** — UI mostrando ahead/behind indicators
+AgentHub orchestrates multiple AI agents to automate software development. Agents execute tasks in isolated git branches, go through code review, and report progress in real-time.
 
-### ✅ Fase 8: File Browsing (Completa)
-- **File Tree Explorer** — Navegação hierárquica de arquivos
-- **Code Viewer** — Monaco Editor com syntax highlighting
-- **Breadcrumbs** — Navegação fácil entre diretórios
-- **File Icons** — Ícones específicos por tipo de arquivo
+**What you get:**
 
-### ✅ Fase 9: Code Editor (Completa)
-- **Monaco Editor** — Editor completo com IntelliSense
-- **Read/Write Modes** — Visualização e edição de código
-- **Auto-save** — Salvamento automático de mudanças
-- **Language Support** — Suporte para 50+ linguagens
+- 🤖 **Agent Execution** — Claude SDK agents executing real coding tasks
+- 🔀 **Git Integration** — Automatic branch creation, commits, push/pull
+- 👀 **Code Review** — Approve/reject cycle with structured feedback
+- ⚡ **Real-time Updates** — WebSocket notifications for all operations
+- 📊 **Analytics** — Performance metrics, success rates, trend charts
+- 📝 **Code Editor** — Monaco Editor with diff viewer and git history
+- 📱 **Integrations** — Git, WhatsApp, Telegram notifications
 
-### ✅ Fase 10: Diff Viewer (Completa)
-- **Monaco Diff Editor** — Comparação lado-a-lado de código
-- **Version Selector** — Seletor de commits git
-- **Three Modes** — View, Edit, Diff modes
-- **Git History API** — Busca de histórico de arquivos
+---
 
-### ✅ Fase 11: Analytics Dashboard (Completa)
-- **Agent Metrics** — Taxa de sucesso, tempo médio, distribuição de status
-- **Performance Charts** — Gráficos de tendência com Recharts
-- **Period Filters** — Visualização por 7d, 30d, all time
-- **Agent Ranking** — Ranking por performance
+## Installation
 
-## 🏗️ Arquitetura
+### Requirements
+
+| Requirement | Version |
+|-------------|---------|
+| Node.js | 18+ |
+| pnpm | 9+ |
+| Git | 2.x+ |
+| Anthropic API Key | — |
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/JohnPitter/agenthub.git
+cd agenthub
+
+# Install dependencies
+pnpm install
+
+# Configure environment
+cp apps/orchestrator/.env.example apps/orchestrator/.env
+# Add your ANTHROPIC_API_KEY to .env
+
+# Build all packages
+pnpm build
+
+# Start development
+pnpm dev
+```
+
+**That's it!** Access the Web UI at `http://localhost:5173` and the API at `http://localhost:3001`.
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| 🤖 **Agent Execution** | Claude SDK agents running real development tasks |
+| 🔀 **Branch Management** | Automatic branch creation per task (`task/{id}-{slug}`) |
+| 👀 **Review Cycle** | Approve/reject tasks with structured feedback |
+| ⚡ **Real-time Tracking** | WebSocket notifications for task progress |
+| 📁 **File Browser** | Tree view explorer with breadcrumbs and file icons |
+| 📝 **Code Editor** | Monaco Editor with IntelliSense and 50+ languages |
+| 🔍 **Diff Viewer** | Side-by-side comparison with git history |
+| 📊 **Analytics Dashboard** | Agent metrics, trend charts, success rates |
+| 🔐 **Credential Storage** | AES-256-GCM encrypted secrets |
+| 🔄 **Remote Operations** | Push, pull, sync with conflict detection |
+| 📱 **Notifications** | WhatsApp, Telegram, and Slack integrations |
+| 🧠 **Autonomous Agents** | Soul system, memory, and task watcher |
+| 🖥️ **Dev Server Preview** | Live iframe preview with terminal output |
+
+---
+
+## Screenshots
+
+### Dashboard
+
+[![Dashboard](assets/dashboard.png)](assets/dashboard.png)
+
+### Project Board
+
+[![Board](assets/board.png)](assets/board.png)
+
+### Code Editor
+
+[![Editor](assets/editor.png)](assets/editor.png)
+
+---
+
+## Configuration
 
 ### Monorepo Structure
+
 ```
 agenthub/
 ├── apps/
-│   ├── web/              # React + Vite frontend
-│   └── orchestrator/     # Node.js + Express backend
+│   ├── web/              # ⚛️ React 19 + Vite + Tailwind 4 (port 5173)
+│   └── orchestrator/     # 🚀 Node.js + Express + Socket.io (port 3001)
 ├── packages/
-│   ├── database/         # Drizzle ORM + SQLite
-│   └── shared/           # Shared types & utilities
-└── turbo.json           # Turborepo config
+│   ├── database/         # 🗄️ Drizzle ORM + SQLite (@libsql)
+│   └── shared/           # 📦 Shared types & constants
+└── turbo.json            # ⚙️ Turborepo config
 ```
 
 ### Tech Stack
 
-**Frontend:**
-- ⚛️ React 19 + TypeScript
-- 🎨 Tailwind CSS
-- 📊 Recharts para visualizações
-- 🔧 Monaco Editor para code editing
-- 🔌 Socket.io para real-time
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | ⚛️ React 19, TypeScript, Vite, Tailwind CSS 4, Zustand, Monaco Editor, Recharts |
+| **Backend** | 🚀 Express, Socket.io, Claude Agent SDK, Node.js crypto (AES-256-GCM) |
+| **Database** | 🗄️ SQLite via @libsql + Drizzle ORM |
+| **Tooling** | ⚙️ pnpm 9, Turborepo, TypeScript 5.8 strict mode |
 
-**Backend:**
-- 🚀 Node.js + Express
-- 🤖 Claude Agent SDK
-- 🗄️ SQLite + Drizzle ORM
-- 🔄 WebSocket (Socket.io)
-- 🔐 AES-256-GCM encryption
-
-**Integrations:**
-- 🔧 Git CLI (branch, commit, push, pull)
-- 📱 WhatsApp (via whatsapp-web.js)
-- 💬 Telegram Bot API
-
-## 📋 Getting Started
-
-### Pré-requisitos
-- Node.js 18+
-- pnpm 8+
-- Git
-- Anthropic API Key
-
-### Instalação
+### Environment Variables
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/agenthub.git
-cd agenthub
+# Required
+ANTHROPIC_API_KEY=sk-ant-...
 
-# Instalar dependências
-pnpm install
-
-# Configurar variáveis de ambiente
-cp apps/orchestrator/.env.example apps/orchestrator/.env
-# Adicionar ANTHROPIC_API_KEY no .env
-
-# Build
-pnpm build
-
-# Iniciar development
-pnpm dev
+# Optional
+ENCRYPTION_KEY=your-32-byte-key    # For credential encryption
+PORT=3001                           # Orchestrator port
 ```
-
-### Acessar a aplicação
-- **Web UI:** http://localhost:5173
-- **API:** http://localhost:3000
-
-## 🗺️ Plano de Implementação
-
-O AgentHub foi desenvolvido em fases incrementais:
-
-### Fase 1-5: Core Platform ✅
-- Agent execution engine com Claude SDK
-- Real-time task tracking
-- Review cycle completo
-- Dashboard e command palette
-
-### Fase 6: Git Integration ✅
-- **6A:** Git detection & repository setup
-- **6B:** Branch management automático
-- **6C:** Commit tracking & auto-commit
-- **6D:** Git UI & activity log
-
-### Fase 7: Git Remote Operations ✅
-- **7A:** Credential management (SSH/HTTPS)
-- **7B:** Push operations (auto/manual)
-- **7C:** Pull/fetch & sync com conflitos
-- **7D:** Remote status UI (ahead/behind)
-
-### Fase 8: File Browsing ✅
-- Tree view explorer
-- File navigation
-- Breadcrumbs
-
-### Fase 9: Code Editor ✅
-- Monaco Editor integration
-- Read/write modes
-- Syntax highlighting
-
-### Fase 10: Diff Viewer ✅
-- Monaco Diff Editor
-- Git history API
-- Version comparison
-
-### Fase 11: Analytics Dashboard ✅
-- Agent performance metrics
-- Trend charts (Recharts)
-- Success rates e rankings
-
-### Fase 12: PR Management (Planejada)
-- GitHub PR integration
-- Code review workflow
-- PR status tracking
-- Automated PR creation
-
-### Fase 13: Testing & Deployment (Planejada)
-- E2E tests com Playwright
-- CI/CD pipeline
-- Docker containers
-- Production deployment
-
-## 📊 Database Schema
-
-**Core Tables:**
-- `projects` — Projetos gerenciados
-- `agents` — Agents Claude configurados
-- `tasks` — Tasks de desenvolvimento
-- `taskLogs` — Audit trail de operações
-- `integrations` — Git, WhatsApp, Telegram configs
-
-**Relationships:**
-- Project → Tasks (1:N)
-- Agent → Tasks (1:N)
-- Task → TaskLogs (1:N)
-- Project → Integrations (1:N)
-
-## 🔐 Security
-
-- **Credential Storage:** AES-256-GCM encryption
-- **Git Operations:** `execFile` (no shell injection)
-- **API Authentication:** Session-based auth
-- **Input Validation:** Zod schemas
-- **Path Traversal Protection:** Normalized paths
-
-## 📝 Development
-
-### Scripts disponíveis
-
-```bash
-# Development
-pnpm dev              # Start all apps
-pnpm dev:web          # Start web only
-pnpm dev:orchestrator # Start orchestrator only
-
-# Build
-pnpm build            # Build all packages
-pnpm build:web        # Build web only
-
-# Type checking
-pnpm typecheck        # Check all packages
-
-# Database
-pnpm db:push          # Push schema changes
-pnpm db:studio        # Open Drizzle Studio
-```
-
-### Convenções de Código
-
-- **TypeScript strict mode** habilitado
-- **ESLint** para linting
-- **Prettier** para formatting
-- **Conventional Commits** para mensagens de commit
-- **Component-first** architecture no frontend
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Por favor:
-
-1. Fork o projeto
-2. Crie uma feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit suas mudanças (`git commit -m 'feat: add amazing feature'`)
-4. Push para a branch (`git push origin feature/amazing-feature`)
-5. Abra um Pull Request
-
-## 📄 License
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## 🙏 Agradecimentos
-
-- [Anthropic](https://anthropic.com) pelo Claude Agent SDK
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) pelo editor de código
-- [Recharts](https://recharts.org/) pelos gráficos
-- [Drizzle ORM](https://orm.drizzle.team/) pelo ORM moderno
 
 ---
 
-**Built with ❤️ using Claude Agent SDK**
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [CHANGELOG.md](CHANGELOG.md) | Version history and phase details |
+| [CLAUDE.md](CLAUDE.md) | Development guidelines and conventions |
+
+---
+
+## Compatibility
+
+### Task State Machine
+
+```
+pending → assigned → in_progress → review → done
+                                   review → assigned (reject with feedback)
+                                   * → failed (error)
+```
+
+### Database Schema
+
+| Table | Description |
+|-------|-------------|
+| `projects` | Managed projects with path and status |
+| `agents` | Claude agents with role and system prompt |
+| `tasks` | Development tasks with priority, category, branch |
+| `messages` | Agent conversation messages |
+| `task_logs` | Audit trail for all operations |
+| `integrations` | Git, WhatsApp, Telegram configs |
+
+---
+
+## Scripts
+
+```bash
+# Development
+pnpm dev                  # Start all apps
+pnpm dev:web              # Start frontend only
+pnpm dev:orchestrator     # Start backend only
+
+# Build
+pnpm build                # Build all packages
+
+# Database
+pnpm db:migrate           # Run migrations
+pnpm db:seed              # Seed database
+```
+
+---
+
+## Security
+
+- 🔐 **Credential Storage** — AES-256-GCM encryption (never plain text)
+- 🛡️ **Git Operations** — `execFile` only (no shell injection)
+- ✅ **Input Validation** — Zod schemas
+- 🚫 **Path Traversal** — Normalized and validated paths
+- 🔒 **Rate Limiting** — All API routes protected
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) file.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+---
+
+## Support
+
+- **Issues:** [GitHub Issues](https://github.com/JohnPitter/agenthub/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/JohnPitter/agenthub/discussions)
+
+---
+
+## 🙏 Acknowledgements
+
+- [Anthropic](https://anthropic.com) — Claude Agent SDK
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/) — Code editor
+- [Recharts](https://recharts.org/) — Charts and visualizations
+- [Drizzle ORM](https://orm.drizzle.team/) — Modern TypeScript ORM

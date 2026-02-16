@@ -2,6 +2,78 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.15.0] - 2026-02-16
+
+### Fase 15: GitHub OAuth + Landing Page + Login
+
+#### Added
+
+- **Users Table** (`packages/database/src/schema/users.ts`)
+  - Tabela `users` com campos: id, githubId, login, name, email, avatarUrl, accessToken (encrypted)
+  - Index em `github_id` para lookup rápido
+  - Migration adicionada em `migrate.ts`
+
+- **Auth Service** (`apps/orchestrator/src/services/auth-service.ts`)
+  - `getGitHubAuthUrl()` — gera URL de autorização GitHub OAuth
+  - `exchangeCodeForToken(code)` — troca code por access_token via GitHub API
+  - `fetchGitHubUser(accessToken)` — busca perfil do usuário no GitHub
+  - `upsertUser(ghUser, accessToken)` — cria ou atualiza usuário no SQLite com token encrypted (AES-256-GCM)
+  - `signJWT(payload)` / `verifyJWT(token)` — JWT com expiração de 7 dias
+
+- **Auth Middleware** (`apps/orchestrator/src/middleware/auth.ts`)
+  - Valida JWT do cookie httpOnly `agenthub_token` em todas as rotas `/api/*`
+  - Retorna 401 se ausente ou inválido
+  - Extende `Express.Request` com `user?: JWTPayload`
+
+- **Auth Routes** (`apps/orchestrator/src/routes/auth.ts`)
+  - `GET /api/auth/github` — redireciona para GitHub OAuth
+  - `GET /api/auth/github/callback` — callback OAuth, upsert user, set cookie JWT, redirect `/dashboard`
+  - `POST /api/auth/logout` — limpa cookie
+  - `GET /api/auth/me` — retorna perfil do usuário autenticado
+
+- **Socket.io Auth** — middleware de handshake que valida JWT do cookie antes de permitir conexão WebSocket
+
+- **Landing Page** (`apps/web/src/routes/landing.tsx`)
+  - Página pública em `/` com hero, badge "Powered by Claude Agent SDK"
+  - Grid de 6 features (Agentes Autônomos, Git Integration, Code Review, Real-time, Analytics, Code Editor)
+  - Seção CTA com botão "Começar gratuitamente"
+  - Footer com copyright
+  - Glows e gradientes usando design tokens existentes
+
+- **Login Page** (`apps/web/src/routes/login.tsx`)
+  - Página pública em `/login` com botão "Entrar com GitHub"
+  - Tratamento de erros via query params (`missing_code`, `auth_failed`)
+  - Auto-redirect para `/dashboard` se já autenticado
+  - Link "Voltar ao início" para landing page
+
+- **Auth Store** (`apps/web/src/stores/auth-store.ts`)
+  - Zustand store com `fetchUser()` (GET /api/auth/me) e `logout()` (POST /api/auth/logout + redirect)
+
+- **ProtectedRoute** (`apps/web/src/components/auth/protected-route.tsx`)
+  - Route guard: chama `fetchUser()`, mostra spinner enquanto verifica, redireciona para `/login` se não autenticado
+
+- **`.env.example`** (`apps/orchestrator/.env.example`)
+  - Template com variáveis: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_CALLBACK_URL, JWT_SECRET
+
+#### Changed
+
+- `apps/web/src/App.tsx` — Rotas reorganizadas: `/` (landing, pública), `/login` (pública), demais rotas protegidas por `<ProtectedRoute>`, dashboard movido para `/dashboard`
+- `apps/web/src/components/layout/header.tsx` — Botão "Sair" usa `useAuthStore.getState().logout()`, exibe nome/avatar do GitHub, `isDashboard` check atualizado para `/dashboard`
+- `apps/web/src/components/layout/app-sidebar.tsx` — Link Dashboard atualizado de `/` para `/dashboard`
+- `apps/orchestrator/src/index.ts` — cookie-parser middleware, auth routes públicas em `/api/auth`, auth middleware em `/api/*`, Socket.io auth handshake
+- `apps/orchestrator/package.json` — Dependências: `jsonwebtoken`, `cookie-parser`; dev script com `--env-file=.env`
+- Docs movidos para `docs/` (DEPLOYMENT.md, DEVELOPMENT_PLAN.md, SETUP.md)
+
+#### Security
+
+- JWT armazenado em cookie httpOnly (não acessível via JavaScript)
+- Access token do GitHub encrypted com AES-256-GCM antes de salvar no banco
+- Cookie `sameSite: "lax"` e `secure: true` em produção
+- Todas as rotas API protegidas por auth middleware (exceto `/api/auth/*`)
+- WebSocket protegido por validação de JWT no handshake
+
+---
+
 ## [0.14.0] - 2026-02-16
 
 ### Fase 14: Dev Server Preview

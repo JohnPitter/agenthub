@@ -2,6 +2,80 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.14.0] - 2026-02-16
+
+### Fase 14: Dev Server Preview
+
+#### Added
+
+- **Dev Server Process Manager** (`apps/orchestrator/src/processes/dev-server-manager.ts`)
+  - Singleton `DevServerManager` gerencia processos dev server por projeto (`Map<projectId, entry>`)
+  - `start(projectId, projectPath)` — detecta script (`dev`/`start` em package.json), spawna com `spawn()`
+  - `stop(projectId)` — SIGTERM → timeout 5s → SIGKILL
+  - `getStatus(projectId)` — retorna status, porta e últimas 500 linhas de log
+  - `stopAll()` — cleanup de todos os processos (chamado no graceful shutdown)
+  - Detecção automática de package manager (pnpm/yarn/bun/npm) via lockfile
+  - Detecção de porta: flags `--port`/`-p`, `.env`/`.env.local`, defaults por framework (Vite=5173, Next=3000, etc.)
+  - Detecção de porta via stdout com regex em `http://localhost:PORT`
+  - `stripAnsi()` — remove ANSI escape codes antes do regex match (fix para Vite/Next que emitem cores no output)
+  - Buffer circular de logs (max 500 linhas) por processo
+  - Emissão de eventos via EventBus: `devserver:output` (cada linha) e `devserver:status` (mudanças de estado)
+
+- **Dev Server REST API** (`apps/orchestrator/src/routes/dev-server.ts`)
+  - `POST /api/projects/:id/dev-server/start` — inicia dev server do projeto
+  - `POST /api/projects/:id/dev-server/stop` — para dev server
+  - `GET /api/projects/:id/dev-server/status` — retorna status, porta e logs
+
+- **Shared Event Types** (`packages/shared/src/types/events.ts`)
+  - `DevServerOutputEvent` — `{ projectId, line, stream: "stdout"|"stderr", timestamp }`
+  - `DevServerStatusEvent` — `{ projectId, status: "stopped"|"starting"|"running"|"error", port?, error? }`
+  - Eventos adicionados a `ServerToClientEvents`
+
+- **EventBus + Socket Bridge**
+  - `devserver:output` e `devserver:status` adicionados ao `EventMap` (`event-bus.ts`)
+  - Bridge EventBus → Socket.io com scoping por project room (`socket-handler.ts`)
+
+- **Frontend Preview Route** (`apps/web/src/routes/project-preview.tsx`)
+  - Layout split: CommandBar (controles) + iframe (app rodando) + terminal (logs)
+  - Estados: idle (botão centralizado), starting (spinner + terminal), running (iframe + terminal), error
+  - Controles: Start/Stop, refresh iframe, abrir em nova aba, botão voltar ao projeto
+  - iframe com `sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"`
+  - Terminal com scroll automático, linhas coloridas (stdout=branco, stderr=vermelho)
+  - Socket.io real-time: `onDevServerOutput` e `onDevServerStatus` handlers
+  - Fetch de status inicial no mount (persiste estado se servidor já rodando)
+
+- **Socket Hook** (`apps/web/src/hooks/use-socket.ts`)
+  - `onDevServerOutput` e `onDevServerStatus` adicionados a `SocketHandlers`
+  - Listeners registrados e cleanup no unmount
+
+- **Navegação e Integração**
+  - Rota `/project/:id/preview` adicionada em `App.tsx`
+  - `preview: "Preview"` adicionado a `ROUTE_LABELS` em `header.tsx`
+  - Botão "Ver Projeto" na CommandBar do `project-overview.tsx` (gradiente brand→purple)
+
+#### Changed
+
+- `apps/orchestrator/src/index.ts` — Router `devServerRouter` montado + `devServerManager.stopAll()` no graceful shutdown
+- `apps/web/src/routes/settings.tsx` — Versão atualizada para 0.14.0, link do GitHub funcional com `<a>` para `https://github.com/JohnPitter/agenthub`
+
+#### Arquivos Criados
+
+- `apps/orchestrator/src/processes/dev-server-manager.ts`
+- `apps/orchestrator/src/routes/dev-server.ts`
+- `apps/web/src/routes/project-preview.tsx`
+
+#### Arquivos Modificados
+
+- `packages/shared/src/types/events.ts`
+- `apps/orchestrator/src/realtime/event-bus.ts`
+- `apps/orchestrator/src/realtime/socket-handler.ts`
+- `apps/orchestrator/src/index.ts`
+- `apps/web/src/App.tsx`
+- `apps/web/src/components/layout/header.tsx`
+- `apps/web/src/hooks/use-socket.ts`
+- `apps/web/src/routes/project-overview.tsx`
+- `apps/web/src/routes/settings.tsx`
+
 ## [0.13.0] - 2026-02-14
 
 ### Fase 13: Testing & Deployment

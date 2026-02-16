@@ -560,7 +560,7 @@ export function SettingsPage() {
                 <dl className="flex flex-col divide-y divide-stroke2 card-glow overflow-hidden">
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">Versão</dt>
-                    <dd className="text-[13px] font-semibold text-brand">0.12.0</dd>
+                    <dd className="text-[13px] font-semibold text-brand">0.14.0</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">Agentes SDK</dt>

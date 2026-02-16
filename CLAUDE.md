@@ -4,8 +4,8 @@
 
 AgentHub é uma plataforma de orquestração multi-agentes de IA para automação de desenvolvimento de software, powered by Claude Agent SDK. Monorepo com pnpm workspaces + Turborepo.
 
-**Versão atual:** 0.11.0 (Fases 1-11 completas)
-**Próxima fase:** 12 — PR Management (GitHub PR integration)
+**Versão atual:** 0.14.0 (Fases 1-14 completas)
+**Próxima fase:** 15 — TBD
 
 ## Estrutura do Monorepo
 

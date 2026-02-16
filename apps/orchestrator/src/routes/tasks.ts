@@ -2,7 +2,10 @@ import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq, desc, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { readFile } from "fs/promises";
+import { join, extname } from "path";
 import { GitService } from "../git/git-service";
+import { execFileNoThrow } from "../lib/exec-file";
 import { slugify } from "../lib/utils";
 import { logger } from "../lib/logger";
 
@@ -69,7 +72,7 @@ tasksRouter.patch("/:id", async (req, res) => {
     if (req.body[field] !== undefined) updates[field] = req.body[field];
   }
 
-  if (req.body.status === "done") {
+  if (req.body.status === "done" || req.body.status === "cancelled") {
     updates.completedAt = new Date();
   }
 
@@ -94,6 +97,122 @@ tasksRouter.get("/:id/logs", async (req, res) => {
     .orderBy(desc(schema.taskLogs.createdAt));
 
   res.json({ logs });
+});
+
+// GET /api/tasks/:id/changes - Get file changes made by agent for this task
+tasksRouter.get("/:id/changes", async (req, res) => {
+  try {
+    const task = await db
+      .select()
+      .from(schema.tasks)
+      .where(eq(schema.tasks.id, req.params.id))
+      .get();
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    const project = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.id, task.projectId))
+      .get();
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    // Fetch tool_use messages for this task
+    const toolMessages = await db
+      .select()
+      .from(schema.messages)
+      .where(
+        and(
+          eq(schema.messages.taskId, req.params.id),
+          eq(schema.messages.contentType, "tool_use")
+        )
+      );
+
+    // Extract unique file paths from Write/Edit tool calls
+    const filePaths = new Set<string>();
+    for (const msg of toolMessages) {
+      if (!msg.metadata) continue;
+      try {
+        const meta = JSON.parse(msg.metadata);
+        if (
+          (meta.tool === "Write" || meta.tool === "Edit") &&
+          meta.input?.file_path
+        ) {
+          filePaths.add(meta.input.file_path);
+        }
+      } catch {
+        // skip malformed metadata
+      }
+    }
+
+    // Extension → Monaco language mapping
+    const LANG_MAP: Record<string, string> = {
+      ".ts": "typescript",
+      ".tsx": "typescriptreact",
+      ".js": "javascript",
+      ".jsx": "javascriptreact",
+      ".json": "json",
+      ".css": "css",
+      ".scss": "scss",
+      ".html": "html",
+      ".md": "markdown",
+      ".py": "python",
+      ".yaml": "yaml",
+      ".yml": "yaml",
+      ".sql": "sql",
+      ".sh": "shell",
+      ".bash": "shell",
+      ".xml": "xml",
+      ".svg": "xml",
+      ".go": "go",
+      ".rs": "rust",
+      ".toml": "toml",
+    };
+
+    const files: { path: string; original: string; modified: string; language: string }[] = [];
+
+    for (const filePath of filePaths) {
+      const absolutePath = filePath.startsWith("/") || filePath.match(/^[A-Za-z]:/)
+        ? filePath
+        : join(project.path, filePath);
+
+      // Get original from git (HEAD version)
+      const relPath = filePath.startsWith("/") || filePath.match(/^[A-Za-z]:/)
+        ? filePath.replace(project.path.replace(/\\/g, "/"), "").replace(/^[\\/]/, "")
+        : filePath;
+
+      const gitResult = await execFileNoThrow(
+        "git",
+        ["show", `HEAD:${relPath.replace(/\\/g, "/")}`],
+        { cwd: project.path, timeout: 5000 }
+      );
+      const original = gitResult.error ? "" : gitResult.stdout;
+
+      // Read current file from disk
+      let modified = "";
+      try {
+        modified = await readFile(absolutePath, "utf-8");
+      } catch {
+        // File might have been deleted
+        modified = "";
+      }
+
+      const ext = extname(filePath).toLowerCase();
+      const language = LANG_MAP[ext] ?? "plaintext";
+
+      files.push({ path: relPath.replace(/\\/g, "/"), original, modified, language });
+    }
+
+    res.json({ files });
+  } catch (error) {
+    logger.error(`Failed to get task changes: ${error}`, "tasks-router");
+    res.status(500).json({ error: "Failed to get task changes" });
+  }
 });
 
 // POST /api/tasks/:id/git/branch - Create git branch for task

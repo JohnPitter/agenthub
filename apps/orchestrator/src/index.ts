@@ -14,6 +14,8 @@ import { pullRequestsRouter } from "./routes/pull-requests";
 import { integrationsRouter } from "./routes/integrations";
 import { usageRouter } from "./routes/usage";
 import { memoriesRouter } from "./routes/memories.js";
+import { devServerRouter } from "./routes/dev-server.js";
+import { devServerManager } from "./processes/dev-server-manager.js";
 import { setupSocketHandlers } from "./realtime/socket-handler";
 import { requestLogger } from "./middleware/request-logger";
 import { rateLimiter } from "./middleware/rate-limiter";
@@ -46,6 +48,7 @@ app.use("/api", analyticsRouter);
 app.use("/api", pullRequestsRouter);
 app.use("/api", integrationsRouter);
 app.use("/api", usageRouter);
+app.use("/api/projects", devServerRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -77,6 +80,7 @@ process.on("SIGINT", () => {
   logger.info("SIGINT received, shutting down gracefully", "server");
   taskTimeoutManager.stop();
   taskWatcher.stop();
+  devServerManager.stopAll();
   process.exit(0);
 });
 
@@ -84,6 +88,7 @@ process.on("SIGTERM", () => {
   logger.info("SIGTERM received, shutting down gracefully", "server");
   taskTimeoutManager.stop();
   taskWatcher.stop();
+  devServerManager.stopAll();
   process.exit(0);
 });
 

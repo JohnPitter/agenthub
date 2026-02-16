@@ -25,6 +25,8 @@ export interface EventMap {
   "board:agent_cursor": { projectId: string; agentId: string; filePath?: string; lineNumber?: number; action: string };
   "integration:status": { type: "whatsapp" | "telegram"; status: "disconnected" | "connecting" | "connected" | "error"; qr?: string };
   "integration:message": { type: "whatsapp" | "telegram"; from: string; content: string };
+  "devserver:output": { projectId: string; line: string; stream: "stdout" | "stderr"; timestamp: number };
+  "devserver:status": { projectId: string; status: "stopped" | "starting" | "running" | "error"; port?: number; error?: string };
 }
 
 class TypedEventBus {

@@ -4,11 +4,12 @@ import {
   Loader2, FolderOpen, Play, Clock, GitBranch,
   CheckCircle2, AlertTriangle, Zap, Terminal, FileCode,
   ArrowRightLeft, Eye, User, GripVertical, X, Tag,
-  Calendar, Hash, DollarSign, Coins, Plus,
+  Calendar, Hash, DollarSign, Coins, Plus, FileDiff,
 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 import { NewTaskDialog } from "../components/tasks/new-task-dialog";
+import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useChatStore } from "../stores/chat-store";
 import { getSocket } from "../lib/socket";
@@ -23,9 +24,11 @@ import type {
 
 const KANBAN_COLUMNS: { status: TaskStatus; label: string; dotColor: string; glowColor: string }[] = [
   { status: "created", label: "Backlog", dotColor: "bg-info", glowColor: "ring-info/30" },
+  { status: "assigned", label: "Disponível", dotColor: "bg-brand", glowColor: "ring-brand/30" },
   { status: "in_progress", label: "Em Progresso", dotColor: "bg-warning", glowColor: "ring-warning/30" },
   { status: "review", label: "Review", dotColor: "bg-purple", glowColor: "ring-purple/30" },
   { status: "done", label: "Concluídas", dotColor: "bg-success", glowColor: "ring-success/30" },
+  { status: "cancelled", label: "Canceladas", dotColor: "bg-neutral-fg3", glowColor: "ring-neutral-fg3/30" },
 ];
 
 const PRIORITY_STYLES: Record<string, { dot: string; label: string }> = {
@@ -65,6 +68,7 @@ export function TasksPage() {
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
+  const [changesTaskId, setChangesTaskId] = useState<string | null>(null);
   const activityEndRef = useRef<HTMLDivElement>(null);
 
   /* ─── Data fetch ─── */
@@ -358,7 +362,7 @@ export function TasksPage() {
 
           {/* ─── Kanban Board ─── */}
           <div className="flex-1 overflow-x-auto px-6 pb-6 pt-4">
-            <div className="grid h-full grid-cols-4 gap-4" style={{ minWidth: 900 }}>
+            <div className="grid h-full grid-cols-6 gap-4" style={{ minWidth: 1200 }}>
               {KANBAN_COLUMNS.map((column) => {
                 const columnTasks = getColumnTasks(column.status);
                 const isOver = dragOverColumn === column.status;
@@ -472,6 +476,7 @@ export function TasksPage() {
           projectMap={projectMap}
           agentActivity={agentActivity}
           onClose={() => setSelectedTask(null)}
+          onViewChanges={setChangesTaskId}
         />
       )}
 
@@ -486,6 +491,14 @@ export function TasksPage() {
           onClose={() => setShowNewTask(false)}
         />
       )}
+
+      {/* ═══ Changes Dialog ═══ */}
+      {changesTaskId && (
+        <TaskChangesDialog
+          taskId={changesTaskId}
+          onClose={() => setChangesTaskId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -494,10 +507,11 @@ export function TasksPage() {
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   created: { label: "Backlog", color: "text-info", bg: "bg-info-light" },
-  assigned: { label: "Atribuída", color: "text-info", bg: "bg-info-light" },
+  assigned: { label: "Disponível", color: "text-brand", bg: "bg-brand-light" },
   in_progress: { label: "Em Progresso", color: "text-warning", bg: "bg-warning-light" },
   review: { label: "Review", color: "text-purple", bg: "bg-purple-light" },
   done: { label: "Concluída", color: "text-success", bg: "bg-success-light" },
+  cancelled: { label: "Cancelada", color: "text-neutral-fg3", bg: "bg-neutral-bg2" },
   failed: { label: "Falhou", color: "text-danger", bg: "bg-danger-light" },
   changes_requested: { label: "Revisão Solicitada", color: "text-warning", bg: "bg-warning-light" },
 };
@@ -516,9 +530,10 @@ interface TaskDetailPanelProps {
   projectMap: Map<string, string>;
   agentActivity: Map<string, { status: string; currentTask?: string; currentFile?: string; lastActivity: number; progress: number; taskId?: string }>;
   onClose: () => void;
+  onViewChanges?: (taskId: string) => void;
 }
 
-function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose }: TaskDetailPanelProps) {
+function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, onViewChanges }: TaskDetailPanelProps) {
   const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
   const statusInfo = STATUS_LABELS[task.status] ?? STATUS_LABELS.created;
   const agent = task.assignedAgentId ? agentMap.get(task.assignedAgentId) : null;
@@ -720,6 +735,17 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose }:
                 </p>
               </div>
             </div>
+          )}
+
+          {/* View Changes Button */}
+          {onViewChanges && (task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested") && (
+            <button
+              onClick={() => onViewChanges(task.id)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-brand/20 bg-brand-light/50 px-4 py-3 text-[13px] font-semibold text-brand transition-all hover:bg-brand-light hover:border-brand/40"
+            >
+              <FileDiff className="h-4 w-4" />
+              Ver Alterações
+            </button>
           )}
 
           {/* Parsed Spec */}

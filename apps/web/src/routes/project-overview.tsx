@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Settings, Users, CheckCircle2, ListTodo, Loader2, Zap, Activity } from "lucide-react";
+import { Settings, Users, CheckCircle2, ListTodo, Loader2, Zap, Activity, Play } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useSocket } from "../hooks/use-socket";
 
@@ -84,12 +84,21 @@ export function ProjectOverview() {
       {/* Command Bar */}
       <CommandBar
         actions={
-          <Link
-            to={`/project/${id}/settings`}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to={`/project/${id}/preview`}
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand to-purple px-4 py-2 text-[13px] font-semibold text-white shadow-brand transition-all hover:shadow-lg"
+            >
+              <Play className="h-4 w-4" />
+              Ver Projeto
+            </Link>
+            <Link
+              to={`/project/${id}/settings`}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
+          </div>
         }
       />
 

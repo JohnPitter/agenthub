@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { Users, Loader2 } from "lucide-react";
+import { Users, Loader2, Trash2 } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useAgents } from "../hooks/use-agents";
 import { AgentConfigDialog } from "../components/agents/agent-config-dialog";
@@ -21,13 +21,21 @@ export function ProjectAgents() {
   const { id } = useParams<{ id: string }>();
   const { projects } = useWorkspaceStore();
   const project = projects.find((p) => p.id === id);
-  const { agents, toggleAgent, updateAgent } = useAgents();
+  const { agents, toggleAgent, updateAgent, deleteAgent } = useAgents();
 
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const handleSave = async (agentId: string, updates: Partial<Agent>) => {
     await updateAgent(agentId, updates);
+  };
+
+  const handleDelete = async (agentId: string) => {
+    const agent = agents.find((a) => a.id === agentId);
+    if (!agent || agent.isDefault) return;
+    if (!confirm(`Excluir o agente "${agent.name}"? Esta ação não pode ser desfeita.`)) return;
+    await deleteAgent(agentId);
+    if (selectedAgentId === agentId) setSelectedAgentId(null);
   };
 
   if (!project) {
@@ -78,26 +86,40 @@ export function ProjectAgents() {
                     <p className="text-[13px] font-semibold text-neutral-fg1">{agent.name}</p>
                     <p className="text-[11px] text-neutral-fg3">{ROLE_LABELS[agent.role] ?? agent.role}</p>
                   </div>
-                  <div
-                    role="switch"
-                    aria-checked={agent.isActive}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleAgent(agent.id);
-                    }}
-                    className={cn(
-                      "relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-all duration-200",
-                      agent.isActive
-                        ? "bg-gradient-to-r from-brand to-purple shadow-brand"
-                        : "bg-stroke",
+                  <div className="flex items-center gap-2 shrink-0">
+                    {!agent.isDefault && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(agent.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-md text-neutral-fg-disabled hover:bg-danger-light hover:text-danger transition-all"
+                        title="Excluir agente"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
-                  >
-                    <span
+                    <div
+                      role="switch"
+                      aria-checked={agent.isActive}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAgent(agent.id);
+                      }}
                       className={cn(
-                        "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
-                        agent.isActive && "left-[18px]",
+                        "relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-all duration-200",
+                        agent.isActive
+                          ? "bg-gradient-to-r from-brand to-purple shadow-brand"
+                          : "bg-stroke",
                       )}
-                    />
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
+                          agent.isActive && "left-[18px]",
+                        )}
+                      />
+                    </div>
                   </div>
                 </button>
               ))}

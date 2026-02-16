@@ -25,6 +25,8 @@ export interface ServerToClientEvents {
   "board:agent_cursor": (data: BoardAgentCursorEvent) => void;
   "integration:status": (data: IntegrationStatusEvent) => void;
   "integration:message": (data: IntegrationMessageEvent) => void;
+  "devserver:output": (data: DevServerOutputEvent) => void;
+  "devserver:status": (data: DevServerStatusEvent) => void;
 }
 
 // Client → Server events
@@ -210,4 +212,18 @@ export interface TaskPRMergedEvent {
   projectId: string;
   prNumber: number;
   method: string;
+}
+
+export interface DevServerOutputEvent {
+  projectId: string;
+  line: string;
+  stream: "stdout" | "stderr";
+  timestamp: number;
+}
+
+export interface DevServerStatusEvent {
+  projectId: string;
+  status: "stopped" | "starting" | "running" | "error";
+  port?: number;
+  error?: string;
 }

@@ -43,11 +43,17 @@ export function useAgents() {
     return agent;
   }, [setAgents]);
 
+  const deleteAgent = useCallback(async (agentId: string) => {
+    await api(`/agents/${agentId}`, { method: "DELETE" });
+    setAgents(useWorkspaceStore.getState().agents.filter((a) => a.id !== agentId));
+  }, [setAgents]);
+
   return {
     agents,
     fetchAgents,
     updateAgent,
     toggleAgent,
     createAgent,
+    deleteAgent,
   };
 }

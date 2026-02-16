@@ -16,6 +16,7 @@ const ROUTE_LABELS: Record<string, string> = {
   agents: "Agentes",
   files: "Arquivos",
   prs: "Pull Requests",
+  preview: "Preview",
   settings: "Configurações",
 };
 

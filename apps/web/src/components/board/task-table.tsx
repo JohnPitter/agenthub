@@ -12,11 +12,12 @@ interface TaskTableProps {
 }
 
 const STATUS_OPTIONS: Array<{ value: string; label: string; color: string }> = [
-  { value: "created", label: "Pending", color: "#71717A" },
-  { value: "assigned", label: "Assigned", color: "#71717A" },
-  { value: "in_progress", label: "In Progress", color: "#F59E0B" },
+  { value: "created", label: "Backlog", color: "#71717A" },
+  { value: "assigned", label: "Disponível", color: "#F97316" },
+  { value: "in_progress", label: "Em Progresso", color: "#F59E0B" },
   { value: "review", label: "Review", color: "#8B5CF6" },
-  { value: "done", label: "Done", color: "#10B981" },
+  { value: "done", label: "Concluída", color: "#10B981" },
+  { value: "cancelled", label: "Cancelada", color: "#A1A1AA" },
   { value: "blocked", label: "Blocked", color: "#EF4444" },
   { value: "failed", label: "Failed", color: "#EF4444" },
 ];
@@ -35,6 +36,7 @@ const STATUS_ICONS: Record<TaskStatus, React.ComponentType<any>> = {
   review: AlertCircle,
   changes_requested: AlertCircle,
   done: CheckSquare,
+  cancelled: XCircle,
   blocked: AlertCircle,
   failed: XCircle,
 };

@@ -1,4 +1,4 @@
-import { Settings, Power } from "lucide-react";
+import { Settings, Power, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AgentAvatar } from "./agent-avatar";
 import type { Agent } from "@agenthub/shared";
@@ -21,9 +21,10 @@ interface AgentCardProps {
   agent: Agent;
   onToggle: (agentId: string) => void;
   onConfigure: (agent: Agent) => void;
+  onDelete?: (agentId: string) => void;
 }
 
-export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
+export function AgentCard({ agent, onToggle, onConfigure, onDelete }: AgentCardProps) {
   return (
     <div className={cn(
       "group rounded-lg bg-neutral-bg1 p-5 shadow-2 border border-stroke transition-shadow hover:shadow-4",
@@ -88,6 +89,15 @@ export function AgentCard({ agent, onToggle, onConfigure }: AgentCardProps) {
           <Settings className="h-4 w-4" />
           Config
         </button>
+        {onDelete && !agent.isDefault && (
+          <button
+            onClick={() => onDelete(agent.id)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-neutral-bg2 text-neutral-fg3 hover:bg-danger-light hover:text-danger transition-colors"
+            title="Excluir agente"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );

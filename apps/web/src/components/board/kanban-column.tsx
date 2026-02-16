@@ -10,9 +10,10 @@ interface KanbanColumnProps {
   tasks: Task[];
   agents: Agent[];
   color: string;
+  onViewChanges?: (taskId: string) => void;
 }
 
-export function KanbanColumn({ id, title, tasks, agents, color }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, tasks, agents, color, onViewChanges }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -51,7 +52,7 @@ export function KanbanColumn({ id, title, tasks, agents, color }: KanbanColumnPr
           ) : (
             tasks.map((task) => {
               const agent = agents.find(a => a.id === task.assignedAgentId);
-              return <KanbanCard key={task.id} task={task} agent={agent} />;
+              return <KanbanCard key={task.id} task={task} agent={agent} onViewChanges={onViewChanges} />;
             })
           )}
         </div>

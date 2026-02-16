@@ -11,7 +11,7 @@ export const tasks = sqliteTable("tasks", {
   description: text("description"),
   parsedSpec: text("parsed_spec"),
   status: text("status", {
-    enum: ["created", "assigned", "in_progress", "review", "changes_requested", "done", "blocked"],
+    enum: ["created", "assigned", "in_progress", "review", "changes_requested", "done", "cancelled", "blocked"],
   }).default("created").notNull(),
   priority: text("priority", { enum: ["low", "medium", "high", "urgent"] }).default("medium").notNull(),
   category: text("category"),

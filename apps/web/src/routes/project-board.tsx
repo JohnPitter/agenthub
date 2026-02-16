@@ -6,6 +6,7 @@ import { useAgents } from "../hooks/use-agents";
 import { useTasks } from "../hooks/use-tasks";
 import { KanbanBoard } from "../components/board/kanban-board";
 import { AgentActivityOverlay } from "../components/board/agent-activity-overlay";
+import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
 import { CommandBar } from "../components/layout/command-bar";
 import { cn } from "../lib/utils";
 import type { Task, TaskStatus } from "@agenthub/shared";
@@ -22,6 +23,7 @@ export function ProjectBoard() {
   const { tasks: initialTasks } = useTasks(id);
   const [tasks, setTasks] = useState(initialTasks);
   const [view, setView] = useState<BoardView>("kanban");
+  const [changesTaskId, setChangesTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -105,6 +107,7 @@ export function ProjectBoard() {
             tasks={tasks}
             agents={agents}
             onTaskUpdate={handleTaskUpdate}
+            onViewChanges={setChangesTaskId}
           />
         ) : (
           <Suspense
@@ -126,6 +129,13 @@ export function ProjectBoard() {
 
       {/* Agent activity overlay */}
       <AgentActivityOverlay />
+
+      {changesTaskId && (
+        <TaskChangesDialog
+          taskId={changesTaskId}
+          onClose={() => setChangesTaskId(null)}
+        />
+      )}
     </div>
   );
 }

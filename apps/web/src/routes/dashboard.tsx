@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, Loader2, Check, Sparkles, Activity, FolderOpen, ListTodo, Users, Zap, CheckCircle2,
   UserCheck, Play, Eye, ThumbsUp, XCircle, MessageSquare, Clock, AlertTriangle, ArrowRightLeft, HelpCircle,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
@@ -113,7 +114,9 @@ export function Dashboard() {
   const [workspacePath, setWorkspacePath] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scannedProjects, setScannedProjects] = useState<ScannedProject[]>([]);
+  const [scanPage, setScanPage] = useState(0);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const SCAN_PAGE_SIZE = 10;
 
   useEffect(() => {
     api<DashboardStats>("/dashboard/stats")
@@ -130,6 +133,7 @@ export function Dashboard() {
         body: JSON.stringify({ workspacePath: workspacePath.trim() }),
       });
       setScannedProjects(scanned);
+      setScanPage(0);
     } catch (error) {
       console.error("Scan failed:", error);
     } finally {
@@ -188,49 +192,76 @@ export function Dashboard() {
       </CommandBar>
 
       {/* Scanned results banner */}
-      {scannedProjects.length > 0 && (
-        <div className="border-b border-stroke bg-success-light px-8 py-4">
-          <div className="flex items-center gap-2.5 mb-3">
-            <Sparkles className="h-3.5 w-3.5 text-success-dark" />
-            <span className="text-[12px] font-semibold text-success-dark">
-              {scannedProjects.length} projeto(s) encontrado(s)
-            </span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {scannedProjects.map((scanned) => {
-              const alreadyAdded = existingPaths.has(scanned.path);
-              return (
-                <div
-                  key={scanned.path}
-                  className="flex items-center justify-between rounded-md bg-neutral-bg1 px-3 py-2"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-light text-[11px] font-semibold text-brand">
-                      {scanned.icon}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-neutral-fg1">{scanned.name}</p>
-                      <p className="truncate text-[11px] text-neutral-fg3">{scanned.stack.join(" · ")}</p>
-                    </div>
-                  </div>
+      {scannedProjects.length > 0 && (() => {
+        const totalPages = Math.ceil(scannedProjects.length / SCAN_PAGE_SIZE);
+        const pageItems = scannedProjects.slice(scanPage * SCAN_PAGE_SIZE, (scanPage + 1) * SCAN_PAGE_SIZE);
+        return (
+          <div className="border-b border-stroke bg-success-light px-8 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="h-3.5 w-3.5 text-success-dark" />
+                <span className="text-[12px] font-semibold text-success-dark">
+                  {scannedProjects.length} projeto(s) encontrado(s)
+                </span>
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-success-dark">
+                    {scanPage + 1} de {totalPages}
+                  </span>
                   <button
-                    onClick={() => handleAddProject(scanned)}
-                    disabled={alreadyAdded}
-                    className={cn(
-                      "ml-3 flex shrink-0 items-center gap-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                      alreadyAdded
-                        ? "bg-success-light text-success-dark"
-                        : "btn-primary text-white",
-                    )}
+                    onClick={() => setScanPage((p) => Math.max(0, p - 1))}
+                    disabled={scanPage === 0}
+                    className="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-bg1 text-neutral-fg2 hover:bg-neutral-bg-hover disabled:opacity-30 transition-colors"
                   >
-                    {alreadyAdded ? <><Check className="h-3 w-3" /> Adicionado</> : <><Plus className="h-3 w-3" /> Adicionar</>}
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setScanPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={scanPage >= totalPages - 1}
+                    className="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-bg1 text-neutral-fg2 hover:bg-neutral-bg-hover disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
-              );
-            })}
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              {pageItems.map((scanned) => {
+                const alreadyAdded = existingPaths.has(scanned.path);
+                return (
+                  <div
+                    key={scanned.path}
+                    className="flex items-center justify-between rounded-md bg-neutral-bg1 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-light text-[11px] font-semibold text-brand">
+                        {scanned.icon}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-neutral-fg1">{scanned.name}</p>
+                        <p className="truncate text-[11px] text-neutral-fg3">{scanned.stack.join(" · ")}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleAddProject(scanned)}
+                      disabled={alreadyAdded}
+                      className={cn(
+                        "ml-3 flex shrink-0 items-center gap-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                        alreadyAdded
+                          ? "bg-success-light text-success-dark"
+                          : "btn-primary text-white",
+                      )}
+                    >
+                      {alreadyAdded ? <><Check className="h-3 w-3" /> Adicionado</> : <><Plus className="h-3 w-3" /> Adicionar</>}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto p-10">

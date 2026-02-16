@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Power, Settings, Users, GitBranch } from "lucide-react";
+import { Plus, Power, Settings, Users, GitBranch, Trash2 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { useAgents } from "../hooks/use-agents";
 import { AgentConfigDialog } from "../components/agents/agent-config-dialog";
@@ -40,7 +40,7 @@ function saveWorkflow(wf: AgentWorkflow) {
 }
 
 export function AgentsPage() {
-  const { agents, toggleAgent, updateAgent, createAgent } = useAgents();
+  const { agents, toggleAgent, updateAgent, createAgent, deleteAgent } = useAgents();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState<AgentsTab>("agentes");
@@ -51,6 +51,14 @@ export function AgentsPage() {
 
   const handleSaveAgent = async (agentId: string, updates: Partial<Agent>) => {
     await updateAgent(agentId, updates);
+  };
+
+  const handleDeleteAgent = async (agentId: string) => {
+    const agent = agents.find((a) => a.id === agentId);
+    if (!agent || agent.isDefault) return;
+    if (!confirm(`Excluir o agente "${agent.name}"? Esta ação não pode ser desfeita.`)) return;
+    await deleteAgent(agentId);
+    if (selectedId === agentId) setSelectedId(null);
   };
 
   const handleAddAgent = async () => {
@@ -292,6 +300,15 @@ export function AgentsPage() {
                     <Settings className="h-4 w-4" />
                     Configurar
                   </button>
+                  {!selected.isDefault && (
+                    <button
+                      onClick={() => handleDeleteAgent(selected.id)}
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-neutral-bg2 text-neutral-fg3 hover:bg-danger-light hover:text-danger transition-colors"
+                      title="Excluir agente"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (

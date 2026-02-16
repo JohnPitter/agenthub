@@ -8,23 +8,28 @@ import { TaskCard } from "../components/tasks/task-card";
 import { TaskForm, type TaskFormData } from "../components/tasks/task-form";
 import { TaskFilters } from "../components/tasks/task-filters";
 import { TaskCommitDialog } from "../components/tasks/task-commit-dialog";
+import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
 import { CommandBar } from "../components/layout/command-bar";
 import { Tablist } from "../components/ui/tablist";
 import { cn, formatRelativeTime } from "../lib/utils";
 import type { Task, TaskStatus, TaskPriority } from "@agenthub/shared";
 
 const KANBAN_COLUMNS: { status: TaskStatus; label: string; dotColor: string }[] = [
-  { status: "created", label: "Criadas", dotColor: "bg-info" },
+  { status: "created", label: "Backlog", dotColor: "bg-info" },
+  { status: "assigned", label: "Disponível", dotColor: "bg-brand" },
   { status: "in_progress", label: "Em Progresso", dotColor: "bg-warning" },
-  { status: "review", label: "Em Review", dotColor: "bg-purple" },
+  { status: "review", label: "Review", dotColor: "bg-purple" },
   { status: "done", label: "Concluídas", dotColor: "bg-success" },
+  { status: "cancelled", label: "Canceladas", dotColor: "bg-neutral-fg3" },
 ];
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  created: { label: "Criada", cls: "bg-info-light text-info" },
+  created: { label: "Backlog", cls: "bg-info-light text-info" },
+  assigned: { label: "Disponível", cls: "bg-brand-light text-brand" },
   in_progress: { label: "Em Progresso", cls: "bg-warning-light text-warning" },
   review: { label: "Review", cls: "bg-purple-light text-purple" },
   done: { label: "Concluída", cls: "bg-success-light text-success" },
+  cancelled: { label: "Cancelada", cls: "bg-neutral-bg2 text-neutral-fg3" },
   failed: { label: "Falhou", cls: "bg-danger-light text-danger" },
 };
 
@@ -49,6 +54,7 @@ export function ProjectTasks() {
   const [readyToCommitTasks, setReadyToCommitTasks] = useState<Map<string, string[]>>(new Map());
   const [commitDialogTask, setCommitDialogTask] = useState<{ taskId: string; changedFiles: string[]; title: string } | null>(null);
   const [viewMode, setViewMode] = useState<"kanban" | "tabela">("kanban");
+  const [changesTaskId, setChangesTaskId] = useState<string | null>(null);
 
   const handleTaskGitBranch = useCallback((data: { taskId: string; branchName: string }) => {
     updateTask(data.taskId, { branch: data.branchName }).catch(() => {
@@ -199,7 +205,7 @@ export function ProjectTasks() {
       ) : viewMode === "kanban" ? (
         /* Kanban View */
         <div className="flex-1 overflow-x-auto px-8 pb-8 pt-4">
-          <div className="grid h-full grid-cols-4 gap-5">
+          <div className="grid h-full grid-cols-6 gap-5">
             {KANBAN_COLUMNS.map((column) => {
               const columnTasks = getFilteredTasks(column.status);
               const isOver = dragOverColumn === column.status;
@@ -237,6 +243,7 @@ export function ProjectTasks() {
                           onEdit={setEditingTask}
                           onDelete={handleDelete}
                           onExecute={(taskId, agentId) => executeTask(taskId, agentId)}
+                          onViewChanges={setChangesTaskId}
                           onApprove={(taskId) => approveTask(taskId)}
                           onReject={(taskId, feedback) => rejectTask(taskId, feedback)}
                           draggable
@@ -344,6 +351,13 @@ export function ProjectTasks() {
             setCommitDialogTask(null);
           }}
           onCancel={() => setCommitDialogTask(null)}
+        />
+      )}
+
+      {changesTaskId && (
+        <TaskChangesDialog
+          taskId={changesTaskId}
+          onClose={() => setChangesTaskId(null)}
         />
       )}
     </div>

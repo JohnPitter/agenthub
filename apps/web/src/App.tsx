@@ -8,6 +8,7 @@ import { ProjectAgents } from "./routes/project-agents";
 import { ProjectSettings } from "./routes/project-settings";
 import { ProjectFiles } from "./routes/project-files";
 import { ProjectPRs } from "./routes/project-prs";
+import { ProjectPreview } from "./routes/project-preview";
 import { Analytics } from "./routes/analytics";
 import { AgentsPage } from "./routes/agents";
 import { TasksPage } from "./routes/tasks";
@@ -24,6 +25,7 @@ export function App() {
         <Route path="/project/:id/agents" element={<ProjectAgents />} />
         <Route path="/project/:id/files" element={<ProjectFiles />} />
         <Route path="/project/:id/prs" element={<ProjectPRs />} />
+        <Route path="/project/:id/preview" element={<ProjectPreview />} />
         <Route path="/project/:id/settings" element={<ProjectSettings />} />
         <Route path="/agents" element={<AgentsPage />} />
         <Route path="/tasks" element={<TasksPage />} />

@@ -1,12 +1,13 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Clock, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle, FileDiff } from "lucide-react";
 import { cn, formatRelativeTime } from "../../lib/utils";
 import type { Task, Agent } from "@agenthub/shared";
 
 interface KanbanCardProps {
   task: Task;
   agent?: Agent;
+  onViewChanges?: (taskId: string) => void;
 }
 
 const PRIORITY_COLORS = {
@@ -23,7 +24,7 @@ const PRIORITY_LABELS = {
   urgent: "Urgente",
 } as const;
 
-export function KanbanCard({ task, agent }: KanbanCardProps) {
+export function KanbanCard({ task, agent, onViewChanges }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -97,9 +98,30 @@ export function KanbanCard({ task, agent }: KanbanCardProps) {
         )}
       </div>
 
+      {/* View Changes button */}
+      {onViewChanges && (task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested") && (
+        <div className="mt-2.5 pt-2.5 border-t border-stroke2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onViewChanges(task.id);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-brand transition-colors hover:bg-brand-light/20"
+          >
+            <FileDiff className="h-3.5 w-3.5" />
+            Ver Alterações
+          </button>
+        </div>
+      )}
+
       {/* Category tag if present */}
       {task.category && (
-        <div className="mt-2.5 pt-2.5 border-t border-stroke2">
+        <div className={cn(
+          "pt-2.5 border-t border-stroke2",
+          !(onViewChanges && (task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested")) && "mt-2.5"
+        )}>
           <span className="badge badge-neutral text-[10px]">{task.category}</span>
         </div>
       )}

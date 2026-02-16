@@ -19,6 +19,8 @@ import type {
   TaskPRMergedEvent,
   BoardActivityEvent,
   BoardAgentCursorEvent,
+  DevServerOutputEvent,
+  DevServerStatusEvent,
 } from "@agenthub/shared";
 
 interface SocketHandlers {
@@ -40,6 +42,8 @@ interface SocketHandlers {
   onTaskPRMerged?: (data: TaskPRMergedEvent) => void;
   onBoardActivity?: (data: BoardActivityEvent) => void;
   onBoardAgentCursor?: (data: BoardAgentCursorEvent) => void;
+  onDevServerOutput?: (data: DevServerOutputEvent) => void;
+  onDevServerStatus?: (data: DevServerStatusEvent) => void;
 }
 
 export function useSocket(projectId: string | undefined, handlers?: SocketHandlers) {
@@ -76,6 +80,8 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     const onTaskPRMerged = (data: TaskPRMergedEvent) => handlersRef.current?.onTaskPRMerged?.(data);
     const onBoardActivity = (data: BoardActivityEvent) => handlersRef.current?.onBoardActivity?.(data);
     const onBoardAgentCursor = (data: BoardAgentCursorEvent) => handlersRef.current?.onBoardAgentCursor?.(data);
+    const onDevServerOutput = (data: DevServerOutputEvent) => handlersRef.current?.onDevServerOutput?.(data);
+    const onDevServerStatus = (data: DevServerStatusEvent) => handlersRef.current?.onDevServerStatus?.(data);
 
     socket.on("agent:status", onAgentStatus);
     socket.on("agent:message", onAgentMessage);
@@ -95,6 +101,8 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     socket.on("task:pr_merged", onTaskPRMerged);
     socket.on("board:activity", onBoardActivity);
     socket.on("board:agent_cursor", onBoardAgentCursor);
+    socket.on("devserver:output", onDevServerOutput);
+    socket.on("devserver:status", onDevServerStatus);
 
     return () => {
       socket.emit("board:unsubscribe", { projectId });
@@ -116,6 +124,8 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
       socket.off("task:pr_merged", onTaskPRMerged);
       socket.off("board:activity", onBoardActivity);
       socket.off("board:agent_cursor", onBoardAgentCursor);
+      socket.off("devserver:output", onDevServerOutput);
+      socket.off("devserver:status", onDevServerStatus);
     };
   }, [projectId]);
 

@@ -17,16 +17,19 @@ interface KanbanBoardProps {
   tasks: Task[];
   agents: Agent[];
   onTaskUpdate?: (taskId: string, status: TaskStatus) => void;
+  onViewChanges?: (taskId: string) => void;
 }
 
 const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
-  { id: "created", title: "Pending", color: "#71717A" },
-  { id: "in_progress", title: "In Progress", color: "#F59E0B" },
+  { id: "created", title: "Backlog", color: "#71717A" },
+  { id: "assigned", title: "Disponível", color: "#F97316" },
+  { id: "in_progress", title: "Em Progresso", color: "#F59E0B" },
   { id: "review", title: "Review", color: "#8B5CF6" },
-  { id: "done", title: "Done", color: "#10B981" },
+  { id: "done", title: "Concluída", color: "#10B981" },
+  { id: "cancelled", title: "Cancelada", color: "#A1A1AA" },
 ];
 
-export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChanges }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,6 +89,7 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate }: KanbanBo
             tasks={getTasksByStatus(column.id)}
             agents={agents}
             color={column.color}
+            onViewChanges={onViewChanges}
           />
         ))}
       </div>

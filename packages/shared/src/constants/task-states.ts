@@ -7,19 +7,21 @@ export const TASK_STATES = {
   REVIEW: "review",
   CHANGES_REQUESTED: "changes_requested",
   DONE: "done",
+  CANCELLED: "cancelled",
   BLOCKED: "blocked",
   FAILED: "failed",
 } as const;
 
 export const TASK_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
-  created: ["assigned", "in_progress"],
-  assigned: ["in_progress", "blocked"],
-  in_progress: ["review", "blocked", "failed", "created"],
-  review: ["done", "changes_requested", "created"],
-  changes_requested: ["in_progress", "created"],
+  created: ["assigned", "in_progress", "cancelled"],
+  assigned: ["in_progress", "blocked", "cancelled"],
+  in_progress: ["review", "blocked", "failed", "created", "cancelled"],
+  review: ["done", "changes_requested", "created", "cancelled"],
+  changes_requested: ["in_progress", "created", "cancelled"],
   done: [],
-  blocked: ["created", "assigned"],
-  failed: ["created"],
+  cancelled: [],
+  blocked: ["created", "assigned", "cancelled"],
+  failed: ["created", "cancelled"],
 };
 
 export const TRANSITION_ACTORS: Record<string, "user" | "agent" | "system" | "any"> = {
@@ -38,5 +40,12 @@ export const TRANSITION_ACTORS: Record<string, "user" | "agent" | "system" | "an
   "changes_requested->created": "system",
   "blocked->created": "user",
   "blocked->assigned": "user",
+  "blocked->cancelled": "user",
   "failed->created": "system",
+  "failed->cancelled": "user",
+  "created->cancelled": "user",
+  "assigned->cancelled": "user",
+  "in_progress->cancelled": "user",
+  "review->cancelled": "user",
+  "changes_requested->cancelled": "user",
 };

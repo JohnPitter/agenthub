@@ -1,4 +1,4 @@
-import { GripVertical, Clock, Trash2, User, Play, GitBranch, CheckCircle2 } from "lucide-react";
+import { GripVertical, Clock, Trash2, User, Play, GitBranch, CheckCircle2, FileDiff } from "lucide-react";
 import { cn, formatDate } from "../../lib/utils";
 import { TaskReviewActions } from "./task-review-actions";
 import type { Task, Agent } from "@agenthub/shared";
@@ -24,13 +24,14 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onExecute?: (taskId: string, agentId: string) => void;
+  onViewChanges?: (taskId: string) => void;
   onApprove?: (taskId: string) => void;
   onReject?: (taskId: string, feedback: string) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent, task: Task) => void;
 }
 
-export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove, onReject, draggable, onDragStart }: TaskCardProps) {
+export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChanges, onApprove, onReject, draggable, onDragStart }: TaskCardProps) {
   const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null;
 
@@ -122,6 +123,18 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onApprove,
             <Clock className="h-3 w-3" />
             <span className="text-[10px] font-medium">{formatDate(task.createdAt)}</span>
           </div>
+          {onViewChanges && (task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested") && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewChanges(task.id);
+              }}
+              className="rounded-md p-2 text-brand opacity-0 transition-colors hover:bg-brand-light group-hover:opacity-100"
+              title="Ver Alterações"
+            >
+              <FileDiff className="h-3.5 w-3.5" />
+            </button>
+          )}
           {onExecute && task.assignedAgentId && (task.status === "created" || task.status === "changes_requested") && (
             <button
               onClick={(e) => {

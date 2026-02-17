@@ -7,3 +7,4 @@ export { agentProjectConfigs } from "./agent-configs";
 export { integrations } from "./integrations";
 export { agentMemories } from "./agent-memories";
 export { users } from "./users";
+export { docs } from "./docs";

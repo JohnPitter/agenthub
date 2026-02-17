@@ -16,6 +16,7 @@ import { Analytics } from "./routes/analytics";
 import { AgentsPage } from "./routes/agents";
 import { TasksPage } from "./routes/tasks";
 import { SettingsPage } from "./routes/settings";
+import { DocsPage } from "./routes/docs";
 
 export function App() {
   return (
@@ -39,6 +40,7 @@ export function App() {
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/docs" element={<DocsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/integrations" element={<div className="p-6">Integrations</div>} />
         </Route>

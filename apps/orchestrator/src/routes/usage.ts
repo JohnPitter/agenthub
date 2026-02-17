@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 import { db, schema } from "@agenthub/database";
@@ -13,15 +13,107 @@ const router = Router();
 let accountCache: { data: Record<string, unknown>; fetchedAt: number } | null = null;
 const ACCOUNT_CACHE_TTL = 10 * 60 * 1000;
 
+const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
+const CLAUDE_OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
+const TOKEN_REFRESH_MARGIN = 10 * 60 * 1000; // refresh 10 min before expiry
+
+let isRefreshingOAuth = false;
+
+interface ClaudeCredentials {
+  claudeAiOauth?: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: number;
+    scopes: string[];
+    subscriptionType?: string;
+    rateLimitTier?: string;
+  };
+}
+
+async function readCredentials(): Promise<ClaudeCredentials | null> {
+  try {
+    const raw = await readFile(CREDENTIALS_PATH, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function refreshOAuthToken(creds: ClaudeCredentials): Promise<string | null> {
+  const oauth = creds.claudeAiOauth;
+  if (!oauth?.refreshToken) return null;
+
+  if (isRefreshingOAuth) {
+    // Wait for ongoing refresh
+    await new Promise((r) => setTimeout(r, 2000));
+    const fresh = await readCredentials();
+    return fresh?.claudeAiOauth?.accessToken ?? null;
+  }
+
+  isRefreshingOAuth = true;
+  try {
+    logger.info("Refreshing Claude Code OAuth token", "usage");
+
+    const res = await fetch("https://console.anthropic.com/v1/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        refresh_token: oauth.refreshToken,
+        client_id: CLAUDE_OAUTH_CLIENT_ID,
+      }),
+    });
+
+    if (!res.ok) {
+      logger.warn(`OAuth refresh failed: ${res.status}`, "usage");
+      return null;
+    }
+
+    const data = await res.json() as {
+      access_token: string;
+      refresh_token?: string;
+      expires_in: number;
+    };
+
+    // Update credentials file
+    const newOauth = {
+      ...oauth,
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? oauth.refreshToken,
+      expiresAt: Date.now() + data.expires_in * 1000,
+    };
+
+    const updatedCreds = { ...creds, claudeAiOauth: newOauth };
+    await writeFile(CREDENTIALS_PATH, JSON.stringify(updatedCreds, null, 2), "utf-8");
+
+    logger.info("Claude Code OAuth token refreshed successfully", "usage");
+    return data.access_token;
+  } catch (error) {
+    logger.error(`OAuth refresh error: ${error instanceof Error ? error.message : "Unknown"}`, "usage");
+    return null;
+  } finally {
+    isRefreshingOAuth = false;
+  }
+}
+
 /**
  * Reads OAuth access token from ~/.claude/.credentials.json
+ * Auto-refreshes if token is expired or about to expire.
  */
 async function getOAuthToken(): Promise<string | null> {
   try {
-    const credPath = join(homedir(), ".claude", ".credentials.json");
-    const raw = await readFile(credPath, "utf-8");
-    const creds = JSON.parse(raw);
-    return creds?.claudeAiOauth?.accessToken ?? null;
+    const creds = await readCredentials();
+    const oauth = creds?.claudeAiOauth;
+    if (!oauth?.accessToken) return null;
+
+    // Check if token needs refresh
+    const needsRefresh = oauth.expiresAt && (oauth.expiresAt - Date.now() < TOKEN_REFRESH_MARGIN);
+    if (needsRefresh && oauth.refreshToken) {
+      const newToken = await refreshOAuthToken(creds!);
+      return newToken ?? oauth.accessToken; // fallback to existing if refresh fails
+    }
+
+    return oauth.accessToken;
   } catch {
     return null;
   }
@@ -292,6 +384,40 @@ router.get("/usage/connection", async (_req, res) => {
  * Fetches real-time usage limits from Anthropic OAuth API.
  * Returns session (5h), weekly (all models), weekly (Sonnet only), and extra usage data.
  */
+async function fetchAnthropicUsage(token: string): Promise<Response> {
+  return fetch("https://api.anthropic.com/api/oauth/usage", {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "anthropic-beta": "oauth-2025-04-20",
+      "User-Agent": "claude-code/2.0.32",
+    },
+  });
+}
+
+function parseUsageLimits(raw: Record<string, unknown>) {
+  const normalize = (entry: Record<string, unknown> | undefined) => {
+    if (!entry) return null;
+    return {
+      utilization: (entry.utilization as number) ?? 0,
+      resetsAt: (entry.resets_at as string) ?? null,
+    };
+  };
+
+  const extraRaw = raw.extra_usage as Record<string, unknown> | undefined;
+
+  return {
+    fiveHour: normalize(raw.five_hour as Record<string, unknown>),
+    sevenDay: normalize(raw.seven_day as Record<string, unknown>),
+    sevenDaySonnet: normalize(raw.seven_day_sonnet as Record<string, unknown>),
+    extraUsage: extraRaw ? {
+      isEnabled: (extraRaw.is_enabled as boolean) ?? false,
+      monthlyLimit: (extraRaw.monthly_limit as number) ?? 0,
+      usedCredits: (extraRaw.used_credits as number) ?? 0,
+      utilization: (extraRaw.utilization as number) ?? 0,
+    } : null,
+  };
+}
+
 router.get("/usage/limits", async (_req, res) => {
   try {
     // Return cache if fresh
@@ -299,18 +425,25 @@ router.get("/usage/limits", async (_req, res) => {
       return res.json(usageLimitsCache.data);
     }
 
-    const token = await getOAuthToken();
+    let token = await getOAuthToken();
     if (!token) {
       return res.status(401).json({ error: "OAuth token não encontrado" });
     }
 
-    const response = await fetch("https://api.anthropic.com/api/oauth/usage", {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "anthropic-beta": "oauth-2025-04-20",
-        "User-Agent": "claude-code/2.0.32",
-      },
-    });
+    let response = await fetchAnthropicUsage(token);
+
+    // If 401, force refresh and retry once
+    if (response.status === 401) {
+      logger.info("Usage API returned 401, attempting token refresh", "usage");
+      const creds = await readCredentials();
+      if (creds) {
+        const newToken = await refreshOAuthToken(creds);
+        if (newToken) {
+          token = newToken;
+          response = await fetchAnthropicUsage(token);
+        }
+      }
+    }
 
     if (!response.ok) {
       logger.warn("Anthropic usage API returned non-OK", { status: response.status });
@@ -318,28 +451,7 @@ router.get("/usage/limits", async (_req, res) => {
     }
 
     const raw = await response.json() as Record<string, unknown>;
-
-    const normalize = (entry: Record<string, unknown> | undefined) => {
-      if (!entry) return null;
-      return {
-        utilization: (entry.utilization as number) ?? 0,
-        resetsAt: (entry.resets_at as string) ?? null,
-      };
-    };
-
-    const extraRaw = raw.extra_usage as Record<string, unknown> | undefined;
-
-    const data = {
-      fiveHour: normalize(raw.five_hour as Record<string, unknown>),
-      sevenDay: normalize(raw.seven_day as Record<string, unknown>),
-      sevenDaySonnet: normalize(raw.seven_day_sonnet as Record<string, unknown>),
-      extraUsage: extraRaw ? {
-        isEnabled: (extraRaw.is_enabled as boolean) ?? false,
-        monthlyLimit: (extraRaw.monthly_limit as number) ?? 0,
-        usedCredits: (extraRaw.used_credits as number) ?? 0,
-        utilization: (extraRaw.utilization as number) ?? 0,
-      } : null,
-    };
+    const data = parseUsageLimits(raw);
 
     usageLimitsCache = { data, fetchedAt: Date.now() };
     res.json(data);

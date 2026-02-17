@@ -1,21 +1,42 @@
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32; // 256 bits
 
-// Get encryption key from environment or generate random one (for dev only)
+// Get encryption key from environment or generate a persistent one (for dev only)
 const getKey = (): Buffer => {
   const keyHex = process.env.ENCRYPTION_KEY;
 
   if (!keyHex) {
-    // In production, this should throw an error
-    // For development, generate a random key
     if (process.env.NODE_ENV === "production") {
       throw new Error("ENCRYPTION_KEY environment variable is required in production");
     }
 
-    console.warn("⚠️  ENCRYPTION_KEY not set, using random key (dev only)");
-    return crypto.randomBytes(KEY_LENGTH);
+    // In dev, persist key to a file so it survives server restarts
+    const dataDir = path.join(process.cwd(), "data");
+    const keyFile = path.join(dataDir, ".encryption-key");
+
+    try {
+      if (fs.existsSync(keyFile)) {
+        const saved = fs.readFileSync(keyFile, "utf8").trim();
+        if (saved.length === KEY_LENGTH * 2) {
+          return Buffer.from(saved, "hex");
+        }
+      }
+    } catch { /* ignore read errors, generate new */ }
+
+    // Generate and persist
+    const newKey = crypto.randomBytes(KEY_LENGTH);
+    try {
+      fs.mkdirSync(dataDir, { recursive: true });
+      fs.writeFileSync(keyFile, newKey.toString("hex"), "utf8");
+      console.warn("⚠️  ENCRYPTION_KEY not set — generated dev key at data/.encryption-key");
+    } catch {
+      console.warn("⚠️  ENCRYPTION_KEY not set, using random key (will not persist)");
+    }
+    return newKey;
   }
 
   const key = Buffer.from(keyHex, "hex");

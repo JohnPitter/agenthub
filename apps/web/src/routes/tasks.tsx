@@ -144,6 +144,29 @@ export function TasksPage() {
       });
     };
 
+    const onTaskUpdated = (data: { task: unknown }) => {
+      const task = data.task as Task | undefined;
+      if (task) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === task.id ? { ...t, ...task } : t)),
+        );
+        // Also update selected task if it's the one being updated
+        setSelectedTask((prev) =>
+          prev && prev.id === task.id ? { ...prev, ...task } : prev,
+        );
+      }
+    };
+
+    const onTaskCreated = (data: { task: unknown }) => {
+      const task = data.task as Task | undefined;
+      if (task) {
+        setTasks((prev) => {
+          if (prev.some((t) => t.id === task.id)) return prev;
+          return [task, ...prev];
+        });
+      }
+    };
+
     const onBoardActivity = (data: BoardActivityEvent) => {
       pushActivity({
         agentId: data.agentId,
@@ -155,12 +178,16 @@ export function TasksPage() {
     socket.on("agent:status", onAgentStatus);
     socket.on("agent:tool_use", onAgentToolUse);
     socket.on("task:status", onTaskStatus);
+    socket.on("task:updated", onTaskUpdated);
+    socket.on("task:created", onTaskCreated);
     socket.on("board:activity", onBoardActivity);
 
     return () => {
       socket.off("agent:status", onAgentStatus);
       socket.off("agent:tool_use", onAgentToolUse);
       socket.off("task:status", onTaskStatus);
+      socket.off("task:updated", onTaskUpdated);
+      socket.off("task:created", onTaskCreated);
       socket.off("board:activity", onBoardActivity);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -534,60 +561,78 @@ interface TaskDetailPanelProps {
 }
 
 function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, onViewChanges }: TaskDetailPanelProps) {
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [resultExpanded, setResultExpanded] = useState(false);
+  const [specExpanded, setSpecExpanded] = useState(false);
   const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
   const statusInfo = STATUS_LABELS[task.status] ?? STATUS_LABELS.created;
   const agent = task.assignedAgentId ? agentMap.get(task.assignedAgentId) : null;
   const activity = task.assignedAgentId ? agentActivity.get(task.assignedAgentId) : null;
   const isAgentWorking = activity && activity.status !== "idle" && activity.taskId === task.id;
   const projectName = projectMap.get(task.projectId);
+  const canViewChanges = task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested";
+
+  const DESC_LIMIT = 200;
+  const descIsLong = !!task.description && task.description.length > DESC_LIMIT;
+  const RESULT_LIMIT = 300;
+  const resultIsLong = !!task.result && task.result.length > RESULT_LIMIT;
+  const SPEC_LIMIT = 200;
+  const specIsLong = !!task.parsedSpec && task.parsedSpec.length > SPEC_LIMIT;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" />
 
-      {/* Panel */}
       <div
-        className="relative w-full max-w-lg bg-neutral-bg1 shadow-16 animate-fade-up flex flex-col overflow-hidden"
+        className="relative w-full max-w-md bg-neutral-bg1 shadow-16 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
-        style={{ animation: "slideInRight 0.25s ease-out" }}
+        style={{ animation: "slideInRight 0.2s ease-out" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stroke2 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <span className={cn("inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold", statusInfo.bg, statusInfo.color)}>
+        <div className="flex items-center justify-between border-b border-stroke2 px-5 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold", statusInfo.bg, statusInfo.color)}>
               {statusInfo.label}
             </span>
             <span className="flex items-center gap-1.5">
               <span className={cn("h-2 w-2 rounded-full", priority.dot)} />
-              <span className="text-[11px] font-semibold text-neutral-fg3">{priority.label}</span>
+              <span className="text-[10px] font-semibold text-neutral-fg3">{priority.label}</span>
             </span>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
           {/* Title */}
-          <h2 className="text-[18px] font-semibold text-neutral-fg1 leading-snug">
-            {task.title}
-          </h2>
+          <h2 className="text-[16px] font-semibold text-neutral-fg1 leading-snug">{task.title}</h2>
+
+          {/* View Changes Button — prominent at top */}
+          {onViewChanges && canViewChanges && (
+            <button
+              onClick={() => onViewChanges(task.id)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-brand/20 bg-brand-light/50 px-4 py-2.5 text-[12px] font-semibold text-brand transition-all hover:bg-brand-light hover:border-brand/40"
+            >
+              <FileDiff className="h-4 w-4" />
+              Ver Alterações
+            </button>
+          )}
 
           {/* Live agent working indicator */}
           {isAgentWorking && activity && (
-            <div className="flex items-center gap-3 rounded-lg bg-brand-light/50 border border-brand/20 px-4 py-3">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <div className="flex items-center gap-3 rounded-lg bg-brand-light/50 border border-brand/20 px-3 py-2.5">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
               </span>
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-brand">Agente trabalhando</p>
-                <p className="text-[11px] text-brand/80 truncate">
+                <p className="text-[11px] font-semibold text-brand">Agente trabalhando</p>
+                <p className="text-[10px] text-brand/80 truncate">
                   {activity.currentTask ?? "Executando"}
                   {activity.currentFile ? ` · ${activity.currentFile}` : ""}
                 </p>
@@ -595,30 +640,38 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
             </div>
           )}
 
-          {/* Description */}
+          {/* Description — truncated with expand */}
           {task.description && (
             <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">
-                Descrição
-              </h3>
-              <p className="text-[13px] text-neutral-fg2 leading-relaxed whitespace-pre-wrap">
-                {task.description}
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">Descrição</h3>
+              <p className="text-[12px] text-neutral-fg2 leading-relaxed whitespace-pre-wrap">
+                {descIsLong && !descExpanded
+                  ? task.description.slice(0, DESC_LIMIT) + "..."
+                  : task.description}
               </p>
+              {descIsLong && (
+                <button
+                  onClick={() => setDescExpanded(!descExpanded)}
+                  className="mt-1 text-[11px] font-medium text-brand hover:underline"
+                >
+                  {descExpanded ? "Ver menos" : "Ver mais"}
+                </button>
+              )}
             </div>
           )}
 
           {/* Details grid */}
-          <div className="rounded-xl border border-stroke2 overflow-hidden">
+          <div className="rounded-lg border border-stroke2 overflow-hidden divide-y divide-stroke2">
             {/* Project */}
             {projectName && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-                <div className="flex items-center gap-2 text-neutral-fg3">
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <FolderOpen className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">Projeto</span>
+                  <span className="text-[11px] font-medium">Projeto</span>
                 </div>
                 <Link
                   to={`/project/${task.projectId}`}
-                  className="text-[12px] font-semibold text-brand hover:underline"
+                  className="text-[11px] font-semibold text-brand hover:underline"
                 >
                   {projectName}
                 </Link>
@@ -626,29 +679,29 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
             )}
 
             {/* Agent */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-              <div className="flex items-center gap-2 text-neutral-fg3">
+            <div className="flex items-center justify-between px-3.5 py-2.5">
+              <div className="flex items-center gap-1.5 text-neutral-fg3">
                 <User className="h-3.5 w-3.5" />
-                <span className="text-[12px] font-medium">Agente</span>
+                <span className="text-[11px] font-medium">Agente</span>
               </div>
               {agent ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-5 !w-5 !text-[8px]" />
-                  <span className="text-[12px] font-semibold text-neutral-fg1">{agent.name}</span>
+                  <span className="text-[11px] font-semibold text-neutral-fg1">{agent.name}</span>
                 </div>
               ) : (
-                <span className="text-[12px] text-neutral-fg-disabled">Não atribuído</span>
+                <span className="text-[11px] text-neutral-fg-disabled">Não atribuído</span>
               )}
             </div>
 
             {/* Category */}
             {task.category && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-                <div className="flex items-center gap-2 text-neutral-fg3">
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <Tag className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">Categoria</span>
+                  <span className="text-[11px] font-medium">Categoria</span>
                 </div>
-                <span className="rounded-md bg-neutral-bg2 px-2.5 py-1 text-[11px] font-semibold text-neutral-fg2">
+                <span className="rounded bg-neutral-bg2 px-2 py-0.5 text-[10px] font-semibold text-neutral-fg2">
                   {CATEGORY_LABELS[task.category] ?? task.category}
                 </span>
               </div>
@@ -656,12 +709,12 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
 
             {/* Branch */}
             {task.branch && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-                <div className="flex items-center gap-2 text-neutral-fg3">
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <GitBranch className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">Branch</span>
+                  <span className="text-[11px] font-medium">Branch</span>
                 </div>
-                <span className="rounded-md bg-purple-light px-2.5 py-1 text-[11px] font-semibold text-purple-dark">
+                <span className="rounded bg-purple-light px-2 py-0.5 text-[10px] font-semibold text-purple-dark">
                   {task.branch}
                 </span>
               </div>
@@ -669,96 +722,101 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
 
             {/* Cost */}
             {task.costUsd && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-                <div className="flex items-center gap-2 text-neutral-fg3">
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <DollarSign className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">Custo</span>
+                  <span className="text-[11px] font-medium">Custo</span>
                 </div>
-                <span className="text-[12px] font-semibold text-neutral-fg1">${task.costUsd}</span>
+                <span className="text-[11px] font-semibold text-neutral-fg1">${task.costUsd}</span>
               </div>
             )}
 
             {/* Tokens */}
             {task.tokensUsed && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-                <div className="flex items-center gap-2 text-neutral-fg3">
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <Coins className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">Tokens</span>
+                  <span className="text-[11px] font-medium">Tokens</span>
                 </div>
-                <span className="text-[12px] font-semibold text-neutral-fg1">
+                <span className="text-[11px] font-semibold text-neutral-fg1">
                   {task.tokensUsed.toLocaleString("pt-BR")}
                 </span>
               </div>
             )}
 
             {/* Created */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-              <div className="flex items-center gap-2 text-neutral-fg3">
+            <div className="flex items-center justify-between px-3.5 py-2.5">
+              <div className="flex items-center gap-1.5 text-neutral-fg3">
                 <Calendar className="h-3.5 w-3.5" />
-                <span className="text-[12px] font-medium">Criada em</span>
+                <span className="text-[11px] font-medium">Criada</span>
               </div>
-              <span className="text-[12px] font-semibold text-neutral-fg1">{formatDate(task.createdAt)}</span>
+              <span className="text-[11px] font-semibold text-neutral-fg1">{formatDate(task.createdAt)}</span>
             </div>
 
             {/* Completed */}
             {task.completedAt && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-stroke2">
-                <div className="flex items-center gap-2 text-neutral-fg3">
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">Concluída em</span>
+                  <span className="text-[11px] font-medium">Concluída</span>
                 </div>
-                <span className="text-[12px] font-semibold text-success">{formatDate(task.completedAt)}</span>
+                <span className="text-[11px] font-semibold text-success">{formatDate(task.completedAt)}</span>
               </div>
             )}
 
             {/* Session ID */}
             {task.sessionId && (
-              <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-2 text-neutral-fg3">
+              <div className="flex items-center justify-between px-3.5 py-2.5">
+                <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <Hash className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">Sessão</span>
+                  <span className="text-[11px] font-medium">Sessão</span>
                 </div>
-                <span className="text-[11px] font-mono text-neutral-fg3 truncate max-w-[180px]">{task.sessionId}</span>
+                <span className="text-[10px] font-mono text-neutral-fg3 truncate max-w-[160px]">{task.sessionId}</span>
               </div>
             )}
           </div>
 
-          {/* Result */}
+          {/* Result — truncated with expand */}
           {task.result && (
             <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">
-                Resultado
-              </h3>
-              <div className="rounded-lg bg-neutral-bg2 border border-stroke2 p-4">
-                <p className="text-[12px] text-neutral-fg1 leading-relaxed whitespace-pre-wrap font-mono">
-                  {task.result}
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">Resultado</h3>
+              <div className="rounded-lg bg-neutral-bg2 border border-stroke2 p-3 max-h-[200px] overflow-y-auto">
+                <p className="text-[11px] text-neutral-fg1 leading-relaxed whitespace-pre-wrap font-mono">
+                  {resultIsLong && !resultExpanded
+                    ? task.result.slice(0, RESULT_LIMIT) + "..."
+                    : task.result}
                 </p>
               </div>
+              {resultIsLong && (
+                <button
+                  onClick={() => setResultExpanded(!resultExpanded)}
+                  className="mt-1 text-[11px] font-medium text-brand hover:underline"
+                >
+                  {resultExpanded ? "Ver menos" : "Ver mais"}
+                </button>
+              )}
             </div>
           )}
 
-          {/* View Changes Button */}
-          {onViewChanges && (task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested") && (
-            <button
-              onClick={() => onViewChanges(task.id)}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-brand/20 bg-brand-light/50 px-4 py-3 text-[13px] font-semibold text-brand transition-all hover:bg-brand-light hover:border-brand/40"
-            >
-              <FileDiff className="h-4 w-4" />
-              Ver Alterações
-            </button>
-          )}
-
-          {/* Parsed Spec */}
+          {/* Parsed Spec — truncated with expand */}
           {task.parsedSpec && (
             <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">
-                Especificação
-              </h3>
-              <div className="rounded-lg bg-neutral-bg2 border border-stroke2 p-4">
-                <p className="text-[12px] text-neutral-fg2 leading-relaxed whitespace-pre-wrap">
-                  {task.parsedSpec}
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">Especificação</h3>
+              <div className="rounded-lg bg-neutral-bg2 border border-stroke2 p-3 max-h-[150px] overflow-y-auto">
+                <p className="text-[11px] text-neutral-fg2 leading-relaxed whitespace-pre-wrap">
+                  {specIsLong && !specExpanded
+                    ? task.parsedSpec.slice(0, SPEC_LIMIT) + "..."
+                    : task.parsedSpec}
                 </p>
               </div>
+              {specIsLong && (
+                <button
+                  onClick={() => setSpecExpanded(!specExpanded)}
+                  className="mt-1 text-[11px] font-medium text-brand hover:underline"
+                >
+                  {specExpanded ? "Ver menos" : "Ver mais"}
+                </button>
+              )}
             </div>
           )}
         </div>

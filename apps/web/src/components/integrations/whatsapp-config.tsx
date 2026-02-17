@@ -30,6 +30,14 @@ export function WhatsAppConfig() {
       );
       setStatus(data.status);
       setIntegrationId(data.integrationId);
+      // If DB shows error from a previous failed attempt, show error message
+      if (data.status === "error") {
+        setError("Conexão anterior falhou. Clique em Conectar para tentar novamente.");
+      }
+      // Reset loading if status is terminal
+      if (data.status !== "connecting") {
+        setLoading(false);
+      }
     } catch {
       // Integration might not exist yet
     }
@@ -151,7 +159,7 @@ export function WhatsAppConfig() {
           </div>
           <div className="rounded-lg bg-white p-4">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode)}`}
+              src={qrCode}
               alt="WhatsApp QR Code"
               className="h-[200px] w-[200px]"
             />

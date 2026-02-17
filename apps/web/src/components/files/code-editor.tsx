@@ -10,24 +10,27 @@ interface CodeEditorProps {
   readOnly?: boolean;
   onChange?: (value: string | undefined) => void;
   onSave?: () => void;
+  onEditorMount?: (editor: editor.IStandaloneCodeEditor, monacoInstance: typeof monaco) => void;
 }
 
-export function CodeEditor({ value, language, readOnly = false, onChange, onSave }: CodeEditorProps) {
+export function CodeEditor({ value, language, readOnly = false, onChange, onSave, onEditorMount }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isReady, setIsReady] = useState(false);
   const { theme } = useThemeStore();
   const monacoTheme = theme === "light" ? "vs" : "vs-dark";
 
-  const handleEditorDidMount: OnMount = (editor) => {
-    editorRef.current = editor;
+  const handleEditorDidMount: OnMount = (editorInstance, monacoInstance) => {
+    editorRef.current = editorInstance;
     setIsReady(true);
 
     // Add save keybinding (Ctrl+S / Cmd+S)
     if (!readOnly && onSave) {
-      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
         onSave();
       });
     }
+
+    onEditorMount?.(editorInstance, monacoInstance);
   };
 
   return (

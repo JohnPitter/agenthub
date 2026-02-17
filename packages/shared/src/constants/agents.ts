@@ -75,4 +75,16 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     color: "#10B981",
     avatar: "shield-check",
   },
+  {
+    name: "Recepcionista",
+    role: "receptionist" as const,
+    model: "claude-haiku-4-5-20251001",
+    maxThinkingTokens: null,
+    description: "First responder do WhatsApp. Conversa com usuários, responde perguntas e direciona demandas para o time de desenvolvimento.",
+    allowedTools: [],
+    permissionMode: "default",
+    level: "pleno",
+    color: "#EC4899",
+    avatar: "headphones",
+  },
 ];

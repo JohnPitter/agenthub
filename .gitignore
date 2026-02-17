@@ -25,5 +25,5 @@ CLAUDE.md
 # Playwright
 apps/web/test-results/
 
-# WhatsApp browser session data
-apps/orchestrator/data/whatsapp-auth/
+# WhatsApp browser session data & dev secrets
+apps/orchestrator/data/

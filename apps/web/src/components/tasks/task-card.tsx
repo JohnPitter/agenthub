@@ -1,5 +1,6 @@
 import { GripVertical, Clock, Trash2, User, Play, GitBranch, CheckCircle2, FileDiff } from "lucide-react";
 import { cn, formatDate } from "../../lib/utils";
+import { AgentAvatar } from "../agents/agent-avatar";
 import { TaskReviewActions } from "./task-review-actions";
 import type { Task, Agent } from "@agenthub/shared";
 
@@ -102,12 +103,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChan
         <div className="flex items-center gap-2">
           {agent ? (
             <div className="flex items-center gap-2">
-              <div
-                className="flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-semibold text-white"
-                style={{ backgroundColor: agent.color ?? "#6366F1" }}
-              >
-                {agent.name.charAt(0)}
-              </div>
+              <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-6 !w-6 !text-[9px]" />
               <span className="text-[11px] font-semibold text-neutral-fg2">{agent.name}</span>
             </div>
           ) : (

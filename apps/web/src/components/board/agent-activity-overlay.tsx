@@ -3,6 +3,7 @@ import { Activity, ChevronDown, ChevronUp, Code2, FileEdit, Terminal, Brain, Tes
 import { cn } from "../../lib/utils";
 import { useChatStore } from "../../stores/chat-store";
 import { useWorkspaceStore } from "../../stores/workspace-store";
+import { AgentAvatar } from "../agents/agent-avatar";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Brain; color: string }> = {
   idle: { label: "Idle", icon: Brain, color: "text-neutral-fg-disabled" },
@@ -88,12 +89,13 @@ export function AgentActivityOverlay() {
                 className="flex items-center gap-3 border-b border-stroke2 last:border-0 px-4 py-3"
               >
                 {/* Agent avatar */}
-                <div
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold text-white"
-                  style={{ backgroundColor: agent.color || "#6366F1" }}
-                >
-                  {agent.name.charAt(0)}
-                </div>
+                <AgentAvatar
+                  name={agent.name}
+                  avatar={agent.avatar}
+                  color={agent.color}
+                  size="sm"
+                  className="!h-7 !w-7 !text-[10px]"
+                />
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">

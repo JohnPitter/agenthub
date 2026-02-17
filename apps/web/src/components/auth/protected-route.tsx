@@ -3,13 +3,21 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth-store";
 
 export function ProtectedRoute() {
-  const { user, loading, fetchUser } = useAuthStore();
+  const { user, loading, fetchUser, startTokenRefresh, stopTokenRefresh } = useAuthStore();
 
   useEffect(() => {
     if (!user && loading) {
       fetchUser();
     }
   }, [user, loading, fetchUser]);
+
+  // Start/stop refresh timer based on auth state
+  useEffect(() => {
+    if (user) {
+      startTokenRefresh();
+      return () => stopTokenRefresh();
+    }
+  }, [user, startTokenRefresh, stopTokenRefresh]);
 
   if (loading) {
     return (

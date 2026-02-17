@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
-import { LayoutDashboard, BarChart3, Users, ListTodo, Settings, Zap, FolderOpen, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from "lucide-react";
+import { LayoutDashboard, BarChart3, Users, ListTodo, Settings, Zap, FolderOpen, ChevronLeft, ChevronRight, CheckCircle2, XCircle, BookOpen } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useUsageStore } from "../../stores/usage-store";
+import { AgentAvatar } from "../agents/agent-avatar";
 import { api } from "../../lib/utils";
 import { cn } from "../../lib/utils";
 import type { Project } from "@agenthub/shared";
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/agents", icon: Users, label: "Agentes" },
   { to: "/tasks", icon: ListTodo, label: "Tarefas" },
+  { to: "/docs", icon: BookOpen, label: "Documentação" },
   { to: "/analytics", icon: BarChart3, label: "Analytics" },
   { to: "/settings", icon: Settings, label: "Configurações" },
 ];
@@ -405,12 +407,16 @@ export function AppSidebar() {
                 className="relative group"
                 title={collapsed ? agent.name : `${agent.name} - ${status}`}
               >
-                <div className={cn(
-                  "flex items-center justify-center rounded-lg bg-neutral-bg3 text-[10px] font-semibold text-neutral-fg1 transition-all duration-200 hover:bg-neutral-bg-hover",
-                  collapsed ? "h-10 w-10" : "h-9 w-9"
-                )}>
-                  {agent.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
-                </div>
+                <AgentAvatar
+                  name={agent.name}
+                  avatar={agent.avatar}
+                  color={agent.color}
+                  size="sm"
+                  className={cn(
+                    "transition-all duration-200 hover:opacity-80",
+                    collapsed ? "!h-10 !w-10" : ""
+                  )}
+                />
                 <span className={cn(
                   "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-neutral-bg2",
                   statusColor,

@@ -53,6 +53,16 @@ router.post("/integrations/whatsapp/connect", async (req: Request, res: Response
       return res.status(500).json({ error: "Failed to create integration" });
     }
 
+    // Reset singleton if previous connection failed (stale state)
+    try {
+      const existing = getWhatsAppService();
+      if (existing.getConnectionStatus() === "error") {
+        resetWhatsAppService();
+      }
+    } catch {
+      // Service not initialized yet, that's fine
+    }
+
     // Initialize and connect WhatsApp service
     const whatsappService = getWhatsAppService(
       { projectId, linkedAgentId },
@@ -63,9 +73,10 @@ router.post("/integrations/whatsapp/connect", async (req: Request, res: Response
 
     logger.info("WhatsApp connection initiated", "whatsapp-route");
 
+    // connect() fires in background — respond immediately with "connecting"
     res.json({
       success: true,
-      status: whatsappService.getConnectionStatus(),
+      status: "connecting",
       integrationId: integration.id,
     });
   } catch (error) {

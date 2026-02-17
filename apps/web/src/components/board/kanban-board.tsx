@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -18,6 +18,7 @@ interface KanbanBoardProps {
   agents: Agent[];
   onTaskUpdate?: (taskId: string, status: TaskStatus) => void;
   onViewChanges?: (taskId: string) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
 const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
@@ -29,7 +30,7 @@ const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
   { id: "cancelled", title: "Cancelada", color: "#A1A1AA" },
 ];
 
-export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChanges }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChanges, onTaskClick }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -70,9 +71,15 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChan
     }
   };
 
-  const getTasksByStatus = (status: TaskStatus) => {
-    return tasks.filter(t => t.status === status);
-  };
+  const tasksByStatus = useMemo(() => {
+    const map = new Map<TaskStatus, Task[]>();
+    for (const col of COLUMNS) map.set(col.id, []);
+    for (const t of tasks) {
+      const list = map.get(t.status as TaskStatus);
+      if (list) list.push(t);
+    }
+    return map;
+  }, [tasks]);
 
   return (
     <DndContext
@@ -86,10 +93,11 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChan
             key={column.id}
             id={column.id}
             title={column.title}
-            tasks={getTasksByStatus(column.id)}
+            tasks={tasksByStatus.get(column.id) || []}
             agents={agents}
             color={column.color}
             onViewChanges={onViewChanges}
+            onTaskClick={onTaskClick}
           />
         ))}
       </div>

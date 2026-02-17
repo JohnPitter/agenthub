@@ -3,6 +3,9 @@ import { db, schema } from "@agenthub/database";
 import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { scanWorkspace } from "../workspace/scanner";
+import { fetchUserRepos } from "../services/github-service.js";
+import { decrypt } from "../lib/encryption.js";
+import { logger } from "../lib/logger.js";
 
 export const projectsRouter = Router();
 
@@ -13,6 +16,37 @@ projectsRouter.get("/", async (_req, res) => {
     .from(schema.projects)
     .orderBy(desc(schema.projects.updatedAt));
   res.json({ projects });
+});
+
+// GET /api/projects/github-repos — list user's GitHub repositories
+projectsRouter.get("/github-repos", async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    const user = await db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+    if (!user?.accessToken) return res.status(401).json({ error: "github_reauth", message: "GitHub access token not found. Please re-authenticate." });
+
+    let accessToken: string;
+    try {
+      accessToken = decrypt(user.accessToken);
+    } catch (decryptError) {
+      logger.warn(`Failed to decrypt GitHub token for user ${userId} — encryption key may have changed`, "projects");
+      return res.status(401).json({ error: "github_reauth", message: "GitHub token could not be decrypted. Please re-authenticate." });
+    }
+
+    const repos = await fetchUserRepos(accessToken);
+    res.json({ repos });
+  } catch (error: any) {
+    const msg = error?.message ?? "";
+    // GitHub returned 401/403 — token revoked or expired
+    if (msg.includes("401") || msg.includes("403")) {
+      logger.warn(`GitHub token rejected for user ${req.user?.userId}: ${msg}`, "projects");
+      return res.status(401).json({ error: "github_reauth", message: "GitHub token is invalid or expired. Please re-authenticate." });
+    }
+    logger.error(`Failed to fetch GitHub repos: ${error}`, "projects");
+    res.status(502).json({ error: "Failed to fetch GitHub repositories" });
+  }
 });
 
 // GET /api/projects/:id — get single project

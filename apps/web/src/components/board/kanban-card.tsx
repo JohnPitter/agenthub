@@ -1,13 +1,15 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Clock, AlertCircle, FileDiff } from "lucide-react";
+import { Clock, AlertCircle } from "lucide-react";
 import { cn, formatRelativeTime } from "../../lib/utils";
+import { AgentAvatar } from "../agents/agent-avatar";
 import type { Task, Agent } from "@agenthub/shared";
 
 interface KanbanCardProps {
   task: Task;
   agent?: Agent;
   onViewChanges?: (taskId: string) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
 const PRIORITY_COLORS = {
@@ -24,7 +26,7 @@ const PRIORITY_LABELS = {
   urgent: "Urgente",
 } as const;
 
-export function KanbanCard({ task, agent, onViewChanges }: KanbanCardProps) {
+export function KanbanCard({ task, agent, onViewChanges, onTaskClick }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -45,86 +47,54 @@ export function KanbanCard({ task, agent, onViewChanges }: KanbanCardProps) {
       style={style}
       {...attributes}
       {...listeners}
+      onClick={() => !isDragging && onTaskClick?.(task)}
       className={cn(
-        "group cursor-grab card-interactive p-4 active:cursor-grabbing",
+        "group cursor-grab card-interactive p-3 active:cursor-grabbing",
         isDragging && "opacity-40 shadow-glow ring-2 ring-brand/20"
       )}
     >
-      {/* Priority badge */}
-      {task.priority && (
-        <div className="mb-2.5 flex items-center justify-between">
+      {/* Priority + blocked */}
+      <div className="mb-2 flex items-center justify-between">
+        {task.priority && (
           <span
             className={cn(
-              "rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+              "rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
               PRIORITY_COLORS[task.priority]
             )}
           >
             {PRIORITY_LABELS[task.priority]}
           </span>
-          {task.status === "blocked" && (
-            <AlertCircle className="h-3.5 w-3.5 text-danger" />
-          )}
-        </div>
-      )}
+        )}
+        {task.status === "blocked" && (
+          <AlertCircle className="h-3 w-3 text-danger" />
+        )}
+        {task.category && (
+          <span className="badge badge-neutral text-[9px] ml-auto">{task.category}</span>
+        )}
+      </div>
 
       {/* Task title */}
-      <h4 className="mb-3 text-[14px] font-semibold text-neutral-fg1 line-clamp-2 leading-tight group-hover:text-brand transition-colors">
+      <h4 className="mb-2 text-[13px] font-semibold text-neutral-fg1 line-clamp-2 leading-snug group-hover:text-brand transition-colors">
         {task.title}
       </h4>
 
       {/* Bottom row: agent + time */}
       <div className="flex items-center justify-between gap-2">
-        {/* Agent avatar */}
         {agent ? (
-          <div className="flex items-center gap-2">
-            <div
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold text-white shadow-xs"
-              style={{ backgroundColor: agent.color || "#6366F1" }}
-            >
-              {agent.name.charAt(0)}
-            </div>
-            <span className="text-[11px] text-neutral-fg2 truncate">{agent.name}</span>
+          <div className="flex items-center gap-1.5">
+            <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-5 !w-5 !text-[9px] !rounded" />
+            <span className="text-[10px] text-neutral-fg2 truncate max-w-[80px]">{agent.name}</span>
           </div>
         ) : (
-          <span className="text-[11px] text-neutral-fg-disabled">Não atribuída</span>
+          <span className="text-[10px] text-neutral-fg-disabled">Não atribuída</span>
         )}
-
-        {/* Time elapsed */}
         {task.updatedAt && (
-          <div className="flex items-center gap-1 text-[10px] text-neutral-fg-disabled">
-            <Clock className="h-3 w-3" />
+          <div className="flex items-center gap-1 text-[9px] text-neutral-fg-disabled">
+            <Clock className="h-2.5 w-2.5" />
             <span>{formatRelativeTime(task.updatedAt)}</span>
           </div>
         )}
       </div>
-
-      {/* View Changes button */}
-      {onViewChanges && (task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested") && (
-        <div className="mt-2.5 pt-2.5 border-t border-stroke2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onViewChanges(task.id);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-brand transition-colors hover:bg-brand-light/20"
-          >
-            <FileDiff className="h-3.5 w-3.5" />
-            Ver Alterações
-          </button>
-        </div>
-      )}
-
-      {/* Category tag if present */}
-      {task.category && (
-        <div className={cn(
-          "pt-2.5 border-t border-stroke2",
-          !(onViewChanges && (task.status === "in_progress" || task.status === "review" || task.status === "done" || task.status === "changes_requested")) && "mt-2.5"
-        )}>
-          <span className="badge badge-neutral text-[10px]">{task.category}</span>
-        </div>
-      )}
     </div>
   );
 }

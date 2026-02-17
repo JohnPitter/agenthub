@@ -2,6 +2,7 @@ import { Cpu, Pause, Square } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useSocket } from "../../hooks/use-socket";
+import { AgentAvatar } from "../agents/agent-avatar";
 
 export function ActiveAgentBar() {
   const { agents, projects, activeProjectId } = useWorkspaceStore();
@@ -25,12 +26,13 @@ export function ActiveAgentBar() {
     <div className="flex h-11 shrink-0 items-center justify-between border-t border-stroke2 bg-neutral-bg1 px-6">
       {/* Left: Agent info */}
       <div className="flex items-center gap-3">
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-md text-[12px] font-semibold text-white"
-          style={{ backgroundColor: runningAgent.color ?? "#FF5C35" }}
-        >
-          {runningAgent.name.charAt(0)}
-        </div>
+        <AgentAvatar
+          name={runningAgent.name}
+          avatar={runningAgent.avatar}
+          color={runningAgent.color}
+          size="sm"
+          className="!h-8 !w-8 !text-[12px]"
+        />
         <div>
           <p className="text-[13px] font-semibold text-neutral-fg1">{runningAgent.name}</p>
           <p className="text-[11px] text-neutral-fg3">

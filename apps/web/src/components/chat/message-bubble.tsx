@@ -1,4 +1,5 @@
 import { cn, formatDate } from "../../lib/utils";
+import { AgentAvatar } from "../agents/agent-avatar";
 import { MessageContent } from "./message-content";
 import type { Message, Agent } from "@agenthub/shared";
 
@@ -30,12 +31,11 @@ export function MessageBubble({ message, agent }: MessageBubbleProps) {
     >
       {/* Agent avatar */}
       {!isUser && (
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
-          style={{ backgroundColor: agent?.color ?? "#0866FF" }}
-        >
-          {agent?.name?.charAt(0) ?? "A"}
-        </div>
+        agent ? (
+          <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-8 !w-8 !text-[12px] !rounded-full" />
+        ) : (
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[12px] font-semibold text-white">A</div>
+        )
       )}
 
       <div

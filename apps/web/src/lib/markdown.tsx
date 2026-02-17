@@ -1,11 +1,30 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Link } from "react-router-dom";
 
 interface MarkdownContentProps {
   content: string;
+  projects?: Array<{ id: string; name: string }>;
 }
 
-export function MarkdownContent({ content }: MarkdownContentProps) {
+function preprocessMentions(
+  content: string,
+  projects: Array<{ id: string; name: string }>
+): string {
+  return content.replace(/@\[([^\]]+)\]/g, (match, name) => {
+    const project = projects.find(
+      (p) => p.name.toLowerCase() === name.trim().toLowerCase()
+    );
+    if (project) {
+      return `[@${project.name}](/project/${project.id})`;
+    }
+    return match;
+  });
+}
+
+export function MarkdownContent({ content, projects }: MarkdownContentProps) {
+  const processed = projects ? preprocessMentions(content, projects) : content;
+
   return (
     <div className="prose prose-sm max-w-none">
       <ReactMarkdown
@@ -27,17 +46,29 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
           ul: ({ children }) => <ul className="list-disc list-inside my-2 space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal list-inside my-2 space-y-1">{children}</ol>,
           li: ({ children }) => <li className="text-[13px] text-neutral-fg2">{children}</li>,
-          // Links
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand hover:text-brand-hover underline"
-            >
-              {children}
-            </a>
-          ),
+          // Links — with project mention badge support
+          a: ({ href, children }) => {
+            if (href?.startsWith("/project/")) {
+              return (
+                <Link
+                  to={href}
+                  className="inline-flex items-center gap-1 rounded-md bg-brand-light px-1.5 py-0.5 text-[12px] font-semibold text-brand hover:bg-brand/20 no-underline"
+                >
+                  {children}
+                </Link>
+              );
+            }
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand hover:text-brand-hover underline"
+              >
+                {children}
+              </a>
+            );
+          },
           // Code
           code: ({ className, children }) => {
             const isInline = !className;
@@ -69,7 +100,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
           hr: () => <hr className="my-4 border-stroke" />,
         }}
       >
-        {content}
+        {processed}
       </ReactMarkdown>
     </div>
   );

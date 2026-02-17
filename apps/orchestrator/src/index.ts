@@ -27,6 +27,7 @@ import { verifyJWT } from "./services/auth-service.js";
 import { logger } from "./lib/logger";
 import { taskTimeoutManager } from "./tasks/task-lifecycle";
 import { taskWatcher } from "./tasks/task-watcher.js";
+import { docsRouter } from "./routes/docs.js";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 
 const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
@@ -60,6 +61,7 @@ app.use("/api", pullRequestsRouter);
 app.use("/api", integrationsRouter);
 app.use("/api", usageRouter);
 app.use("/api/projects", devServerRouter);
+app.use("/api/docs", docsRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

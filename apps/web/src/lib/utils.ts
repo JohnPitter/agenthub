@@ -32,11 +32,52 @@ export function formatRelativeTime(date: Date | string): string {
 
 const API_BASE = "/api";
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshToken(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+
+  if (res.status === 401 && !path.startsWith("/auth/")) {
+    // Deduplicate concurrent refresh calls
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshPromise = refreshToken().finally(() => {
+        isRefreshing = false;
+        refreshPromise = null;
+      });
+    }
+
+    const refreshed = await (refreshPromise ?? refreshToken());
+    if (refreshed) {
+      // Retry original request with fresh cookie
+      const retry = await fetch(`${API_BASE}${path}`, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      if (retry.ok) return retry.json();
+    }
+
+    // Refresh failed — redirect to login
+    window.location.href = "/login";
+    throw new Error("Session expired");
+  }
+
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: "Request failed" }));
     throw new Error(error.error ?? "Request failed");

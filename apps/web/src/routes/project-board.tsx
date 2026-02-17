@@ -7,6 +7,7 @@ import { useTasks } from "../hooks/use-tasks";
 import { KanbanBoard } from "../components/board/kanban-board";
 import { AgentActivityOverlay } from "../components/board/agent-activity-overlay";
 import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
+import { TaskDetailDrawer } from "../components/tasks/task-detail-drawer";
 import { CommandBar } from "../components/layout/command-bar";
 import { cn } from "../lib/utils";
 import type { Task, TaskStatus } from "@agenthub/shared";
@@ -24,6 +25,7 @@ export function ProjectBoard() {
   const [tasks, setTasks] = useState(initialTasks);
   const [view, setView] = useState<BoardView>("kanban");
   const [changesTaskId, setChangesTaskId] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -31,13 +33,30 @@ export function ProjectBoard() {
 
   useSocket(id, {
     onTaskStatus: (data) => {
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === data.taskId
-            ? { ...task, status: data.status as TaskStatus, updatedAt: new Date() }
-            : task
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === data.taskId
+            ? { ...t, status: data.status as TaskStatus, updatedAt: new Date() }
+            : t
         )
       );
+    },
+    onTaskCreated: (data) => {
+      const task = data.task as Task;
+      if (task && task.projectId === id) {
+        setTasks((prev) => {
+          if (prev.some((t) => t.id === task.id)) return prev;
+          return [task, ...prev];
+        });
+      }
+    },
+    onTaskUpdated: (data) => {
+      const task = data.task as Task;
+      if (task) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === task.id ? { ...t, ...task } : t))
+        );
+      }
     },
   });
 
@@ -108,6 +127,7 @@ export function ProjectBoard() {
             agents={agents}
             onTaskUpdate={handleTaskUpdate}
             onViewChanges={setChangesTaskId}
+            onTaskClick={setSelectedTask}
           />
         ) : (
           <Suspense
@@ -129,6 +149,18 @@ export function ProjectBoard() {
 
       {/* Agent activity overlay */}
       <AgentActivityOverlay />
+
+      {selectedTask && (
+        <TaskDetailDrawer
+          task={selectedTask}
+          agents={agents}
+          onClose={() => setSelectedTask(null)}
+          onViewChanges={(taskId) => {
+            setSelectedTask(null);
+            setChangesTaskId(taskId);
+          }}
+        />
+      )}
 
       {changesTaskId && (
         <TaskChangesDialog

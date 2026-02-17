@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, FileCode, Check, X } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { AgentAvatar } from "../agents/agent-avatar";
 import { TaskRejectDialog } from "../tasks/task-reject-dialog";
 import type { Agent, Task } from "@agenthub/shared";
 
@@ -53,12 +54,7 @@ export function AgentStatusCard({ agent, activity, task, onApprove, onReject, on
     <>
       <div className="rounded-lg bg-neutral-bg1 p-5 shadow-2">
         <div className="mb-3 flex items-start justify-between">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-full text-[14px] font-semibold text-white"
-            style={{ backgroundColor: agent.color ?? "#0866FF" }}
-          >
-            {agent.name.charAt(0)}
-          </div>
+          <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="md" className="!rounded-full" />
           <div className={cn("flex items-center gap-1.5 rounded-md px-2 py-0.5", config.bg)}>
             {status === "running" && (
               <span className="h-2 w-2 rounded-full bg-success animate-pulse" />

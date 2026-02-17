@@ -5,8 +5,11 @@ import { eq, desc, count, max, sql } from "drizzle-orm";
 export const dashboardRouter = Router();
 
 // GET /api/dashboard/stats
-dashboardRouter.get("/stats", async (_req, res) => {
-  const [projectRows, agentRows, taskRows, recentLogs, tasksByProject, agentsByProject] = await Promise.all([
+dashboardRouter.get("/stats", async (req, res) => {
+  const page = Math.max(0, parseInt(req.query.activityPage as string) || 0);
+  const pageSize = Math.min(50, Math.max(1, parseInt(req.query.activityPageSize as string) || 10));
+
+  const [projectRows, agentRows, taskRows, recentLogs, activityTotal, tasksByProject, agentsByProject] = await Promise.all([
     db.select({ total: count() }).from(schema.projects),
     db.select({ total: count() }).from(schema.agents).where(eq(schema.agents.isActive, true)),
     db
@@ -25,6 +28,7 @@ dashboardRouter.get("/stats", async (_req, res) => {
         createdAt: schema.taskLogs.createdAt,
         agentName: schema.agents.name,
         agentColor: schema.agents.color,
+        agentAvatar: schema.agents.avatar,
         taskTitle: schema.tasks.title,
         projectName: schema.projects.name,
       })
@@ -33,7 +37,9 @@ dashboardRouter.get("/stats", async (_req, res) => {
       .leftJoin(schema.tasks, eq(schema.taskLogs.taskId, schema.tasks.id))
       .leftJoin(schema.projects, eq(schema.tasks.projectId, schema.projects.id))
       .orderBy(desc(schema.taskLogs.createdAt))
-      .limit(10),
+      .limit(pageSize)
+      .offset(page * pageSize),
+    db.select({ total: count() }).from(schema.taskLogs),
     // Task count + last activity per project
     db
       .select({
@@ -57,12 +63,17 @@ dashboardRouter.get("/stats", async (_req, res) => {
   const taskStats = taskRows[0] ?? { total: 0, running: 0, review: 0, done: 0 };
 
   // Build per-project stats map
+  // If agent_project_configs has entries, use them; otherwise fall back to total active agents
+  const totalActiveAgents = agentRows[0]?.total ?? 0;
+  const hasPerProjectConfigs = agentsByProject.length > 0;
   const agentCountMap = new Map(agentsByProject.map((r) => [r.projectId, r.agentCount]));
 
   const projectStats = tasksByProject.map((r) => ({
     projectId: r.projectId,
     taskCount: r.taskCount,
-    agentCount: agentCountMap.get(r.projectId) ?? 0,
+    agentCount: hasPerProjectConfigs
+      ? (agentCountMap.get(r.projectId) ?? 0)
+      : totalActiveAgents,
     lastActivity: r.lastActivity ? new Date(r.lastActivity).toISOString() : null,
   }));
 
@@ -78,6 +89,8 @@ dashboardRouter.get("/stats", async (_req, res) => {
     }
   }
 
+  const totalActivities = activityTotal[0]?.total ?? 0;
+
   res.json({
     totalProjects: projectRows[0]?.total ?? 0,
     activeAgents: agentRows[0]?.total ?? 0,
@@ -86,12 +99,17 @@ dashboardRouter.get("/stats", async (_req, res) => {
     reviewTasks: taskStats.review ?? 0,
     doneTasks: taskStats.done ?? 0,
     projectStats,
+    activityPage: page,
+    activityPageSize: pageSize,
+    activityTotalCount: totalActivities,
+    activityTotalPages: Math.ceil(totalActivities / pageSize),
     recentActivities: recentLogs.map((log) => ({
       id: log.id,
       action: log.action,
       detail: log.detail,
       agentName: log.agentName ?? "Sistema",
       agentColor: log.agentColor ?? "#FF5C35",
+      agentAvatar: log.agentAvatar ?? null,
       taskTitle: log.taskTitle ?? "",
       projectName: log.projectName ?? "",
       createdAt: log.createdAt,

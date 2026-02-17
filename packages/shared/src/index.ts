@@ -5,6 +5,7 @@ export type * from "./types/project";
 export type * from "./types/message";
 export type * from "./types/events";
 export type * from "./types/config";
+export type * from "./types/docs";
 
 // Constants
 export { DEFAULT_AGENTS, type AgentBlueprint } from "./constants/agents";

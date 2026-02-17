@@ -55,6 +55,7 @@ export function Header() {
   const PAGE_TITLES: Record<string, string> = {
     "/analytics": "Analytics",
     "/settings": "Configurações",
+    "/docs": "Documentação",
   };
   const standalonePageTitle = PAGE_TITLES[location.pathname] ?? null;
 

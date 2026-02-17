@@ -4,6 +4,7 @@ export type AgentRole =
   | "frontend_dev"
   | "backend_dev"
   | "qa"
+  | "receptionist"
   | "custom";
 
 export type AgentModel = string;

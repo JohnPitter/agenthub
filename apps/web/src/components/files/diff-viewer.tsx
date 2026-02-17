@@ -1,4 +1,6 @@
-import { DiffEditor } from "@monaco-editor/react";
+import { useRef, useEffect } from "react";
+import { DiffEditor, type DiffOnMount } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 import { useThemeStore } from "../../stores/theme-store";
 
 interface DiffViewerProps {
@@ -18,6 +20,30 @@ export function DiffViewer({
 }: DiffViewerProps) {
   const { theme } = useThemeStore();
   const monacoTheme = theme === "light" ? "vs" : "vs-dark";
+  const editorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
+
+  const handleMount: DiffOnMount = (editor) => {
+    editorRef.current = editor;
+  };
+
+  // Dispose editor models before component unmounts to prevent
+  // "TextModel got disposed before DiffEditorWidget model got reset" error
+  useEffect(() => {
+    return () => {
+      if (editorRef.current) {
+        try {
+          const original = editorRef.current.getModel()?.original;
+          const modified = editorRef.current.getModel()?.modified;
+          editorRef.current.dispose();
+          original?.dispose();
+          modified?.dispose();
+        } catch {
+          /* already disposed */
+        }
+        editorRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <DiffEditor
@@ -26,6 +52,9 @@ export function DiffViewer({
       original={original}
       modified={modified}
       theme={monacoTheme}
+      onMount={handleMount}
+      keepCurrentOriginalModel={false}
+      keepCurrentModifiedModel={false}
       options={{
         readOnly: true,
         renderSideBySide: true,

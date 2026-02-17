@@ -99,7 +99,31 @@ tasksRouter.get("/:id/logs", async (req, res) => {
   res.json({ logs });
 });
 
-// GET /api/tasks/:id/changes - Get file changes made by agent for this task
+// Extension → Monaco language mapping
+const LANG_MAP: Record<string, string> = {
+  ".ts": "typescript",
+  ".tsx": "typescriptreact",
+  ".js": "javascript",
+  ".jsx": "javascriptreact",
+  ".json": "json",
+  ".css": "css",
+  ".scss": "scss",
+  ".html": "html",
+  ".md": "markdown",
+  ".py": "python",
+  ".yaml": "yaml",
+  ".yml": "yaml",
+  ".sql": "sql",
+  ".sh": "shell",
+  ".bash": "shell",
+  ".xml": "xml",
+  ".svg": "xml",
+  ".go": "go",
+  ".rs": "rust",
+  ".toml": "toml",
+};
+
+// GET /api/tasks/:id/changes - Get file changes made by agent for this task (commit-based)
 tasksRouter.get("/:id/changes", async (req, res) => {
   try {
     const task = await db
@@ -122,93 +146,134 @@ tasksRouter.get("/:id/changes", async (req, res) => {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    // Fetch tool_use messages for this task
-    const toolMessages = await db
-      .select()
-      .from(schema.messages)
-      .where(
-        and(
-          eq(schema.messages.taskId, req.params.id),
-          eq(schema.messages.contentType, "tool_use")
-        )
-      );
-
-    // Extract unique file paths from Write/Edit tool calls
-    const filePaths = new Set<string>();
-    for (const msg of toolMessages) {
-      if (!msg.metadata) continue;
-      try {
-        const meta = JSON.parse(msg.metadata);
-        if (
-          (meta.tool === "Write" || meta.tool === "Edit") &&
-          meta.input?.file_path
-        ) {
-          filePaths.add(meta.input.file_path);
-        }
-      } catch {
-        // skip malformed metadata
-      }
+    // Detect base branch (main or master)
+    let baseBranch = "main";
+    const mainCheck = await execFileNoThrow("git", ["rev-parse", "--verify", "main"], { cwd: project.path, timeout: 5000 });
+    if (mainCheck.error) {
+      const masterCheck = await execFileNoThrow("git", ["rev-parse", "--verify", "master"], { cwd: project.path, timeout: 5000 });
+      if (!masterCheck.error) baseBranch = "master";
     }
 
-    // Extension → Monaco language mapping
-    const LANG_MAP: Record<string, string> = {
-      ".ts": "typescript",
-      ".tsx": "typescriptreact",
-      ".js": "javascript",
-      ".jsx": "javascriptreact",
-      ".json": "json",
-      ".css": "css",
-      ".scss": "scss",
-      ".html": "html",
-      ".md": "markdown",
-      ".py": "python",
-      ".yaml": "yaml",
-      ".yml": "yaml",
-      ".sql": "sql",
-      ".sh": "shell",
-      ".bash": "shell",
-      ".xml": "xml",
-      ".svg": "xml",
-      ".go": "go",
-      ".rs": "rust",
-      ".toml": "toml",
-    };
+    type FileChange = { path: string; original: string; modified: string; language: string };
+    type CommitInfo = { hash: string; shortHash: string; message: string; date: string; author: string; files: FileChange[] };
 
-    const files: { path: string; original: string; modified: string; language: string }[] = [];
+    const commits: CommitInfo[] = [];
 
-    for (const filePath of filePaths) {
-      const absolutePath = filePath.startsWith("/") || filePath.match(/^[A-Za-z]:/)
-        ? filePath
-        : join(project.path, filePath);
-
-      // Get original from git (HEAD version)
-      const relPath = filePath.startsWith("/") || filePath.match(/^[A-Za-z]:/)
-        ? filePath.replace(project.path.replace(/\\/g, "/"), "").replace(/^[\\/]/, "")
-        : filePath;
-
-      const gitResult = await execFileNoThrow(
+    if (task.branch) {
+      // Get commits on the task branch that are not on the base branch
+      const logResult = await execFileNoThrow(
         "git",
-        ["show", `HEAD:${relPath.replace(/\\/g, "/")}`],
+        ["log", "--format=%H|%h|%s|%aI|%an", `${baseBranch}..${task.branch}`],
+        { cwd: project.path, timeout: 10000 }
+      );
+
+      if (!logResult.error && logResult.stdout.trim()) {
+        const commitLines = logResult.stdout.trim().split("\n").filter(Boolean);
+
+        for (const line of commitLines) {
+          const [hash, shortHash, message, date, author] = line.split("|");
+          if (!hash) continue;
+
+          // Get list of changed files for this commit
+          const diffTreeResult = await execFileNoThrow(
+            "git",
+            ["diff-tree", "--no-commit-id", "-r", "--name-only", hash],
+            { cwd: project.path, timeout: 5000 }
+          );
+
+          const changedFiles = diffTreeResult.stdout?.trim().split("\n").filter(Boolean) ?? [];
+          const files: FileChange[] = [];
+
+          for (const filePath of changedFiles) {
+            // Get file content BEFORE this commit (parent)
+            const beforeResult = await execFileNoThrow(
+              "git",
+              ["show", `${hash}^:${filePath}`],
+              { cwd: project.path, timeout: 5000 }
+            );
+            const original = beforeResult.error ? "" : beforeResult.stdout;
+
+            // Get file content AFTER this commit
+            const afterResult = await execFileNoThrow(
+              "git",
+              ["show", `${hash}:${filePath}`],
+              { cwd: project.path, timeout: 5000 }
+            );
+            const modified = afterResult.error ? "" : afterResult.stdout;
+
+            if (original === modified) continue;
+
+            const ext = extname(filePath).toLowerCase();
+            const language = LANG_MAP[ext] ?? "plaintext";
+            files.push({ path: filePath.replace(/\\/g, "/"), original, modified, language });
+          }
+
+          if (files.length > 0) {
+            commits.push({ hash, shortHash, message, date, author, files });
+          }
+        }
+      }
+
+      // Also check for uncommitted changes on the task branch
+      const currentBranchResult = await execFileNoThrow(
+        "git", ["rev-parse", "--abbrev-ref", "HEAD"],
         { cwd: project.path, timeout: 5000 }
       );
-      const original = gitResult.error ? "" : gitResult.stdout;
+      const currentBranch = currentBranchResult.stdout?.trim() ?? "";
 
-      // Read current file from disk
-      let modified = "";
-      try {
-        modified = await readFile(absolutePath, "utf-8");
-      } catch {
-        // File might have been deleted
-        modified = "";
+      if (currentBranch === task.branch) {
+        const uncommittedResult = await execFileNoThrow(
+          "git", ["diff", "--name-only", "HEAD"],
+          { cwd: project.path, timeout: 5000 }
+        );
+        const uncommittedFiles = uncommittedResult.stdout?.trim().split("\n").filter(Boolean) ?? [];
+
+        if (uncommittedFiles.length > 0) {
+          const files: FileChange[] = [];
+          for (const filePath of uncommittedFiles) {
+            const headResult = await execFileNoThrow(
+              "git", ["show", `HEAD:${filePath}`],
+              { cwd: project.path, timeout: 5000 }
+            );
+            const original = headResult.error ? "" : headResult.stdout;
+
+            let modified = "";
+            try {
+              modified = await readFile(join(project.path, filePath), "utf-8");
+            } catch { modified = ""; }
+
+            if (original === modified) continue;
+
+            const ext = extname(filePath).toLowerCase();
+            const language = LANG_MAP[ext] ?? "plaintext";
+            files.push({ path: filePath.replace(/\\/g, "/"), original, modified, language });
+          }
+
+          if (files.length > 0) {
+            commits.unshift({
+              hash: "uncommitted",
+              shortHash: "uncommitted",
+              message: "Alterações não commitadas",
+              date: new Date().toISOString(),
+              author: "",
+              files,
+            });
+          }
+        }
       }
-
-      const ext = extname(filePath).toLowerCase();
-      const language = LANG_MAP[ext] ?? "plaintext";
-
-      files.push({ path: relPath.replace(/\\/g, "/"), original, modified, language });
     }
 
-    res.json({ files });
+    // Flatten all files for backward compat (legacy `files` field)
+    const allFiles: FileChange[] = [];
+    for (const c of commits) {
+      for (const f of c.files) {
+        if (!allFiles.some((af) => af.path === f.path)) {
+          allFiles.push(f);
+        }
+      }
+    }
+
+    res.json({ commits, files: allFiles });
   } catch (error) {
     logger.error(`Failed to get task changes: ${error}`, "tasks-router");
     res.status(500).json({ error: "Failed to get task changes" });

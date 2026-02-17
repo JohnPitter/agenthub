@@ -8,7 +8,7 @@ import { encrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? crypto.randomBytes(32).toString("hex");
-const JWT_EXPIRES_IN = "7d";
+const JWT_EXPIRES_IN = "30m";
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID ?? "";
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET ?? "";
@@ -32,7 +32,7 @@ export function getGitHubAuthUrl(): string {
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
     redirect_uri: GITHUB_CALLBACK_URL,
-    scope: "read:user user:email",
+    scope: "read:user user:email repo",
   });
   return `https://github.com/login/oauth/authorize?${params}`;
 }
@@ -107,4 +107,12 @@ export function signJWT(payload: JWTPayload): string {
 
 export function verifyJWT(token: string): JWTPayload {
   return jwt.verify(token, JWT_SECRET) as JWTPayload;
+}
+
+export function verifyJWTIgnoringExpiry(token: string): JWTPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as JWTPayload;
+  } catch {
+    return null;
+  }
 }

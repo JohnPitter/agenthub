@@ -5,6 +5,7 @@ import {
   fetchGitHubUser,
   upsertUser,
   signJWT,
+  verifyJWTIgnoringExpiry,
 } from "../services/auth-service.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { db } from "@agenthub/database";
@@ -58,6 +59,58 @@ authRouter.get("/github/callback", async (req, res) => {
 // Logout — clear cookie
 authRouter.post("/logout", (_req, res) => {
   res.clearCookie("agenthub_token", { path: "/" });
+  res.json({ ok: true });
+});
+
+// Silent token refresh — re-issue JWT if the old one is still valid (or recently expired)
+authRouter.post("/refresh", async (req, res) => {
+  const token = req.cookies?.agenthub_token;
+
+  if (!token) {
+    res.status(401).json({ error: "No token" });
+    return;
+  }
+
+  const payload = verifyJWTIgnoringExpiry(token);
+  if (!payload) {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  // Reject tokens older than 7 days (absolute session limit)
+  const iat = (payload as any).iat as number | undefined;
+  if (iat && Date.now() / 1000 - iat > 7 * 24 * 60 * 60) {
+    res.status(401).json({ error: "Session expired" });
+    return;
+  }
+
+  // Verify user still exists
+  const user = await db.select({ id: schema.users.id })
+    .from(schema.users)
+    .where(eq(schema.users.id, payload.userId))
+    .get();
+
+  if (!user) {
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
+
+  // Issue fresh JWT
+  const newToken = signJWT({
+    userId: payload.userId,
+    githubId: payload.githubId,
+    login: payload.login,
+  });
+
+  res.cookie("agenthub_token", newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
+
+  logger.debug(`Token refreshed for user ${payload.login}`, "auth");
   res.json({ ok: true });
 });
 

@@ -123,6 +123,17 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS idx_agent_memories_agent ON agent_memories(agent_id)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_memories_project ON agent_memories(agent_id, project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_users_github_id ON users(github_id)`,
+  `CREATE TABLE IF NOT EXISTS docs (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL DEFAULT '',
+    category TEXT,
+    icon TEXT,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_docs_category ON docs(category)`,
 ];
 
 // Columns added after initial table creation — safe to re-run
@@ -130,6 +141,8 @@ const alterStatements = [
   `ALTER TABLE integrations ADD COLUMN project_id TEXT`,
   `ALTER TABLE integrations ADD COLUMN credentials TEXT`,
   `ALTER TABLE agents ADD COLUMN soul TEXT`,
+  `ALTER TABLE docs ADD COLUMN parent_id TEXT`,
+  `ALTER TABLE docs ADD COLUMN "order" INTEGER NOT NULL DEFAULT 0`,
 ];
 
 async function migrate() {
@@ -149,6 +162,9 @@ async function migrate() {
       if (!msg.includes("duplicate column")) throw err;
     }
   }
+
+  // Indexes that depend on columns added by alterStatements
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_docs_parent ON docs(parent_id)`);
 
   console.log("Migration completed successfully.");
   process.exit(0);

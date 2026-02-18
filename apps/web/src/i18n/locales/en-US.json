@@ -380,6 +380,13 @@
     "thinking": "Thinking...",
     "noMessages": "No messages yet"
   },
+  "thread": {
+    "replies": "replies",
+    "reply": "Reply",
+    "replyPlaceholder": "Write a reply...",
+    "close": "Close thread",
+    "noReplies": "No replies yet"
+  },
   "whatsapp": {
     "title": "WhatsApp",
     "desc": "Connect WhatsApp to manage tasks and communicate with agents",

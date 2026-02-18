@@ -6,6 +6,7 @@ import { useMessages } from "../../hooks/use-messages";
 import { useSocket } from "../../hooks/use-socket";
 import { MessageList } from "./message-list";
 import { ChatInput } from "./chat-input";
+import { ThreadView } from "./thread-view";
 import type { Message } from "@agenthub/shared";
 
 export function ChatPanel() {
@@ -18,7 +19,9 @@ export function ChatPanel() {
   const addMessage = useChatStore((s) => s.addMessage);
   const setStreamingAgent = useChatStore((s) => s.setStreamingAgent);
   const updateAgentActivity = useChatStore((s) => s.updateAgentActivity);
-  const { sendMessage: sendHttp, loadMoreMessages } = useMessages(projectId);
+  const activeThread = useChatStore((s) => s.activeThread);
+  const setActiveThread = useChatStore((s) => s.setActiveThread);
+  const { sendMessage: sendHttp, loadMoreMessages, loadThreadReplies } = useMessages(projectId);
 
   // Wire socket events -> chat store
   const { sendMessage: sendSocket } = useSocket(projectId, {
@@ -210,6 +213,23 @@ export function ChatPanel() {
     sendSocket(content, agentId);
   };
 
+  const handleReply = (messageId: string) => {
+    const msg = messages.find((m) => m.id === messageId);
+    if (msg) setActiveThread(msg);
+  };
+
+  const handleOpenThread = (message: Message) => {
+    setActiveThread(message);
+  };
+
+  const handleSendReply = (content: string, parentMessageId: string) => {
+    sendHttp(content, parentMessageId);
+  };
+
+  const handleCloseThread = () => {
+    setActiveThread(null);
+  };
+
   // Don't render if no active project
   if (!activeProjectId) {
     return null;
@@ -218,31 +238,51 @@ export function ChatPanel() {
   return (
     <div
       className={cn(
-        "flex h-full flex-col glass-strong transition-all duration-300 border-r border-stroke2",
-        chatPanelOpen ? "w-[360px]" : "w-0 overflow-hidden",
+        "flex h-full transition-all duration-300 border-r border-stroke2",
+        chatPanelOpen ? (activeThread ? "w-[680px]" : "w-[360px]") : "w-0 overflow-hidden",
       )}
     >
-      {/* Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-4 border-b border-stroke2 bg-gradient-to-r from-brand-light/20 to-transparent">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-purple shadow-brand">
-            <MessageSquare className="h-4 w-4 text-white" />
+      {/* Main chat column */}
+      <div className="flex h-full w-[360px] shrink-0 flex-col glass-strong">
+        {/* Header */}
+        <div className="flex h-14 shrink-0 items-center justify-between px-4 border-b border-stroke2 bg-gradient-to-r from-brand-light/20 to-transparent">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-purple shadow-brand">
+              <MessageSquare className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-[13px] font-semibold text-neutral-fg1">Chat</span>
           </div>
-          <span className="text-[13px] font-semibold text-neutral-fg1">Chat</span>
+          <button
+            onClick={toggleChatPanel}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          onClick={toggleChatPanel}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
+
+        {/* Messages */}
+        <MessageList
+          messages={messages}
+          onLoadMore={loadMoreMessages}
+          onReply={handleReply}
+          onOpenThread={handleOpenThread}
+        />
+
+        {/* Input */}
+        <ChatInput onSend={handleSend} agents={agents} />
       </div>
 
-      {/* Messages */}
-      <MessageList messages={messages} onLoadMore={loadMoreMessages} />
-
-      {/* Input */}
-      <ChatInput onSend={handleSend} agents={agents} />
+      {/* Thread panel */}
+      {activeThread && (
+        <div className="h-full w-[320px] shrink-0">
+          <ThreadView
+            parentMessage={activeThread}
+            onClose={handleCloseThread}
+            onSendReply={handleSendReply}
+            onLoadReplies={loadThreadReplies}
+          />
+        </div>
+      )}
     </div>
   );
 }

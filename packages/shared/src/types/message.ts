@@ -20,5 +20,6 @@ export interface Message {
   metadata: string | null;
   parentMessageId: string | null;
   isThinking: boolean;
+  replyCount?: number;
   createdAt: Date;
 }

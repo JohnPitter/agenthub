@@ -380,6 +380,13 @@
     "thinking": "思考中...",
     "noMessages": "メッセージはまだありません"
   },
+  "thread": {
+    "replies": "件の返信",
+    "reply": "返信",
+    "replyPlaceholder": "返信を書く...",
+    "close": "スレッドを閉じる",
+    "noReplies": "まだ返信はありません"
+  },
   "whatsapp": {
     "title": "WhatsApp",
     "desc": "WhatsApp を接続してタスク管理とエージェントとのコミュニケーション",

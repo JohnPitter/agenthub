@@ -9,9 +9,11 @@ import type { Message } from "@agenthub/shared";
 interface MessageListProps {
   messages: Message[];
   onLoadMore: () => void;
+  onReply?: (messageId: string) => void;
+  onOpenThread?: (message: Message) => void;
 }
 
-export function MessageList({ messages, onLoadMore }: MessageListProps) {
+export function MessageList({ messages, onLoadMore, onReply, onOpenThread }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
@@ -80,6 +82,8 @@ export function MessageList({ messages, onLoadMore }: MessageListProps) {
             key={msg.id}
             message={msg}
             agent={msg.agentId ? agents.find((a) => a.id === msg.agentId) : undefined}
+            onReply={onReply}
+            onOpenThread={onOpenThread}
           />
         ))}
       </div>

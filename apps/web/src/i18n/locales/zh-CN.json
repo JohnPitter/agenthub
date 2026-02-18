@@ -380,6 +380,13 @@
     "thinking": "思考中...",
     "noMessages": "暂无消息"
   },
+  "thread": {
+    "replies": "条回复",
+    "reply": "回复",
+    "replyPlaceholder": "写一条回复...",
+    "close": "关闭讨论串",
+    "noReplies": "暂无回复"
+  },
   "whatsapp": {
     "title": "WhatsApp",
     "desc": "连接 WhatsApp 以管理任务并与智能体通信",

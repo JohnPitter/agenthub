@@ -16,6 +16,8 @@ interface ChatState {
   agentActivity: Map<string, AgentActivityInfo>;
   isLoadingMessages: boolean;
   hasMoreMessages: boolean;
+  activeThread: Message | null;
+  threadReplies: Message[];
 
   addMessage: (message: Message) => void;
   addMessages: (messages: Message[], prepend?: boolean) => void;
@@ -24,6 +26,10 @@ interface ChatState {
   setLoadingMessages: (loading: boolean) => void;
   setHasMoreMessages: (hasMore: boolean) => void;
   clearMessages: () => void;
+  setActiveThread: (message: Message | null) => void;
+  setThreadReplies: (replies: Message[]) => void;
+  addThreadReply: (reply: Message) => void;
+  incrementReplyCount: (messageId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -32,6 +38,8 @@ export const useChatStore = create<ChatState>((set) => ({
   agentActivity: new Map(),
   isLoadingMessages: false,
   hasMoreMessages: true,
+  activeThread: null,
+  threadReplies: [],
 
   addMessage: (message) =>
     set((state) => ({ messages: [...state.messages, message] })),
@@ -61,5 +69,16 @@ export const useChatStore = create<ChatState>((set) => ({
 
   setLoadingMessages: (loading) => set({ isLoadingMessages: loading }),
   setHasMoreMessages: (hasMore) => set({ hasMoreMessages: hasMore }),
-  clearMessages: () => set({ messages: [], hasMoreMessages: true }),
+  clearMessages: () => set({ messages: [], hasMoreMessages: true, activeThread: null, threadReplies: [] }),
+
+  setActiveThread: (message) => set({ activeThread: message, threadReplies: [] }),
+  setThreadReplies: (replies) => set({ threadReplies: replies }),
+  addThreadReply: (reply) =>
+    set((state) => ({ threadReplies: [...state.threadReplies, reply] })),
+  incrementReplyCount: (messageId) =>
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === messageId ? { ...m, replyCount: (m.replyCount ?? 0) + 1 } : m,
+      ),
+    })),
 }));

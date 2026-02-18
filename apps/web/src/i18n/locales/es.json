@@ -380,6 +380,13 @@
     "thinking": "Pensando...",
     "noMessages": "No hay mensajes aún"
   },
+  "thread": {
+    "replies": "respuestas",
+    "reply": "Responder",
+    "replyPlaceholder": "Escribe una respuesta...",
+    "close": "Cerrar hilo",
+    "noReplies": "Sin respuestas aún"
+  },
   "whatsapp": {
     "title": "WhatsApp",
     "desc": "Conecta WhatsApp para gestionar tareas y comunicarte con agentes",

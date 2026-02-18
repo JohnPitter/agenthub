@@ -13,6 +13,9 @@ export function useMessages(projectId: string | undefined) {
   const clearMessages = useChatStore((s) => s.clearMessages);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
+  const setThreadReplies = useChatStore((s) => s.setThreadReplies);
+  const addThreadReply = useChatStore((s) => s.addThreadReply);
+  const incrementReplyCount = useChatStore((s) => s.incrementReplyCount);
 
   const offsetRef = useRef(0);
 
@@ -31,7 +34,7 @@ export function useMessages(projectId: string | undefined) {
       setLoadingMessages(true);
       try {
         const data = await api<{ messages: Message[] }>(
-          `/messages?projectId=${projectId}&limit=${LIMIT}&offset=${offset}`,
+          `/messages?projectId=${projectId}&limit=${LIMIT}&offset=${offset}&parentId=null`,
         );
 
         const msgs = data.messages;
@@ -58,11 +61,24 @@ export function useMessages(projectId: string | undefined) {
     }
   }, [hasMoreMessages, isLoadingMessages, loadMessages]);
 
+  const loadThreadReplies = useCallback(
+    async (messageId: string) => {
+      try {
+        const data = await api<{ replies: Message[] }>(
+          `/messages/${messageId}/replies`,
+        );
+        setThreadReplies(data.replies);
+      } catch {
+        // Silently fail
+      }
+    },
+    [setThreadReplies],
+  );
+
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, parentMessageId?: string) => {
       if (!projectId || !content.trim()) return;
 
-      // Optimistically add to store
       const optimistic: Message = {
         id: `temp_${Date.now()}`,
         projectId,
@@ -72,23 +88,33 @@ export function useMessages(projectId: string | undefined) {
         content: content.trim(),
         contentType: "text",
         metadata: null,
-        parentMessageId: null,
+        parentMessageId: parentMessageId ?? null,
         isThinking: false,
         createdAt: new Date(),
       };
-      addMessage(optimistic);
+
+      if (parentMessageId) {
+        addThreadReply(optimistic);
+        incrementReplyCount(parentMessageId);
+      } else {
+        addMessage(optimistic);
+      }
 
       try {
         await api<{ message: Message }>("/messages", {
           method: "POST",
-          body: JSON.stringify({ projectId, content: content.trim() }),
+          body: JSON.stringify({
+            projectId,
+            content: content.trim(),
+            ...(parentMessageId && { parentMessageId }),
+          }),
         });
       } catch {
         // Message was already added optimistically
       }
     },
-    [projectId, addMessage],
+    [projectId, addMessage, addThreadReply, incrementReplyCount],
   );
 
-  return { sendMessage, loadMoreMessages };
+  return { sendMessage, loadMoreMessages, loadThreadReplies };
 }

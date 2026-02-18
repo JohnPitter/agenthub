@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.0] - 2026-02-18
+
+### Fase 23: Message Threading
+
+#### Fase 23A: Backend — Thread-aware Messages API
+
+##### Added
+
+- **Thread-aware GET /api/messages** (`apps/orchestrator/src/routes/messages.ts`)
+  - Query param `parentId=null` filtra apenas mensagens raiz (não replies)
+  - `replyCount` calculado via SQL subquery para cada mensagem raiz
+  - Query param `taskId` para filtrar mensagens por task
+  - Paginação mantida com offset/limit
+
+- **GET /api/messages/:id/replies** — novo endpoint para buscar replies de uma thread
+  - Ordenado por `createdAt ASC` (cronológico)
+  - Paginação com offset/limit
+
+- **`replyCount`** adicionado ao tipo `Message` (`packages/shared/src/types/message.ts`)
+
+##### Changed
+
+- `POST /api/messages` agora passa `parentMessageId` do req.body corretamente
+
+#### Fase 23B: Frontend — Thread UI
+
+##### Added
+
+- **Thread View** (`apps/web/src/components/chat/thread-view.tsx`)
+  - Painel slide-in dentro do chat mostrando mensagem pai + replies
+  - Fetch de replies via GET /api/messages/:id/replies
+  - Input de reply no rodapé, botão fechar no header
+  - Auto-scroll para novas replies
+
+- **Reply button** em `message-bubble.tsx` — aparece no hover (opacity-0 → group-hover:opacity-100)
+- **Reply count badge** — clicável para abrir thread ("N replies")
+
+- **i18n**: chaves `thread.*` em 5 locales (pt-BR, en-US, es, ja, zh-CN)
+  - replies, reply, replyPlaceholder, close, noReplies
+
+##### Changed
+
+- `apps/web/src/stores/chat-store.ts` — activeThread, threadReplies state, setActiveThread(), addThreadReply()
+- `apps/web/src/hooks/use-messages.ts` — loadThreadReplies(), filtro parentId=null para mensagens raiz
+- `apps/web/src/components/chat/chat-panel.tsx` — integração do ThreadView
+- `apps/web/src/components/chat/message-list.tsx` — ajuste para thread context
+
+##### Stats
+
+- **Testes:** 169 passando (sem regressões)
+- **Arquivos criados:** 1 (thread-view.tsx)
+- **Arquivos modificados:** 12
+
+---
+
 ## [0.22.0] - 2026-02-18
 
 ### Fase 22: Docs Auto-Generation

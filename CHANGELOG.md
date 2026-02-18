@@ -2,6 +2,201 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.1] - 2026-02-18
+
+### Fase 17A: WhatsApp Auto-Reconnect + Single Number Whitelist
+
+#### Added
+
+- **WhatsApp Auto-Reconnect** (`apps/orchestrator/src/integrations/whatsapp-service.ts`)
+  - `restoreWhatsAppSessions()` — ao iniciar o orchestrator, consulta DB por integrações com `status = "connected"` e reconecta automaticamente via tokens salvos pelo wppconnect (sem QR code)
+  - Chamado fire-and-forget em `index.ts` após `httpServer.listen()`
+
+- **Single Number Whitelist** (`apps/orchestrator/src/integrations/whatsapp-service.ts`)
+  - Campo `allowedNumber` no `WhatsAppServiceConfig`
+  - Filtro em `onMessage` — compara sender (sem `@c.us`) com número autorizado (stripped de não-dígitos)
+  - Mensagens de números não autorizados são bloqueadas e logadas
+  - `updateAllowedNumber()` para atualização em memória sem reconexão
+
+- **Config Endpoint** (`apps/orchestrator/src/routes/integrations.ts`)
+  - `PUT /api/integrations/whatsapp/config` — atualiza `allowedNumber` no DB e em memória
+  - `POST /connect` agora aceita e persiste `allowedNumber` no campo `config` (JSON)
+  - `GET /status` retorna `allowedNumber` do config
+
+- **UI de Número Autorizado** (`apps/web/src/components/integrations/whatsapp-config.tsx`)
+  - Input "Número autorizado" com ícone Shield
+  - Botão "Salvar" com estado visual (changed/saved)
+  - Número enviado no request de conexão
+  - Texto explicativo: "Apenas este número poderá enviar mensagens para o sistema"
+
+#### Changed
+
+- `apps/orchestrator/src/index.ts` — import e chamada de `restoreWhatsAppSessions()` no startup
+- `apps/orchestrator/src/routes/integrations.ts` — connect e status endpoints atualizados para `allowedNumber`
+
+#### Security
+
+- Whitelist de número único previne acesso não autorizado via WhatsApp
+- Mensagens de números não autorizados são rejeitadas antes de qualquer processamento
+
+#### Arquivos Modificados
+
+- `apps/orchestrator/src/integrations/whatsapp-service.ts`
+- `apps/orchestrator/src/routes/integrations.ts`
+- `apps/orchestrator/src/index.ts`
+- `apps/web/src/components/integrations/whatsapp-config.tsx`
+
+---
+
+## [0.17.0] - 2026-02-18
+
+### Fase 17: OpenAI Responses API + i18n + Model Updates
+
+#### Added
+
+- **OpenAI Session** (`apps/orchestrator/src/agents/openai-session.ts`)
+  - Agentic loop com OpenAI Responses API (máx 50 iterações)
+  - 6 tools built-in: Read, Write, Edit, Glob, Grep, Bash
+  - Suporte a API key direta e Codex OAuth (`~/.codex/auth.json`)
+  - `OAUTH_MODEL_MAP` — traduz modelos padrão (gpt-4.1, o3, o4-mini) para família gpt-5.x-codex compatível com backend ChatGPT
+  - Multi-turn sem `previous_response_id` para OAuth (rebuild completo da conversa a cada turno)
+  - 3-tier credential resolution: env var → OAuth → DB integrations
+  - Path validation e sandbox por projeto
+  - Pricing table para cálculo de custo (input/output tokens)
+  - Cancel via `AbortController`
+
+- **Codex OAuth Service** (`apps/orchestrator/src/services/codex-oauth.ts`)
+  - Leitura de `~/.codex/auth.json` com token refresh automático
+  - Endpoint para status de autenticação OAuth
+
+- **OpenAI Routes** (`apps/orchestrator/src/routes/openai.ts`)
+  - `POST /api/openai/execute` — executa task com agente OpenAI
+  - `GET /api/openai/status` — status de sessão ativa
+
+- **Codex OAuth Routes** (`apps/orchestrator/src/routes/codex-oauth.ts`)
+  - `GET /api/codex-oauth/status` — verifica se OAuth está configurado
+  - `POST /api/codex-oauth/refresh` — força refresh do token
+
+- **i18n** (`apps/web/src/i18n/`)
+  - `react-i18next` configurado com 5 locales: pt-BR, en-US, es, zh-CN, ja
+  - Todos os componentes e rotas migrados para usar `useTranslation()`
+  - Locale files com 200+ chaves de tradução
+
+- **Flow Tests** (`apps/orchestrator/test-openai-session.ts`)
+  - 22 testes de fluxo cobrindo: imports, construção, credenciais, tools, pricing, abort, EventBus, API real
+
+#### Changed
+
+- **Model Lists** (`packages/shared/src/types/agent.ts`)
+  - Adicionado `claude-sonnet-4-6` (Claude Sonnet 4.6) aos CLAUDE_MODELS
+  - Adicionado `gpt-4.1-nano` (GPT-4.1 Nano) e `codex-mini` (Codex Mini) aos OPENAI_MODELS
+  - MODEL_LABELS atualizados em `agent-card.tsx`, `agent-config-panel.tsx`, `agents.tsx`
+
+- **UI Improvements**
+  - `workflow-editor.tsx` — Editor de workflow expandido com melhor UX
+  - `app-sidebar.tsx` — Sidebar com navegação atualizada
+  - `header.tsx` — Header com melhorias visuais
+  - `settings.tsx` — Página de configurações expandida com usage tracking
+  - `dashboard.tsx` — Dashboard com dados atualizados
+  - `tasks.tsx` — Rota de tasks com filtros e ordenação melhorados
+  - `kanban-card.tsx` / `kanban-column.tsx` — Board com ajustes visuais
+  - `active-agent-bar.tsx` — Barra de agentes ativos atualizada
+
+- **Backend**
+  - `agent-manager.ts` — Integração com OpenAI sessions
+  - `agent-prompts.ts` — Prompts expandidos para novos roles
+  - `event-bus.ts` / `socket-handler.ts` — Novos eventos para OpenAI sessions
+  - `usage.ts` — Endpoint de usage expandido
+  - `tasks.ts` — Rotas de tasks melhoradas
+
+- `apps/web/src/stores/usage-store.ts` — Store para tracking de uso de tokens/custo
+- `packages/shared/src/types/events.ts` — Novos event types para OpenAI sessions
+- `packages/shared/src/constants/agents.ts` / `souls.ts` — Constantes atualizadas
+- `packages/database/src/seed.ts` — Seed atualizado com novos modelos
+
+#### Security
+
+- Credenciais OAuth nunca logadas em plain text
+- Path traversal protection em todas as operações de arquivo do OpenAI session
+- Sandbox por projeto: tools só acessam arquivos dentro do diretório do projeto
+
+#### Arquivos Criados
+
+- `apps/orchestrator/src/agents/openai-session.ts`
+- `apps/orchestrator/src/services/codex-oauth.ts`
+- `apps/orchestrator/src/routes/openai.ts`
+- `apps/orchestrator/src/routes/codex-oauth.ts`
+- `apps/orchestrator/test-openai-session.ts`
+- `apps/web/src/i18n/i18n.ts`
+- `apps/web/src/i18n/locales/pt-BR.json`
+- `apps/web/src/i18n/locales/en-US.json`
+- `apps/web/src/i18n/locales/es.json`
+- `apps/web/src/i18n/locales/zh-CN.json`
+- `apps/web/src/i18n/locales/ja.json`
+
+---
+
+## [0.16.0] - 2026-02-17
+
+### Fase 16: GitHub Repos + Docs + WhatsApp Ops + JWT Refresh
+
+#### Added
+
+- **GitHub Repos no Dashboard** (`apps/web/src/routes/dashboard.tsx`)
+  - Listagem de repositórios GitHub do usuário autenticado
+  - Import de repos como projetos com paginação e busca
+  - OAuth scope expandido para acesso a repos privados
+
+- **Knowledge Base** (`apps/web/src/routes/docs.tsx`, `apps/orchestrator/src/routes/docs.ts`)
+  - Página `/docs` com editor Monaco markdown + preview side-by-side
+  - CRUD de documentos via API REST
+  - Schema `docs` adicionado ao database
+
+- **WhatsApp Receptionist** (`apps/orchestrator/src/integrations/whatsapp-ops.ts`)
+  - Serviço de recepcionista com operações em linguagem natural
+  - 522 linhas de lógica de operações WhatsApp
+  - Integração com `receptionist-service.ts` para processamento de mensagens
+
+- **Task Detail Drawer** (`apps/web/src/components/tasks/task-detail-drawer.tsx`)
+  - Drawer lateral com detalhes completos da task
+  - Histórico de atividades, arquivos modificados, resultado
+
+- **Agent Avatars** — Avatares visuais para agentes com cores customizadas
+
+- **JWT Silent Refresh** (`apps/web/src/stores/auth-store.ts`, `apps/orchestrator/src/routes/auth.ts`)
+  - Tokens short-lived (30min) com refresh silencioso automático
+  - Protected route atualizado com retry de autenticação
+
+#### Changed
+
+- `apps/orchestrator/src/agents/agent-manager.ts` — Expansão significativa (+320 linhas) com melhorias de gerenciamento
+- `apps/orchestrator/src/agents/agent-prompts.ts` — Prompts expandidos para novos cenários
+- `apps/orchestrator/src/routes/tasks.ts` — Filtros avançados, ordenação e operações bulk
+- `apps/orchestrator/src/routes/usage.ts` — Endpoints de uso expandidos
+- `apps/orchestrator/src/routes/dashboard.ts` — Stats com repos GitHub
+- `apps/orchestrator/src/lib/encryption.ts` — Persistência de encryption key em dev mode
+- `apps/web/src/routes/tasks.tsx` — UI de tasks expandida com filtros e ordenação
+- `apps/web/src/components/board/kanban-card.tsx` — Cards do board redesenhados
+- `apps/web/src/components/tasks/task-changes-dialog.tsx` — Dialog de mudanças expandido
+- `apps/web/src/lib/markdown.tsx` — Renderer markdown melhorado
+- `packages/database/src/seed.ts` — Seed com novos agentes e dados
+- `packages/shared/src/constants/agents.ts` / `souls.ts` — Novas constantes
+- `packages/shared/src/types/agent.ts` — Tipo AgentAvatar adicionado
+- `packages/shared/src/types/docs.ts` — Tipos para knowledge base
+- `packages/shared/src/types/project.ts` — Tipos expandidos para GitHub repos
+
+#### Arquivos Criados
+
+- `apps/orchestrator/src/agents/receptionist-service.ts`
+- `apps/orchestrator/src/integrations/whatsapp-ops.ts`
+- `apps/orchestrator/src/routes/docs.ts`
+- `apps/web/src/routes/docs.tsx`
+- `apps/web/src/components/tasks/task-detail-drawer.tsx`
+- `packages/database/src/schema/docs.ts`
+- `packages/shared/src/types/docs.ts`
+
+---
+
 ## [0.15.0] - 2026-02-16
 
 ### Fase 15: GitHub OAuth + Landing Page + Login

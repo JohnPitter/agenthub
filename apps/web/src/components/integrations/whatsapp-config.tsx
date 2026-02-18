@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Smartphone, Wifi, WifiOff, Loader2, QrCode, RefreshCw } from "lucide-react";
+import { Smartphone, Wifi, WifiOff, Loader2, QrCode, RefreshCw, Shield, Check } from "lucide-react";
 import { api } from "../../lib/utils";
 import { getSocket } from "../../lib/socket";
 import { cn } from "../../lib/utils";
@@ -20,16 +20,27 @@ export function WhatsAppConfig() {
   const [integrationId, setIntegrationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allowedNumber, setAllowedNumber] = useState("");
+  const [savedNumber, setSavedNumber] = useState<string | null>(null);
+  const [savingNumber, setSavingNumber] = useState(false);
 
   // Fetch current status
   const fetchStatus = useCallback(async () => {
     if (!activeProjectId) return;
     try {
-      const data = await api<{ status: ConnectionStatus; integrationId: string | null }>(
+      const data = await api<{
+        status: ConnectionStatus;
+        integrationId: string | null;
+        allowedNumber?: string | null;
+      }>(
         `/integrations/whatsapp/status?projectId=${activeProjectId}`
       );
       setStatus(data.status);
       setIntegrationId(data.integrationId);
+      if (data.allowedNumber) {
+        setAllowedNumber(data.allowedNumber);
+        setSavedNumber(data.allowedNumber);
+      }
       // If DB shows error from a previous failed attempt, show error message
       if (data.status === "error") {
         setError("Conexão anterior falhou. Clique em Conectar para tentar novamente.");
@@ -88,7 +99,10 @@ export function WhatsAppConfig() {
         "/integrations/whatsapp/connect",
         {
           method: "POST",
-          body: JSON.stringify({ projectId: activeProjectId }),
+          body: JSON.stringify({
+            projectId: activeProjectId,
+            allowedNumber: allowedNumber.trim() || undefined,
+          }),
         }
       );
       setStatus(data.status);
@@ -119,6 +133,27 @@ export function WhatsAppConfig() {
       setLoading(false);
     }
   };
+
+  const handleSaveNumber = async () => {
+    if (!activeProjectId) return;
+    setSavingNumber(true);
+    try {
+      await api("/integrations/whatsapp/config", {
+        method: "PUT",
+        body: JSON.stringify({
+          projectId: activeProjectId,
+          allowedNumber: allowedNumber.trim() || undefined,
+        }),
+      });
+      setSavedNumber(allowedNumber.trim() || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao salvar número");
+    } finally {
+      setSavingNumber(false);
+    }
+  };
+
+  const numberChanged = allowedNumber.trim() !== (savedNumber || "");
 
   const statusConfig: Record<ConnectionStatus, { label: string; color: string; icon: typeof Wifi }> = {
     disconnected: { label: "Desconectado", color: "text-neutral-fg3", icon: WifiOff },
@@ -180,6 +215,45 @@ export function WhatsAppConfig() {
           </div>
         </div>
       )}
+
+      {/* Allowed Number config */}
+      <div className="mb-4">
+        <label className="flex items-center gap-2 text-[12px] font-medium text-neutral-fg2 mb-2">
+          <Shield className="h-3.5 w-3.5" />
+          Número autorizado
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={allowedNumber}
+            onChange={(e) => setAllowedNumber(e.target.value)}
+            placeholder="5511999999999"
+            className="flex-1 rounded-lg border border-stroke bg-neutral-bg1 px-3 py-2 text-[13px] text-neutral-fg1 placeholder:text-neutral-fg3/50 focus:border-primary focus:outline-none"
+          />
+          {integrationId && (
+            <button
+              onClick={handleSaveNumber}
+              disabled={savingNumber || !numberChanged}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-medium transition-colors",
+                numberChanged
+                  ? "bg-primary text-white hover:bg-primary/90"
+                  : "border border-stroke bg-neutral-bg1 text-neutral-fg3",
+              )}
+            >
+              {savingNumber ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : savedNumber === allowedNumber.trim() && savedNumber ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : null}
+              Salvar
+            </button>
+          )}
+        </div>
+        <p className="mt-1.5 text-[11px] text-neutral-fg3">
+          Apenas este número poderá enviar mensagens para o sistema
+        </p>
+      </div>
 
       {/* Error message */}
       {error && (

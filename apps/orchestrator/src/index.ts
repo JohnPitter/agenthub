@@ -25,6 +25,7 @@ import { authRouter } from "./routes/auth.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { verifyJWT } from "./services/auth-service.js";
 import { logger } from "./lib/logger";
+import { restoreWhatsAppSessions } from "./integrations/whatsapp-service.js";
 import { taskTimeoutManager } from "./tasks/task-lifecycle";
 import { taskWatcher } from "./tasks/task-watcher.js";
 import { docsRouter } from "./routes/docs.js";
@@ -104,6 +105,11 @@ taskWatcher.start();
 
 httpServer.listen(PORT, () => {
   logger.info(`Orchestrator running on http://localhost:${PORT}`, "server");
+
+  // Auto-restore WhatsApp sessions (fire-and-forget)
+  restoreWhatsAppSessions().catch((err) => {
+    logger.error(`Failed to restore WhatsApp sessions: ${err}`, "whatsapp");
+  });
 });
 
 // Graceful shutdown

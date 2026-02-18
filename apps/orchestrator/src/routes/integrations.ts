@@ -16,11 +16,13 @@ const router = Router();
  */
 router.post("/integrations/whatsapp/connect", async (req: Request, res: Response) => {
   try {
-    const { projectId, linkedAgentId } = req.body;
+    const { projectId, linkedAgentId, allowedNumber } = req.body;
 
     if (!projectId) {
       return res.status(400).json({ error: "projectId is required" });
     }
+
+    const configJson = allowedNumber ? JSON.stringify({ allowedNumber }) : null;
 
     // Check if integration already exists
     let integration = await db.query.integrations.findFirst({
@@ -40,13 +42,19 @@ router.post("/integrations/whatsapp/connect", async (req: Request, res: Response
         type: "whatsapp",
         status: "disconnected",
         linkedAgentId: linkedAgentId || null,
-        config: null,
+        config: configJson,
         credentials: null,
       });
 
       integration = await db.query.integrations.findFirst({
         where: (integrations, { eq }) => eq(integrations.id, integrationId),
       });
+    } else if (configJson) {
+      // Update config on existing integration
+      await db
+        .update(schema.integrations)
+        .set({ config: configJson, updatedAt: new Date() })
+        .where(eq(schema.integrations.id, integration.id));
     }
 
     if (!integration) {
@@ -65,7 +73,7 @@ router.post("/integrations/whatsapp/connect", async (req: Request, res: Response
 
     // Initialize and connect WhatsApp service
     const whatsappService = getWhatsAppService(
-      { projectId, linkedAgentId },
+      { projectId, linkedAgentId, allowedNumber },
       integration.id
     );
 
@@ -116,10 +124,13 @@ router.get("/integrations/whatsapp/status", async (req: Request, res: Response) 
       return res.json({ status: "disconnected", integrationId: null });
     }
 
+    const config = integration.config ? JSON.parse(integration.config) : {};
+
     res.json({
       status: integration.status,
       integrationId: integration.id,
       lastConnectedAt: integration.lastConnectedAt,
+      allowedNumber: config.allowedNumber || null,
     });
   } catch (error) {
     logger.error(
@@ -186,6 +197,62 @@ router.post("/integrations/whatsapp/disconnect", async (req: Request, res: Respo
     );
     res.status(500).json({
       error: error instanceof Error ? error.message : "Failed to disconnect WhatsApp",
+    });
+  }
+});
+
+/**
+ * PUT /api/integrations/whatsapp/config
+ * Update WhatsApp config (allowedNumber) without reconnecting
+ * Body: { projectId: string, allowedNumber?: string }
+ */
+router.put("/integrations/whatsapp/config", async (req: Request, res: Response) => {
+  try {
+    const { projectId, allowedNumber } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const integration = await db.query.integrations.findFirst({
+      where: (integrations, { and, eq }) =>
+        and(
+          eq(integrations.projectId, projectId),
+          eq(integrations.type, "whatsapp"),
+        ),
+    });
+
+    if (!integration) {
+      return res.status(404).json({ error: "WhatsApp integration not found" });
+    }
+
+    // Merge with existing config
+    const existingConfig = integration.config ? JSON.parse(integration.config) : {};
+    const newConfig = { ...existingConfig, allowedNumber: allowedNumber || undefined };
+
+    await db
+      .update(schema.integrations)
+      .set({ config: JSON.stringify(newConfig), updatedAt: new Date() })
+      .where(eq(schema.integrations.id, integration.id));
+
+    // Update in-memory service config if running
+    try {
+      const service = getWhatsAppService();
+      service.updateAllowedNumber(allowedNumber || undefined);
+    } catch {
+      // Service not running, config saved to DB for next connect
+    }
+
+    logger.info(`WhatsApp config updated for project ${projectId}`, "whatsapp-route");
+
+    res.json({ success: true, allowedNumber: allowedNumber || null });
+  } catch (error) {
+    logger.error(
+      `WhatsApp config update error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      "whatsapp-route",
+    );
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to update WhatsApp config",
     });
   }
 });

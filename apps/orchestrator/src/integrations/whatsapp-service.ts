@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import path from "path";
 import fs from "fs";
 import { db, schema } from "@agenthub/database";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 import { eventBus } from "../realtime/event-bus.js";
 import { handleReceptionistMessage, type ContentBlock, type ReceptionistAction } from "../agents/receptionist-service.js";
@@ -24,6 +24,7 @@ const TOKEN_DIR = path.join(process.cwd(), "data", "whatsapp-tokens");
 interface WhatsAppServiceConfig {
   projectId: string;
   linkedAgentId?: string;
+  allowedNumber?: string;
 }
 
 export class WhatsAppService {
@@ -150,6 +151,16 @@ export class WhatsAppService {
     this.client.onMessage(async (msg: Message) => {
       try {
         if (msg.fromMe) return;
+
+        // Whitelist check — only allow messages from the authorized number
+        if (this.config.allowedNumber) {
+          const senderNumber = msg.from.replace("@c.us", "");
+          const allowed = this.config.allowedNumber.replace(/\D/g, "");
+          if (senderNumber !== allowed) {
+            logger.info(`Blocked message from unauthorized number: ${msg.from}`, "whatsapp");
+            return;
+          }
+        }
 
         const from = msg.from;
         const contactName =
@@ -586,6 +597,11 @@ export class WhatsAppService {
     };
   }
 
+  updateAllowedNumber(allowedNumber: string | undefined): void {
+    this.config.allowedNumber = allowedNumber;
+    logger.info(`Allowed number updated to: ${allowedNumber || "(none)"}`, "whatsapp");
+  }
+
   getConnectionStatus(): "disconnected" | "connecting" | "connected" | "error" {
     if (this.isConnecting) return "connecting";
     if (!this.client) return "disconnected";
@@ -644,4 +660,36 @@ export function getWhatsAppService(
 
 export function resetWhatsAppService(): void {
   whatsappServiceInstance = null;
+}
+
+export async function restoreWhatsAppSessions(): Promise<void> {
+  const connected = await db
+    .select()
+    .from(schema.integrations)
+    .where(
+      and(
+        eq(schema.integrations.type, "whatsapp"),
+        eq(schema.integrations.status, "connected"),
+      ),
+    )
+    .all();
+
+  if (connected.length === 0) {
+    logger.info("No WhatsApp sessions to restore", "whatsapp");
+    return;
+  }
+
+  for (const integration of connected) {
+    const config = integration.config ? JSON.parse(integration.config) : {};
+    const service = getWhatsAppService(
+      {
+        projectId: integration.projectId!,
+        linkedAgentId: integration.linkedAgentId ?? undefined,
+        allowedNumber: config.allowedNumber,
+      },
+      integration.id,
+    );
+    logger.info(`Auto-restoring WhatsApp session for integration ${integration.id}`, "whatsapp");
+    await service.connect();
+  }
 }

@@ -6,7 +6,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.15.0-purple?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.17.1-purple?style=for-the-badge)](CHANGELOG.md)
 
 **Multi-Agent Task Orchestration Platform powered by Claude Agent SDK**
 
@@ -88,7 +88,7 @@ pnpm dev
 | 📊 **Analytics Dashboard** | Agent metrics, trend charts, success rates |
 | 🔐 **Credential Storage** | AES-256-GCM encrypted secrets |
 | 🔄 **Remote Operations** | Push, pull, sync with conflict detection |
-| 📱 **Notifications** | WhatsApp, Telegram, and Slack integrations |
+| 📱 **Notifications** | WhatsApp (auto-reconnect + number whitelist), Telegram, Slack |
 | 🧠 **Autonomous Agents** | Soul system, memory, and task watcher |
 | 🖥️ **Dev Server Preview** | Live iframe preview with terminal output |
 

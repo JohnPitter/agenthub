@@ -3,6 +3,16 @@ import { resolve } from "path";
 
 export default defineConfig({
   test: {
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov"],
+      include: [
+        "apps/orchestrator/src/agents/**",
+        "apps/orchestrator/src/tasks/**",
+        "apps/orchestrator/src/workflows/**",
+        "apps/orchestrator/src/routes/**",
+      ],
+    },
     projects: [
       {
         test: {

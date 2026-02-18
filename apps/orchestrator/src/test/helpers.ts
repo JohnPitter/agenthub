@@ -32,6 +32,7 @@ const CREATE_STATEMENTS = [
     is_active INTEGER NOT NULL DEFAULT 1,
     color TEXT,
     avatar TEXT,
+    soul TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
@@ -100,10 +101,22 @@ const CREATE_STATEMENTS = [
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS workflows (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    nodes TEXT NOT NULL DEFAULT '[]',
+    edges TEXT NOT NULL DEFAULT '[]',
+    is_default INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`,
   `CREATE INDEX IF NOT EXISTS idx_messages_project ON messages(project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_task_logs_task ON task_logs(task_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id)`,
 ];
 
 export interface TestContext {
@@ -210,4 +223,66 @@ export async function createTestTask(
 
   await db.insert(schema.tasks).values(task);
   return task;
+}
+
+/**
+ * Helper to create a test workflow in the database.
+ */
+export async function createTestWorkflow(
+  db: LibSQLDatabase<typeof schema>,
+  projectId: string,
+  overrides?: Partial<typeof schema.workflows.$inferInsert>,
+) {
+  const workflow = {
+    id: nanoid(),
+    projectId,
+    name: "Test Workflow",
+    description: "A test workflow.",
+    nodes: JSON.stringify([]),
+    edges: JSON.stringify([]),
+    isDefault: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+
+  await db.insert(schema.workflows).values(workflow);
+  return workflow;
+}
+
+/**
+ * Helper to create a test task log in the database.
+ */
+export async function createTestTaskLog(
+  db: LibSQLDatabase<typeof schema>,
+  taskId: string,
+  overrides?: Partial<typeof schema.taskLogs.$inferInsert>,
+) {
+  const log = {
+    id: nanoid(),
+    taskId,
+    action: "status_change",
+    fromStatus: "created",
+    toStatus: "in_progress",
+    detail: "Test log entry",
+    createdAt: new Date(),
+    ...overrides,
+  };
+
+  await db.insert(schema.taskLogs).values(log);
+  return log;
+}
+
+/**
+ * Helper to clean all tables in the test database.
+ */
+export async function cleanTestDb(client: Client) {
+  await client.execute("DELETE FROM task_logs");
+  await client.execute("DELETE FROM messages");
+  await client.execute("DELETE FROM tasks");
+  await client.execute("DELETE FROM workflows");
+  await client.execute("DELETE FROM agent_project_configs");
+  await client.execute("DELETE FROM integrations");
+  await client.execute("DELETE FROM agents");
+  await client.execute("DELETE FROM projects");
 }

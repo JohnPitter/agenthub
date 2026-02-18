@@ -2,6 +2,116 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.0] - 2026-02-18
+
+### Fase 20: CI/CD + Test Coverage
+
+### Fase 20A: GitHub Actions Pipeline
+
+#### Added
+
+- **Security Audit Workflow** (`.github/workflows/security.yml`)
+  - Executa `pnpm audit --audit-level moderate` em PRs e semanalmente (segunda 6h)
+
+#### Changed
+
+- `.github/workflows/ci.yml` — branch corrigido de `main` para `master`, adicionado `pnpm build` antes de testes
+
+#### Configuração
+
+- `vitest.config.ts` (root) — adicionada configuração de coverage (v8 provider, text/html/lcov reporters)
+
+### Fase 20B: Testes Unitários
+
+#### Added
+
+- **Test Setup** (`apps/orchestrator/src/test/setup.ts`)
+  - Mock do logger para suprimir output durante testes
+  - Setup global para vitest
+
+- **Test Helpers** (`apps/orchestrator/src/test/helpers.ts`)
+  - `createTestApp()` — factory de Express app sem auth middleware para testes
+  - DB in-memory com migrations automáticas
+  - Seed de dados mínimos (projeto, agentes)
+
+- **WorkflowEngine Tests** (`apps/orchestrator/src/__tests__/workflow-engine.test.ts`) — 36 tests
+  - Topological sort: DAG linear, branches paralelas, formato diamante
+  - Validação: DAG válido, detecção de ciclos, nós desconectados, sem entry
+  - `getNextNodes()` com avaliação de condições
+  - `getEntryNodes()`, `getExecutionOrder()`
+
+- **WorkflowExecutor Tests** (`apps/orchestrator/src/__tests__/workflow-executor.test.ts`) — 10 tests
+  - Criação de subtasks, avanço do DAG
+  - Avaliação de condition nodes
+  - Mocks de DB e agent-manager
+
+- **Web Test Setup** (`apps/web/src/test/setup.ts`)
+  - Ambiente jsdom, mocks de matchMedia, IntersectionObserver, ResizeObserver
+  - Import de @testing-library/jest-dom matchers
+
+- **Web Tests** — 17 tests
+  - `utils.test.ts` — testes de utilidades
+  - `use-pull-requests.test.ts` — testes de hooks
+
+### Fase 20C: Testes de Integração — Routes API
+
+#### Added
+
+- **Tasks Route Tests** (`apps/orchestrator/src/__tests__/routes/tasks.test.ts`) — 27 tests
+  - POST /api/tasks — criação com 201
+  - GET /api/tasks — listagem paginada com filtros
+  - GET /api/tasks/:id — detalhe e 404
+  - PATCH /api/tasks/:id — atualização de campos
+  - DELETE /api/tasks/:id — deleção
+  - GET /api/tasks/:id/subtasks — subtasks
+  - GET /api/tasks/:id/logs — logs
+
+- **Projects Route Tests** (`apps/orchestrator/src/__tests__/routes/projects.test.ts`) — 15 tests
+  - CRUD completo de projetos
+  - Validação de input (campos obrigatórios)
+  - Paginação
+
+- **Workflows Route Tests** (`apps/orchestrator/src/__tests__/routes/workflows.test.ts`) — 22 tests
+  - CRUD completo de workflows
+  - POST /api/workflows/:id/set-default
+  - Validação de nodes/edges JSON
+  - Desmarcar default anterior ao definir novo
+
+- **Health/Agents Tests** — 12 tests adicionais
+  - Health check endpoint
+  - Agents CRUD
+
+#### Resultado Final
+
+- **162 testes passando** em 11 arquivos de teste
+- **2 ambientes**: orchestrator (node) + web (jsdom)
+- **Tempo total**: ~3.6s
+
+#### Arquivos Criados
+
+- `.github/workflows/security.yml`
+- `apps/orchestrator/src/test/setup.ts`
+- `apps/orchestrator/src/test/helpers.ts`
+- `apps/orchestrator/src/__tests__/workflow-engine.test.ts`
+- `apps/orchestrator/src/__tests__/workflow-executor.test.ts`
+- `apps/orchestrator/src/__tests__/routes/tasks.test.ts`
+- `apps/orchestrator/src/__tests__/routes/projects.test.ts`
+- `apps/orchestrator/src/__tests__/routes/workflows.test.ts`
+- `apps/orchestrator/src/__tests__/health.test.ts`
+- `apps/orchestrator/src/__tests__/agents.test.ts`
+- `apps/orchestrator/src/__tests__/projects.test.ts`
+- `apps/orchestrator/src/__tests__/tasks.test.ts`
+- `apps/web/src/test/setup.ts`
+- `apps/web/src/__tests__/utils.test.ts`
+- `apps/web/src/__tests__/use-pull-requests.test.ts`
+
+#### Arquivos Modificados
+
+- `.github/workflows/ci.yml`
+- `vitest.config.ts`
+
+---
+
 ## [0.19.0] - 2026-02-18
 
 ### Fase 19: Workflow Editor → Backend

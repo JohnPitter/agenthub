@@ -6,6 +6,8 @@ import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useUsageStore } from "../../stores/usage-store";
 import { AgentAvatar } from "../agents/agent-avatar";
+import { TeamSwitcher } from "../teams/team-switcher";
+import { useTeamStore } from "../../stores/team-store";
 import { api } from "../../lib/utils";
 import { cn } from "../../lib/utils";
 import type { Project } from "@agenthub/shared";
@@ -310,15 +312,17 @@ export function AppSidebar() {
   const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
   const agents = useWorkspaceStore((s) => s.agents);
   const agentActivity = useChatStore((s) => s.agentActivity);
+  const activeTeamId = useTeamStore((s) => s.activeTeamId);
   const { id: routeProjectId } = useParams();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    api<{ projects: Project[] }>("/projects").then(({ projects }) => {
+    const query = activeTeamId ? `?teamId=${activeTeamId}` : "";
+    api<{ projects: Project[] }>(`/projects${query}`).then(({ projects }) => {
       setProjects(projects);
     }).catch(() => {});
-  }, [setProjects]);
+  }, [setProjects, activeTeamId]);
 
   useEffect(() => {
     if (routeProjectId) setActiveProject(routeProjectId);
@@ -360,8 +364,11 @@ export function AppSidebar() {
         )}
       </div>
 
+      {/* Team Switcher */}
+      <TeamSwitcher collapsed={collapsed} />
+
       {/* Main Nav */}
-      <nav className="mt-6 flex flex-col gap-1.5 px-7">
+      <nav className="mt-4 flex flex-col gap-1.5 px-7">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(item.to);
           return (

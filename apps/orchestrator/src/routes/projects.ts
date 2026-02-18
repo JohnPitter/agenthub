@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { scanWorkspace } from "../workspace/scanner";
 import { fetchUserRepos } from "../services/github-service.js";
@@ -9,18 +9,25 @@ import { logger } from "../lib/logger.js";
 
 export const projectsRouter = Router();
 
-// GET /api/projects?limit=50&offset=0 — list projects
+// GET /api/projects?limit=50&offset=0&teamId=xxx — list projects
 projectsRouter.get("/", async (req, res) => {
   try {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+    const teamId = req.query.teamId as string | undefined;
 
-    const projects = await db
+    let query = db
       .select()
       .from(schema.projects)
       .orderBy(desc(schema.projects.updatedAt))
       .limit(limit)
       .offset(offset);
+
+    if (teamId) {
+      query = query.where(eq(schema.projects.teamId, teamId)) as typeof query;
+    }
+
+    const projects = await query;
     res.json({ projects });
   } catch (error) {
     logger.error(`Failed to list projects: ${error}`, "projects-route");
@@ -79,7 +86,7 @@ projectsRouter.get("/:id", async (req, res) => {
 // POST /api/projects — create project
 projectsRouter.post("/", async (req, res) => {
   try {
-    const { name, path, stack, icon, description } = req.body;
+    const { name, path, stack, icon, description, teamId } = req.body;
 
     const project = {
       id: nanoid(),
@@ -88,6 +95,7 @@ projectsRouter.post("/", async (req, res) => {
       stack: JSON.stringify(stack ?? []),
       icon: icon ?? null,
       description: description ?? null,
+      teamId: teamId ?? null,
       status: "active" as const,
       createdAt: new Date(),
       updatedAt: new Date(),

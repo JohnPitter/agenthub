@@ -397,6 +397,26 @@
     "disconnect": "Desconectar",
     "sendTest": "Enviar mensagem de teste"
   },
+  "teams": {
+    "title": "Times",
+    "create": "Criar Time",
+    "personal": "Pessoal",
+    "members": "Membros",
+    "invite": "Convidar Membro",
+    "invitePlaceholder": "Endereço de email",
+    "sendInvite": "Enviar Convite",
+    "removeMember": "Remover",
+    "changeRole": "Alterar Função",
+    "pendingInvites": "Convites Pendentes",
+    "noMembers": "Nenhum membro ainda",
+    "teamName": "Nome do Time",
+    "teamNamePlaceholder": "Meu Time",
+    "owner": "Proprietário",
+    "admin": "Admin",
+    "member": "Membro",
+    "viewer": "Visualizador",
+    "switchTeam": "Trocar Time"
+  },
   "docs": {
     "title": "Documentação",
     "noContent": "Nenhum conteúdo disponível",

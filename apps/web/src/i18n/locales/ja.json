@@ -397,6 +397,26 @@
     "disconnect": "切断",
     "sendTest": "テストメッセージを送信"
   },
+  "teams": {
+    "title": "チーム",
+    "create": "チームを作成",
+    "personal": "個人",
+    "members": "メンバー",
+    "invite": "メンバーを招待",
+    "invitePlaceholder": "メールアドレス",
+    "sendInvite": "招待を送信",
+    "removeMember": "削除",
+    "changeRole": "役割を変更",
+    "pendingInvites": "保留中の招待",
+    "noMembers": "まだメンバーがいません",
+    "teamName": "チーム名",
+    "teamNamePlaceholder": "マイチーム",
+    "owner": "オーナー",
+    "admin": "管理者",
+    "member": "メンバー",
+    "viewer": "閲覧者",
+    "switchTeam": "チームを切り替え"
+  },
   "docs": {
     "title": "ドキュメント",
     "noContent": "コンテンツがありません",

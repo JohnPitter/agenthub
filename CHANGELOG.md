@@ -2,6 +2,79 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0] - 2026-02-18
+
+### Fase 25: Multi-Tenant
+
+#### Fase 25A: Teams + Membership
+
+##### Added
+
+- **Teams schema** (`packages/database/src/schema/teams.ts`)
+  - `teams` — id, name, slug (unique), ownerId, timestamps
+  - `teamMembers` — id, teamId, userId, role (owner/admin/member/viewer), joinedAt
+  - `teamInvites` — id, teamId, email, role, token (unique), expiresAt, acceptedAt
+
+- **Team types** (`packages/shared/src/types/team.ts`)
+  - `TeamRole`, `Team`, `TeamMember`, `TeamInvite` interfaces
+
+- **Teams routes** (`apps/orchestrator/src/routes/teams.ts`)
+  - `POST /api/teams` — criar team (auto-add creator como owner)
+  - `GET /api/teams` — listar teams do usuário
+  - `GET /api/teams/:id` — detalhes do team
+  - `GET /api/teams/:id/members` — listar membros com info do user
+  - `POST /api/teams/:id/invite` — enviar convite (token com 7 dias de validade)
+  - `POST /api/teams/invite/:token/accept` — aceitar convite
+  - `DELETE /api/teams/:id/members/:userId` — remover membro
+  - `PATCH /api/teams/:id/members/:userId` — alterar role
+
+- **Migration** — CREATE TABLE para teams, team_members, team_invites + ALTER TABLE projects ADD team_id
+
+##### Changed
+
+- `packages/database/src/schema/projects.ts` — adicionado `teamId` column
+- `apps/orchestrator/src/routes/projects.ts` — filtro por `teamId` query param em GET, aceita teamId em POST
+
+#### Fase 25B: RBAC + Frontend
+
+##### Added
+
+- **RBAC Middleware** (`apps/orchestrator/src/middleware/authorization.ts`)
+  - `requirePermission(permission)` middleware factory
+  - Roles: owner (full), admin, member, viewer com permissões granulares
+  - Permissões: project:read/write/delete, task:read/write/assign, agent:read/write, team:manage/invite
+
+- **Team Store** (`apps/web/src/stores/team-store.ts`)
+  - Zustand store com fetchTeams, createTeam, fetchMembers, inviteMember, removeMember, updateMemberRole
+  - activeTeamId persistido em localStorage
+
+- **Team Switcher** (`apps/web/src/components/teams/team-switcher.tsx`)
+  - Dropdown na sidebar para trocar de team
+  - Opção "Personal" (sem filtro de team)
+  - Botão "Create Team"
+
+- **Team Settings** (`apps/web/src/components/teams/team-settings.tsx`)
+  - Lista de membros com avatar, nome, role badge
+  - Alterar role (apenas owner)
+  - Seção de convites com email + role selector
+  - Lista de convites pendentes
+
+- **i18n**: 20 novas chaves `teams.*` em 5 locales
+
+##### Changed
+
+- `apps/web/src/stores/workspace-store.ts` — adicionado `activeTeamId` e `setActiveTeamId`
+- `apps/web/src/components/layout/app-sidebar.tsx` — integrado TeamSwitcher
+- `apps/web/src/App.tsx` — rota `/teams/:id/settings`
+
+##### Stats
+
+- **Testes:** 169 passando (sem regressões)
+- **Arquivos criados:** 7 (teams.ts schema, team.ts types, teams.ts routes, authorization.ts, team-store.ts, team-switcher.tsx, team-settings.tsx)
+- **Arquivos modificados:** 16
+
+---
+
 ## [0.24.0] - 2026-02-18
 
 ### Fase 24: Notification Inbox

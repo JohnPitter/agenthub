@@ -397,6 +397,26 @@
     "disconnect": "Desconectar",
     "sendTest": "Enviar mensaje de prueba"
   },
+  "teams": {
+    "title": "Equipos",
+    "create": "Crear Equipo",
+    "personal": "Personal",
+    "members": "Miembros",
+    "invite": "Invitar Miembro",
+    "invitePlaceholder": "Dirección de email",
+    "sendInvite": "Enviar Invitación",
+    "removeMember": "Eliminar",
+    "changeRole": "Cambiar Rol",
+    "pendingInvites": "Invitaciones Pendientes",
+    "noMembers": "Sin miembros aún",
+    "teamName": "Nombre del Equipo",
+    "teamNamePlaceholder": "Mi Equipo",
+    "owner": "Propietario",
+    "admin": "Admin",
+    "member": "Miembro",
+    "viewer": "Visualizador",
+    "switchTeam": "Cambiar Equipo"
+  },
   "docs": {
     "title": "Documentación",
     "noContent": "No hay contenido disponible",

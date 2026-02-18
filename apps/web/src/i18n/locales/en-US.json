@@ -397,6 +397,26 @@
     "disconnect": "Disconnect",
     "sendTest": "Send test message"
   },
+  "teams": {
+    "title": "Teams",
+    "create": "Create Team",
+    "personal": "Personal",
+    "members": "Members",
+    "invite": "Invite Member",
+    "invitePlaceholder": "Email address",
+    "sendInvite": "Send Invite",
+    "removeMember": "Remove",
+    "changeRole": "Change Role",
+    "pendingInvites": "Pending Invites",
+    "noMembers": "No members yet",
+    "teamName": "Team Name",
+    "teamNamePlaceholder": "My Team",
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member",
+    "viewer": "Viewer",
+    "switchTeam": "Switch Team"
+  },
   "docs": {
     "title": "Documentation",
     "noContent": "No content available",

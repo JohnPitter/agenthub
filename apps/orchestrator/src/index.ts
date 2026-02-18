@@ -35,6 +35,7 @@ import { openaiRouter } from "./routes/openai.js";
 import { codexOAuthRouter, codexCallbackRouter } from "./routes/codex-oauth.js";
 import { workflowsRouter } from "./routes/workflows.js";
 import { notificationsRouter } from "./routes/notifications.js";
+import { teamsRouter } from "./routes/teams.js";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 
 const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
@@ -79,6 +80,7 @@ app.use("/api/projects", apiLimiter, devServerRouter);
 app.use("/api/docs", apiLimiter, docsRouter);
 app.use("/api/docs-gen", apiLimiter, docsGeneratorRouter);
 app.use("/api/notifications", apiLimiter, notificationsRouter);
+app.use("/api/teams", apiLimiter, teamsRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

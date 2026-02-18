@@ -14,6 +14,7 @@ const CREATE_STATEMENTS = [
     icon TEXT,
     description TEXT,
     status TEXT NOT NULL DEFAULT 'active',
+    team_id TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,

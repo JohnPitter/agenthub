@@ -159,6 +159,35 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS idx_notifications_project ON notifications(project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read)`,
   `CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at)`,
+  `CREATE TABLE IF NOT EXISTS teams (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    owner_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS team_members (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    joined_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS team_invites (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    email TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    token TEXT NOT NULL UNIQUE,
+    expires_at INTEGER NOT NULL,
+    accepted_at INTEGER,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_team_members_team ON team_members(team_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_team_invites_token ON team_invites(token)`,
+  `CREATE INDEX IF NOT EXISTS idx_team_invites_team ON team_invites(team_id)`,
 ];
 
 // Columns added after initial table creation — safe to re-run
@@ -168,6 +197,7 @@ const alterStatements = [
   `ALTER TABLE agents ADD COLUMN soul TEXT`,
   `ALTER TABLE docs ADD COLUMN parent_id TEXT`,
   `ALTER TABLE docs ADD COLUMN "order" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE projects ADD COLUMN team_id TEXT`,
 ];
 
 async function migrate() {

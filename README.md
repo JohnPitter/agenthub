@@ -5,8 +5,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.25.0-purple?style=for-the-badge)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-orange?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.26.0-purple?style=for-the-badge)](CHANGELOG.md)
 
 **Multi-Agent Task Orchestration Platform powered by Claude & OpenAI**
 
@@ -232,7 +232,7 @@ AgentHub follows **12 master principles**:
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) file.
+CC BY-NC 4.0 — uso pessoal permitido, uso comercial proibido. Veja [LICENSE](LICENSE).
 
 ---
 

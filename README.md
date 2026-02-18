@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.17.1-purple?style=for-the-badge)](CHANGELOG.md)
 
-**Multi-Agent Task Orchestration Platform powered by Claude Agent SDK**
+**Multi-Agent Task Orchestration Platform powered by Claude & OpenAI**
 
 *Autonomous AI agents working in parallel to automate software development*
 
@@ -28,7 +28,7 @@ AgentHub orchestrates multiple AI agents to automate software development. Agent
 
 **What you get:**
 
-- 🤖 **Agent Execution** — Claude SDK agents executing real coding tasks
+- 🤖 **Agent Execution** — Claude & OpenAI agents executing real coding tasks
 - 🔀 **Git Integration** — Automatic branch creation, commits, push/pull
 - 👀 **Code Review** — Approve/reject cycle with structured feedback
 - ⚡ **Real-time Updates** — WebSocket notifications for all operations
@@ -78,7 +78,7 @@ pnpm dev
 
 | Feature | Description |
 |---------|-------------|
-| 🤖 **Agent Execution** | Claude SDK agents running real development tasks |
+| 🤖 **Agent Execution** | Claude & OpenAI agents running real development tasks |
 | 🔀 **Branch Management** | Automatic branch creation per task (`task/{id}-{slug}`) |
 | 👀 **Review Cycle** | Approve/reject tasks with structured feedback |
 | ⚡ **Real-time Tracking** | WebSocket notifications for task progress |
@@ -130,7 +130,7 @@ agenthub/
 | Layer | Technologies |
 |-------|-------------|
 | **Frontend** | ⚛️ React 19, TypeScript, Vite, Tailwind CSS 4, Zustand, Monaco Editor, Recharts |
-| **Backend** | 🚀 Express, Socket.io, Claude Agent SDK, Node.js crypto (AES-256-GCM) |
+| **Backend** | 🚀 Express, Socket.io, Claude Agent SDK, OpenAI Responses API, Node.js crypto (AES-256-GCM) |
 | **Database** | 🗄️ SQLite via @libsql + Drizzle ORM |
 | **Tooling** | ⚙️ pnpm 9, Turborepo, TypeScript 5.8 strict mode |
 
@@ -256,6 +256,7 @@ Contributions are welcome! Please:
 ## 🙏 Acknowledgements
 
 - [Anthropic](https://anthropic.com) — Claude Agent SDK
+- [OpenAI](https://openai.com) — Responses API
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) — Code editor
 - [Recharts](https://recharts.org/) — Charts and visualizations
 - [Drizzle ORM](https://orm.drizzle.team/) — Modern TypeScript ORM

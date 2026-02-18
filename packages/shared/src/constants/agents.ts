@@ -76,6 +76,18 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     avatar: "bottts:darth-vader",
   },
   {
+    name: "Doc Writer",
+    role: "doc_writer",
+    model: "claude-sonnet-4-5-20250514",
+    maxThinkingTokens: null,
+    description: "Documentation specialist — generates API docs from route files via static analysis, produces task change summaries, maintains project documentation.",
+    allowedTools: ["Read", "Glob", "Grep"],
+    permissionMode: "default",
+    level: "pleno",
+    color: "#8B5CF6",
+    avatar: "bottts:doc-writer",
+  },
+  {
     name: "Team Lead",
     role: "receptionist" as const,
     model: "claude-haiku-4-5-20251001",

@@ -396,6 +396,21 @@
     "lastUpdated": "Última atualização",
     "tableOfContents": "Sumário"
   },
+  "apiDocs": {
+    "tabDocs": "Documentos",
+    "tabApi": "API Docs",
+    "newDoc": "Novo Documento",
+    "searchPlaceholder": "Buscar endpoints por caminho ou descrição...",
+    "endpointCount": "endpoints",
+    "regenerate": "Regenerar",
+    "paramName": "Nome",
+    "paramIn": "Em",
+    "paramType": "Tipo",
+    "paramRequired": "Obrigatório",
+    "noParams": "Sem parâmetros",
+    "emptyTitle": "Nenhuma Documentação de API",
+    "emptyDesc": "Gere sua documentação de API para ver todos os endpoints disponíveis."
+  },
   "workflow": {
     "save": "Salvar",
     "validate": "Validar",

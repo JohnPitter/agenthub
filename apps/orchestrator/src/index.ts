@@ -30,6 +30,7 @@ import { restoreWhatsAppSessions } from "./integrations/whatsapp-service.js";
 import { taskTimeoutManager } from "./tasks/task-lifecycle";
 import { taskWatcher } from "./tasks/task-watcher.js";
 import { docsRouter } from "./routes/docs.js";
+import { docsGeneratorRouter } from "./routes/docs-generator.js";
 import { openaiRouter } from "./routes/openai.js";
 import { codexOAuthRouter, codexCallbackRouter } from "./routes/codex-oauth.js";
 import { workflowsRouter } from "./routes/workflows.js";
@@ -75,6 +76,7 @@ app.use("/api", apiLimiter, integrationsRouter);
 app.use("/api", apiLimiter, usageRouter);
 app.use("/api/projects", apiLimiter, devServerRouter);
 app.use("/api/docs", apiLimiter, docsRouter);
+app.use("/api/docs-gen", apiLimiter, docsGeneratorRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

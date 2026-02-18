@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import type { editor as monacoEditor } from "monaco-editor";
-import { Plus, BookOpen, Search, Pin, Pencil, Eye, Save, Trash2, ChevronRight, Link2, Check, Loader2 } from "lucide-react";
+import { Plus, BookOpen, Search, Pin, Pencil, Eye, Save, Trash2, ChevronRight, Link2, Check, Loader2, FileText, Code } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 
 const CodeEditor = lazy(() =>
@@ -9,6 +10,7 @@ const CodeEditor = lazy(() =>
 import { MarkdownContent } from "../lib/markdown";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { EmptyState } from "../components/ui/empty-state";
+import { ApiDocsViewer } from "../components/docs/api-docs-viewer";
 import { cn, api, formatRelativeTime } from "../lib/utils";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useNotificationStore } from "../stores/notification-store";
@@ -110,8 +112,10 @@ function DocTreeItem({
 }
 
 export function DocsPage() {
+  const { t } = useTranslation();
   const projects = useWorkspaceStore((s) => s.projects);
   const addToast = useNotificationStore((s) => s.addToast);
+  const [activeTab, setActiveTab] = useState<"docs" | "api">("docs");
   const [docs, setDocs] = useState<DocArticle[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -317,24 +321,51 @@ export function DocsPage() {
     <div className="flex h-full flex-col">
       <CommandBar
         actions={
-          <button
-            onClick={handleCreate}
-            className="btn-primary flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Novo Documento
-          </button>
+          activeTab === "docs" ? (
+            <button
+              onClick={handleCreate}
+              className="btn-primary flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              {t("apiDocs.newDoc")}
+            </button>
+          ) : undefined
         }
       >
         <BookOpen className="h-5 w-5 text-brand" />
-        <span className="text-neutral-fg1">Documentação</span>
-        {docs.length > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
-            {docs.length}
-          </span>
-        )}
+        <span className="text-neutral-fg1">{t("docs.title")}</span>
+        {/* Tab toggle */}
+        <div className="ml-4 flex items-center rounded-lg bg-neutral-bg2 p-1">
+          <button
+            onClick={() => setActiveTab("docs")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-all",
+              activeTab === "docs"
+                ? "bg-neutral-bg1 text-neutral-fg1 shadow-xs"
+                : "text-neutral-fg3 hover:text-neutral-fg2",
+            )}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            {t("apiDocs.tabDocs")}
+          </button>
+          <button
+            onClick={() => setActiveTab("api")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-all",
+              activeTab === "api"
+                ? "bg-neutral-bg1 text-neutral-fg1 shadow-xs"
+                : "text-neutral-fg3 hover:text-neutral-fg2",
+            )}
+          >
+            <Code className="h-3.5 w-3.5" />
+            {t("apiDocs.tabApi")}
+          </button>
+        </div>
       </CommandBar>
 
+      {activeTab === "api" ? (
+        <ApiDocsViewer />
+      ) : (
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar — doc list */}
         <nav className="w-[280px] shrink-0 border-r border-stroke2 bg-neutral-bg-subtle flex flex-col">
@@ -623,6 +654,7 @@ export function DocsPage() {
           )}
         </div>
       </div>
+      )}
 
       {/* Delete confirmation dialog */}
       {deleteConfirm && selected && (

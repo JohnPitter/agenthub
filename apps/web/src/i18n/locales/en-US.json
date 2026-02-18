@@ -396,6 +396,21 @@
     "lastUpdated": "Last updated",
     "tableOfContents": "Table of Contents"
   },
+  "apiDocs": {
+    "tabDocs": "Documents",
+    "tabApi": "API Docs",
+    "newDoc": "New Document",
+    "searchPlaceholder": "Search endpoints by path or description...",
+    "endpointCount": "endpoints",
+    "regenerate": "Regenerate",
+    "paramName": "Name",
+    "paramIn": "In",
+    "paramType": "Type",
+    "paramRequired": "Required",
+    "noParams": "No parameters",
+    "emptyTitle": "No API Documentation",
+    "emptyDesc": "Generate your API documentation to see all available endpoints."
+  },
   "workflow": {
     "save": "Save",
     "validate": "Validate",

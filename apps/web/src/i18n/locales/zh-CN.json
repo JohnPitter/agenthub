@@ -396,6 +396,21 @@
     "lastUpdated": "最后更新",
     "tableOfContents": "目录"
   },
+  "apiDocs": {
+    "tabDocs": "文档",
+    "tabApi": "API 文档",
+    "newDoc": "新建文档",
+    "searchPlaceholder": "按路径或描述搜索接口...",
+    "endpointCount": "个接口",
+    "regenerate": "重新生成",
+    "paramName": "名称",
+    "paramIn": "位置",
+    "paramType": "类型",
+    "paramRequired": "必填",
+    "noParams": "无参数",
+    "emptyTitle": "暂无 API 文档",
+    "emptyDesc": "生成 API 文档以查看所有可用接口。"
+  },
   "workflow": {
     "save": "保存",
     "validate": "验证",

@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.0] - 2026-02-18
+
+### Fase 22: Docs Auto-Generation
+
+#### Fase 22A: Doc Generator Agent + API Docs
+
+##### Added
+
+- **ApiEndpoint type** (`packages/shared/src/types/api-docs.ts`)
+  - `ApiEndpoint` e `ApiEndpointParam` types exportados via barrel
+  - Campos: method, path, description, group, params (in: query/body/path)
+
+- **DocGenerator agent** (`apps/orchestrator/src/agents/doc-generator.ts`)
+  - Análise estática de arquivos de rota via regex (sem IA)
+  - `generateApiDocs()` — parseia router.get/post/patch/delete patterns
+  - `generateChangeSummary()` — gera markdown summary de task lifecycle (logs, status transitions, files changed)
+  - `getRouteFiles()` — lista route files no diretório
+  - Extrai path params (`:id`), query params (`req.query`), body params (`req.body`)
+  - Extrai descrições de comments acima dos endpoints
+
+- **Docs Generator routes** (`apps/orchestrator/src/routes/docs-generator.ts`)
+  - `POST /api/docs-gen/generate-api` — trigger geração de API docs
+  - `GET /api/docs-gen/api` — retorna docs em cache (auto-gera se vazio)
+  - `POST /api/docs-gen/generate-summary/:taskId` — gera change summary
+
+- **API Docs Viewer** (`apps/web/src/components/docs/api-docs-viewer.tsx`)
+  - Endpoints agrupados por route group (collapsible sections)
+  - Method badges coloridos: GET=green, POST=blue, PATCH=amber, DELETE=red, PUT=purple
+  - Expand endpoint para ver params com tipo e required indicator
+  - Search/filter bar por path, description, ou method
+  - Botão "Regenerate" para forçar re-análise
+  - Loading, error, e empty states
+
+- **Doc Writer agent** no seed (`packages/database/src/seed.ts`)
+  - Role `doc_writer`, model claude-sonnet-4-5
+  - System prompt para geração e atualização de documentação
+
+- **i18n**: 15 novas chaves `apiDocs.*` em 5 locales (pt-BR, en-US, es, ja, zh-CN)
+
+##### Changed
+
+- `apps/web/src/routes/docs.tsx` — Tab bar "Documentos" / "API Docs" no topo da página
+- `apps/orchestrator/src/routes/tasks.ts` — Fire-and-forget change summary generation ao marcar task como "done"
+- `apps/orchestrator/src/index.ts` — Registrado `docsGeneratorRouter` em `/api/docs-gen`
+- `packages/shared/src/constants/agents.ts` — Blueprint do Doc Writer agent
+- `packages/shared/src/constants/souls.ts` — Soul system prompt do Doc Writer
+- `packages/shared/src/types/agent.ts` — Adicionado `doc_writer` ao AgentRole union type
+
+##### Stats
+
+- **Testes:** 169 passando (sem regressões)
+- **Arquivos criados:** 4 (api-docs.ts, doc-generator.ts, docs-generator.ts, api-docs-viewer.tsx)
+- **Arquivos modificados:** 10
+
+---
+
 ## [0.21.0] - 2026-02-18
 
 ### Fase 21: Security Hardening

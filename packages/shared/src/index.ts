@@ -7,6 +7,7 @@ export type * from "./types/events";
 export type * from "./types/config";
 export type * from "./types/docs";
 export type * from "./types/workflow";
+export type * from "./types/api-docs";
 
 // Runtime values from types (constants + functions)
 export { OPENAI_MODELS, CLAUDE_MODELS, ALL_MODELS, getModelProvider } from "./types/agent";

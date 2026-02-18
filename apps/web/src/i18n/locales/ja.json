@@ -396,6 +396,21 @@
     "lastUpdated": "最終更新",
     "tableOfContents": "目次"
   },
+  "apiDocs": {
+    "tabDocs": "ドキュメント",
+    "tabApi": "API ドキュメント",
+    "newDoc": "新規ドキュメント",
+    "searchPlaceholder": "パスまたは説明でエンドポイントを検索...",
+    "endpointCount": "エンドポイント",
+    "regenerate": "再生成",
+    "paramName": "名前",
+    "paramIn": "場所",
+    "paramType": "型",
+    "paramRequired": "必須",
+    "noParams": "パラメータなし",
+    "emptyTitle": "APIドキュメントなし",
+    "emptyDesc": "APIドキュメントを生成して、利用可能なすべてのエンドポイントを表示します。"
+  },
   "workflow": {
     "save": "保存",
     "validate": "検証",

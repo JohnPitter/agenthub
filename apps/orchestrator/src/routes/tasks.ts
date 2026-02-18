@@ -8,6 +8,7 @@ import { GitService } from "../git/git-service";
 import { execFileNoThrow } from "../lib/exec-file";
 import { slugify } from "../lib/utils";
 import { logger } from "../lib/logger";
+import { docGenerator } from "../agents/doc-generator.js";
 
 const gitService = new GitService();
 
@@ -124,6 +125,16 @@ tasksRouter.patch("/:id", async (req, res) => {
   await db.update(schema.tasks).set(updates).where(eq(schema.tasks.id, req.params.id));
 
   const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).get();
+
+  // Fire-and-forget: generate change summary when task completes
+  if (req.body.status === "done" && task) {
+    docGenerator.generateChangeSummary(task.id).then((summary) => {
+      logger.info(`Auto-generated change summary for task ${task.id} (${summary.length} chars)`, "tasks-router");
+    }).catch((err) => {
+      logger.warn(`Failed to auto-generate change summary for task ${task.id}: ${err}`, "tasks-router");
+    });
+  }
+
   res.json({ task });
 });
 

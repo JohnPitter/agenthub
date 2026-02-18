@@ -396,6 +396,21 @@
     "lastUpdated": "Última actualización",
     "tableOfContents": "Tabla de Contenidos"
   },
+  "apiDocs": {
+    "tabDocs": "Documentos",
+    "tabApi": "API Docs",
+    "newDoc": "Nuevo Documento",
+    "searchPlaceholder": "Buscar endpoints por ruta o descripción...",
+    "endpointCount": "endpoints",
+    "regenerate": "Regenerar",
+    "paramName": "Nombre",
+    "paramIn": "En",
+    "paramType": "Tipo",
+    "paramRequired": "Requerido",
+    "noParams": "Sin parámetros",
+    "emptyTitle": "Sin Documentación de API",
+    "emptyDesc": "Genera tu documentación de API para ver todos los endpoints disponibles."
+  },
   "workflow": {
     "save": "Guardar",
     "validate": "Validar",

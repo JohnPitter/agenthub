@@ -1352,8 +1352,8 @@ class AgentManager {
 
       if (gitConfig?.credentials) {
         try {
-          const { decrypt } = await import("../lib/encryption.js");
-          const creds = JSON.parse(decrypt(gitConfig.credentials));
+          const { safeDecrypt } = await import("../lib/encryption.js");
+          const creds = JSON.parse(safeDecrypt(gitConfig.credentials));
           if (creds.token) {
             credentials = { type: "https", token: creds.token };
           }

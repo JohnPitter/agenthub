@@ -17,8 +17,9 @@ import { memoriesRouter } from "./routes/memories.js";
 import { devServerRouter } from "./routes/dev-server.js";
 import { devServerManager } from "./processes/dev-server-manager.js";
 import { setupSocketHandlers } from "./realtime/socket-handler";
+import { securityHeaders } from "./middleware/security-headers.js";
 import { requestLogger } from "./middleware/request-logger";
-import { rateLimiter } from "./middleware/rate-limiter";
+import { authLimiter, apiLimiter, gitLimiter, agentLimiter } from "./middleware/rate-limiter";
 import { errorHandler } from "./middleware/error-handler";
 import cookieParser from "cookie-parser";
 import { authRouter } from "./routes/auth.js";
@@ -39,37 +40,41 @@ const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
 const app = express();
 
 // Middleware stack
+app.use(securityHeaders);
 app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(requestLogger);
-app.use(rateLimiter);
 
-// Public auth routes (no auth required)
-app.use("/api/auth", authRouter);
+// Public auth routes (stricter rate limit)
+app.use("/api/auth", authLimiter, authRouter);
 app.use("/callback", codexCallbackRouter); // PUBLIC — OpenAI OAuth redirect
 
 // Auth middleware for all other API routes
 app.use("/api", authMiddleware);
 
-// REST API routes (protected)
-app.use("/api/projects", projectsRouter);
-app.use("/api/tasks", tasksRouter);
-app.use("/api/agents", agentsRouter);
-app.use("/api/agents", memoriesRouter);
-app.use("/api/messages", messagesRouter);
-app.use("/api/dashboard", dashboardRouter);
-app.use("/api", gitRouter);
-app.use("/api", filesRouter);
-app.use("/api", analyticsRouter);
-app.use("/api", pullRequestsRouter);
-app.use("/api", integrationsRouter);
-app.use("/api", usageRouter);
-app.use("/api/projects", devServerRouter);
-app.use("/api/docs", docsRouter);
-app.use("/api/openai", openaiRouter);
-app.use("/api/openai", codexOAuthRouter);
-app.use("/api/workflows", workflowsRouter);
+// Git routes (git-specific rate limit)
+app.use("/api", gitLimiter, gitRouter);
+app.use("/api", gitLimiter, pullRequestsRouter);
+
+// Agent / AI execution routes (higher throughput)
+app.use("/api/tasks", agentLimiter, tasksRouter);
+app.use("/api/openai", agentLimiter, openaiRouter);
+app.use("/api/openai", agentLimiter, codexOAuthRouter);
+app.use("/api/workflows", agentLimiter, workflowsRouter);
+
+// All other API routes (default rate limit)
+app.use("/api/projects", apiLimiter, projectsRouter);
+app.use("/api/agents", apiLimiter, agentsRouter);
+app.use("/api/agents", apiLimiter, memoriesRouter);
+app.use("/api/messages", apiLimiter, messagesRouter);
+app.use("/api/dashboard", apiLimiter, dashboardRouter);
+app.use("/api", apiLimiter, filesRouter);
+app.use("/api", apiLimiter, analyticsRouter);
+app.use("/api", apiLimiter, integrationsRouter);
+app.use("/api", apiLimiter, usageRouter);
+app.use("/api/projects", apiLimiter, devServerRouter);
+app.use("/api/docs", apiLimiter, docsRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

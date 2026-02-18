@@ -2,6 +2,83 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.0] - 2026-02-18
+
+### Fase 21: Security Hardening
+
+#### Fase 21A: Token Encryption Verification + safeDecrypt
+
+##### Added
+
+- **`safeDecrypt()` helper** (`apps/orchestrator/src/lib/encryption.ts`)
+  - Detecta automaticamente se valor é formato criptografado (iv:tag:data) ou texto plain
+  - Compatibilidade retroativa com tokens armazenados antes da criptografia
+  - `isEncryptedFormat()` helper interno para detecção de formato
+
+##### Changed
+
+- `apps/orchestrator/src/agents/agent-manager.ts` — usa `safeDecrypt()` para tokens de acesso
+- `apps/orchestrator/src/agents/openai-session.ts` — usa `safeDecrypt()` para tokens OpenAI
+- `apps/orchestrator/src/routes/openai.ts` — usa `safeDecrypt()` para tokens de API
+- `apps/orchestrator/src/routes/projects.ts` — usa `safeDecrypt()` para credenciais git
+- `apps/orchestrator/src/integrations/telegram-service.ts` — usa `safeDecrypt()` para bot token
+- `apps/orchestrator/src/realtime/socket-handler.ts` — usa `safeDecrypt()` para tokens em WebSocket
+
+#### Fase 21B: Granular Rate Limiting
+
+##### Changed
+
+- **Rate Limiter refatorado** (`apps/orchestrator/src/middleware/rate-limiter.ts`)
+  - 5 categorias com limites específicos: `auth` (20/15min), `api` (100/min), `git` (30/min), `upload` (10/min), `agent` (200/min)
+  - `createRateLimiter(category)` factory function
+  - Headers `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` em cada resposta
+  - Header `Retry-After` quando limite excedido (429)
+  - Stores por categoria com cleanup automático a cada 5 minutos
+  - Pre-built limiters exportados: `authLimiter`, `apiLimiter`, `gitLimiter`, `uploadLimiter`, `agentLimiter`
+  - `rateLimiter` mantido como alias para `apiLimiter` (backward compat)
+
+- **Middleware stack atualizado** (`apps/orchestrator/src/index.ts`)
+  - `securityHeaders` como primeiro middleware
+  - `/api/auth` → `authLimiter` (20 req / 15 min)
+  - `/api/tasks`, `/api/openai`, `/api/workflows` → `agentLimiter` (200 req / min)
+  - `/api/git`, `/api/pull-requests` → `gitLimiter` (30 req / min)
+  - Demais rotas `/api/*` → `apiLimiter` (100 req / min)
+
+#### Fase 21C: Security Headers + Audit Scripts
+
+##### Added
+
+- **Security Headers Middleware** (`apps/orchestrator/src/middleware/security-headers.ts`)
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `X-XSS-Protection: 1; mode=block`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+  - `Content-Security-Policy` apenas em produção (não quebra HMR/dev tooling)
+
+- **Security Headers Tests** (`apps/orchestrator/src/__tests__/security-headers.test.ts`) — 7 tests
+  - Verifica presença de cada header de segurança
+  - Testa ausência de CSP em dev e presença em production
+
+- **Audit Scripts** (`package.json`)
+  - `pnpm audit:check` — verifica vulnerabilidades (audit-level moderate)
+  - `pnpm audit:fix` — corrige vulnerabilidades automaticamente
+
+##### Security
+
+- Todos os pontos de uso de token verificados: decrypt é chamado antes de uso em todas as operações (git, AI, webhooks)
+- Rate limiting granular previne brute force em auth e abuso de endpoints de IA
+- Headers HSTS forçam HTTPS em produção
+- CSP restringe fontes de scripts/estilos/imagens em produção
+
+##### Stats
+
+- **Testes totais:** 169 (162 anteriores + 7 novos de security headers)
+- **Arquivos modificados:** 10
+- **Arquivos criados:** 2 (security-headers.ts, security-headers.test.ts)
+
+---
+
 ## [0.20.0] - 2026-02-18
 
 ### Fase 20: CI/CD + Test Coverage

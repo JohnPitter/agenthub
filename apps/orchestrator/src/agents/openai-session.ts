@@ -779,8 +779,8 @@ export class OpenAISession {
         (i) => i.type === "openai" && i.credentials,
       );
       if (openaiIntegration?.credentials) {
-        const { decrypt } = await import("../lib/encryption.js");
-        return { token: decrypt(openaiIntegration.credentials), source: "db" };
+        const { safeDecrypt } = await import("../lib/encryption.js");
+        return { token: safeDecrypt(openaiIntegration.credentials), source: "db" };
       }
     } catch {
       // Fallback: env var only

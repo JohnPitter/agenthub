@@ -4,7 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { scanWorkspace } from "../workspace/scanner";
 import { fetchUserRepos } from "../services/github-service.js";
-import { decrypt } from "../lib/encryption.js";
+import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
 export const projectsRouter = Router();
@@ -39,7 +39,7 @@ projectsRouter.get("/github-repos", async (req, res) => {
 
     let accessToken: string;
     try {
-      accessToken = decrypt(user.accessToken);
+      accessToken = safeDecrypt(user.accessToken);
     } catch (decryptError) {
       logger.warn(`Failed to decrypt GitHub token for user ${userId} — encryption key may have changed`, "projects");
       return res.status(401).json({ error: "github_reauth", message: "GitHub token could not be decrypted. Please re-authenticate." });

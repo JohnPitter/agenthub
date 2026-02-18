@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:migrate": "pnpm --filter @agenthub/database migrate",
-    "db:seed": "pnpm --filter @agenthub/database seed"
+    "db:seed": "pnpm --filter @agenthub/database seed",
+    "audit:check": "pnpm audit --audit-level moderate",
+    "audit:fix": "pnpm audit --fix"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",

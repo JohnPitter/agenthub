@@ -5,7 +5,7 @@ import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 import { eventBus } from "../realtime/event-bus.js";
-import { encrypt, decrypt } from "../lib/encryption.js";
+import { encrypt } from "../lib/encryption.js";
 
 interface TelegramServiceConfig {
   projectId: string;

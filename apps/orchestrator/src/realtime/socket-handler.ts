@@ -9,7 +9,7 @@ import { eventBus } from "./event-bus";
 import { logger } from "../lib/logger";
 import { GitService } from "../git/git-service";
 import { GitHubService } from "../git/github-service";
-import { decrypt } from "../lib/encryption";
+import { safeDecrypt } from "../lib/encryption";
 
 const gitService = new GitService();
 const githubService = new GitHubService();
@@ -253,7 +253,7 @@ export function setupSocketHandlers(
           if (config.pushOnCommit) {
             try {
               const credentials = gitConfig.credentials
-                ? JSON.parse(decrypt(gitConfig.credentials))
+                ? JSON.parse(safeDecrypt(gitConfig.credentials))
                 : undefined;
 
               await gitService.push(
@@ -337,7 +337,7 @@ export function setupSocketHandlers(
       try {
         const config = gitConfig.config ? JSON.parse(gitConfig.config) : {};
         const credentials = gitConfig.credentials
-          ? JSON.parse(decrypt(gitConfig.credentials))
+          ? JSON.parse(safeDecrypt(gitConfig.credentials))
           : undefined;
 
         const branchName = task.branch || config.defaultBranch || "main";

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { encrypt, decrypt } from "../lib/encryption.js";
+import { encrypt, safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
 export const openaiRouter = Router();
@@ -41,7 +41,7 @@ openaiRouter.get("/status", async (_req, res) => {
 
   if (row?.credentials) {
     try {
-      const key = decrypt(row.credentials);
+      const key = safeDecrypt(row.credentials);
       res.json({
         connected: true,
         source: "db",

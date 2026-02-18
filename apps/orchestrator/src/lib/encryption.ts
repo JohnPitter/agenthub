@@ -95,6 +95,28 @@ export function decrypt(encrypted: string): string {
 }
 
 /**
+ * Check if a string looks like an AES-256-GCM encrypted value (iv:tag:data).
+ */
+function isEncryptedFormat(value: string): boolean {
+  const parts = value.split(":");
+  return parts.length === 3 && parts.every((p) => p.length > 0);
+}
+
+/**
+ * Safely decrypt a value that may be encrypted (iv:tag:data) or plain text.
+ * Returns the decrypted value if encrypted, or the original value if plain text.
+ * This handles backward compatibility with tokens stored before encryption was added.
+ * @param value - Possibly encrypted string
+ * @returns Decrypted plain text (or original value if not encrypted)
+ */
+export function safeDecrypt(value: string): string {
+  if (!isEncryptedFormat(value)) {
+    return value;
+  }
+  return decrypt(value);
+}
+
+/**
  * Generate a random encryption key (for setup)
  * @returns 32-byte hex string
  */

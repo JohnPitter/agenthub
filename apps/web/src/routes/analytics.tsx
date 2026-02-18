@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { BarChart3, ListTodo, CheckCircle2, XCircle, Zap, Loader2 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
@@ -6,9 +6,26 @@ import { CommandBar } from "../components/layout/command-bar";
 const PerformanceChart = lazy(() =>
   import("../components/analytics/performance-chart").then((m) => ({ default: m.PerformanceChart }))
 );
+const CostDashboard = lazy(() =>
+  import("../components/analytics/cost-dashboard").then((m) => ({ default: m.CostDashboard }))
+);
+const CostByAgentChart = lazy(() =>
+  import("../components/analytics/cost-by-agent-chart").then((m) => ({ default: m.CostByAgentChart }))
+);
+const CostByModelChart = lazy(() =>
+  import("../components/analytics/cost-by-model-chart").then((m) => ({ default: m.CostByModelChart }))
+);
+const CostTrendChart = lazy(() =>
+  import("../components/analytics/cost-trend-chart").then((m) => ({ default: m.CostTrendChart }))
+);
+const TokenBreakdownChart = lazy(() =>
+  import("../components/analytics/token-breakdown-chart").then((m) => ({ default: m.TokenBreakdownChart }))
+);
+
 import { Tablist } from "../components/ui/tablist";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonStats, SkeletonTable } from "../components/ui/skeleton";
+import { useUsageStore } from "../stores/usage-store";
 import { api, cn } from "../lib/utils";
 
 interface AgentMetrics {
@@ -38,6 +55,7 @@ interface TrendDataPoint {
 }
 
 type Period = "7d" | "30d" | "all";
+type Tab = "overview" | "agents" | "costs";
 
 const STAT_ITEMS = [
   { key: "total", labelKey: "analytics.totalTasks", icon: ListTodo, color: "text-brand" },
@@ -46,17 +64,42 @@ const STAT_ITEMS = [
   { key: "rate", labelKey: "analytics.successRate", icon: Zap, color: "text-brand" },
 ] as const;
 
+const ChartSpinner = () => (
+  <div className="flex h-40 items-center justify-center">
+    <Loader2 className="h-6 w-6 animate-spin text-brand" />
+  </div>
+);
+
 export function Analytics() {
   const { t } = useTranslation();
   const [period, setPeriod] = useState<Period>("30d");
-  const [activeTab, setActiveTab] = useState<"overview" | "agents">("overview");
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [metrics, setMetrics] = useState<AgentMetrics[]>([]);
   const [trends, setTrends] = useState<TrendDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchSummary = useUsageStore((s) => s.fetchSummary);
+  const fetchCostByAgent = useUsageStore((s) => s.fetchCostByAgent);
+  const fetchCostByModel = useUsageStore((s) => s.fetchCostByModel);
+  const fetchCostTrend = useUsageStore((s) => s.fetchCostTrend);
+  const analyticsLoading = useUsageStore((s) => s.analyticsLoading);
+
   useEffect(() => {
     fetchAnalytics();
   }, [period]);
+
+  const fetchCostData = useCallback((p: Period) => {
+    fetchSummary(p);
+    fetchCostByAgent(p);
+    fetchCostByModel(p);
+    fetchCostTrend(p);
+  }, [fetchSummary, fetchCostByAgent, fetchCostByModel, fetchCostTrend]);
+
+  useEffect(() => {
+    if (activeTab === "costs") {
+      fetchCostData(period);
+    }
+  }, [activeTab, period, fetchCostData]);
 
   const fetchAnalytics = async () => {
     setLoading(true);
@@ -88,7 +131,7 @@ export function Analytics() {
   };
 
   const formatTime = (ms: number | null) => {
-    if (ms === null) return "—";
+    if (ms === null) return "\u2014";
     const minutes = Math.floor(ms / 60000);
     if (minutes < 1) return "<1m";
     if (minutes < 60) return `${minutes}m`;
@@ -122,14 +165,37 @@ export function Analytics() {
           tabs={[
             { key: "overview", label: t("analytics.overview") },
             { key: "agents", label: t("analytics.agentsTab") },
+            { key: "costs", label: t("analytics.costsTab", "Custos") },
           ]}
           activeTab={activeTab}
-          onChange={(key) => setActiveTab(key as "overview" | "agents")}
+          onChange={(key) => setActiveTab(key as Tab)}
         />
       </CommandBar>
 
       {/* Content */}
-      {loading ? (
+      {activeTab === "costs" ? (
+        /* Costs tab */
+        <div className="flex-1 overflow-auto p-10">
+          {analyticsLoading ? (
+            <div className="flex flex-col gap-8">
+              <SkeletonStats />
+              <SkeletonTable />
+            </div>
+          ) : (
+            <Suspense fallback={<ChartSpinner />}>
+              <CostDashboard period={period} />
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <CostByAgentChart />
+                <CostByModelChart />
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <CostTrendChart />
+                <TokenBreakdownChart />
+              </div>
+            </Suspense>
+          )}
+        </div>
+      ) : loading ? (
         <div className="flex-1 overflow-auto p-10 flex flex-col gap-8">
           <SkeletonStats />
           <SkeletonTable />
@@ -159,7 +225,7 @@ export function Analytics() {
             /* Chart view */
             <div className="card-glow p-8 animate-fade-up stagger-2">
               <h2 className="text-title text-neutral-fg1 mb-6">{t("analytics.overview")}</h2>
-              <Suspense fallback={<div className="flex h-40 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>}>
+              <Suspense fallback={<ChartSpinner />}>
                 <PerformanceChart data={trends} type="area" />
               </Suspense>
             </div>

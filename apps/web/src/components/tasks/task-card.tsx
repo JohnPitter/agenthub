@@ -77,6 +77,18 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChan
         </p>
       )}
 
+      {/* Subtask count chip */}
+      {(task.subtaskCount ?? 0) > 0 && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-neutral-fg2">
+          <div className="flex h-5 items-center gap-1 rounded-md bg-neutral-bg2 border border-stroke px-2">
+            <span className="text-success">{task.completedSubtaskCount ?? 0}</span>
+            <span className="text-neutral-fg-disabled">/</span>
+            <span>{task.subtaskCount}</span>
+            <span className="text-neutral-fg3 font-medium ml-0.5">subtasks</span>
+          </div>
+        </div>
+      )}
+
       {/* Git Branch Badge */}
       {task.branch && (
         <div className="mt-3 flex items-center gap-2 rounded-md bg-purple-light px-3 py-1.5 w-fit">

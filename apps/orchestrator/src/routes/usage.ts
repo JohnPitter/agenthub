@@ -4,7 +4,7 @@ import { readFile, writeFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 import { db, schema } from "@agenthub/database";
-import { gte, and } from "drizzle-orm";
+import { gte, and, eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
@@ -486,6 +486,169 @@ router.post("/usage/disconnect", async (_req, res) => {
   } catch (err) {
     logger.error(`Failed to disconnect Claude: ${err}`, "usage");
     res.status(500).json({ error: "Failed to disconnect" });
+  }
+});
+
+/**
+ * GET /api/usage/analytics
+ * Aggregated cost/token data grouped by agent, model, or day.
+ * Query params: period (7d, 30d, all), groupBy (agent, model, day)
+ */
+router.get("/usage/analytics", async (req, res) => {
+  try {
+    const { period = "30d", groupBy = "agent" } = req.query;
+
+    let dateThreshold: Date | null = null;
+    if (period === "7d") {
+      dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - 7);
+    } else if (period === "30d") {
+      dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - 30);
+    }
+
+    if (groupBy === "agent") {
+      const conditions = dateThreshold
+        ? and(gte(schema.tasks.createdAt, dateThreshold))
+        : undefined;
+
+      const rows = conditions
+        ? await db
+            .select({
+              agentId: schema.tasks.assignedAgentId,
+              agentName: schema.agents.name,
+              agentColor: schema.agents.color,
+              totalCost: sql<string>`COALESCE(SUM(CAST(${schema.tasks.costUsd} AS REAL)), 0)`,
+              totalTokens: sql<number>`COALESCE(SUM(${schema.tasks.tokensUsed}), 0)`,
+              taskCount: sql<number>`COUNT(${schema.tasks.id})`,
+            })
+            .from(schema.tasks)
+            .leftJoin(schema.agents, eq(schema.tasks.assignedAgentId, schema.agents.id))
+            .where(conditions)
+            .groupBy(schema.tasks.assignedAgentId)
+            .all()
+        : await db
+            .select({
+              agentId: schema.tasks.assignedAgentId,
+              agentName: schema.agents.name,
+              agentColor: schema.agents.color,
+              totalCost: sql<string>`COALESCE(SUM(CAST(${schema.tasks.costUsd} AS REAL)), 0)`,
+              totalTokens: sql<number>`COALESCE(SUM(${schema.tasks.tokensUsed}), 0)`,
+              taskCount: sql<number>`COUNT(${schema.tasks.id})`,
+            })
+            .from(schema.tasks)
+            .leftJoin(schema.agents, eq(schema.tasks.assignedAgentId, schema.agents.id))
+            .groupBy(schema.tasks.assignedAgentId)
+            .all();
+
+      const data = rows
+        .filter((r) => r.agentId)
+        .map((r) => ({
+          agentId: r.agentId,
+          agentName: r.agentName ?? "Desconhecido",
+          agentColor: r.agentColor ?? null,
+          totalCost: parseFloat(String(r.totalCost)) || 0,
+          totalTokens: Number(r.totalTokens) || 0,
+          taskCount: Number(r.taskCount) || 0,
+        }))
+        .sort((a, b) => b.totalCost - a.totalCost);
+
+      return res.json(data);
+    }
+
+    if (groupBy === "model") {
+      const conditions = dateThreshold
+        ? and(gte(schema.tasks.createdAt, dateThreshold))
+        : undefined;
+
+      const rows = conditions
+        ? await db
+            .select({
+              model: schema.agents.model,
+              totalCost: sql<string>`COALESCE(SUM(CAST(${schema.tasks.costUsd} AS REAL)), 0)`,
+              totalTokens: sql<number>`COALESCE(SUM(${schema.tasks.tokensUsed}), 0)`,
+              taskCount: sql<number>`COUNT(${schema.tasks.id})`,
+            })
+            .from(schema.tasks)
+            .leftJoin(schema.agents, eq(schema.tasks.assignedAgentId, schema.agents.id))
+            .where(conditions)
+            .groupBy(schema.agents.model)
+            .all()
+        : await db
+            .select({
+              model: schema.agents.model,
+              totalCost: sql<string>`COALESCE(SUM(CAST(${schema.tasks.costUsd} AS REAL)), 0)`,
+              totalTokens: sql<number>`COALESCE(SUM(${schema.tasks.tokensUsed}), 0)`,
+              taskCount: sql<number>`COUNT(${schema.tasks.id})`,
+            })
+            .from(schema.tasks)
+            .leftJoin(schema.agents, eq(schema.tasks.assignedAgentId, schema.agents.id))
+            .groupBy(schema.agents.model)
+            .all();
+
+      const data = rows
+        .filter((r) => r.model)
+        .map((r) => ({
+          model: r.model!,
+          totalCost: parseFloat(String(r.totalCost)) || 0,
+          totalTokens: Number(r.totalTokens) || 0,
+          taskCount: Number(r.taskCount) || 0,
+        }))
+        .sort((a, b) => b.totalCost - a.totalCost);
+
+      return res.json(data);
+    }
+
+    if (groupBy === "day") {
+      const conditions = dateThreshold
+        ? and(gte(schema.tasks.createdAt, dateThreshold))
+        : undefined;
+
+      const rows = conditions
+        ? await db
+            .select({
+              dateUnix: sql<number>`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER) * 86400`,
+              totalCost: sql<string>`COALESCE(SUM(CAST(${schema.tasks.costUsd} AS REAL)), 0)`,
+              totalTokens: sql<number>`COALESCE(SUM(${schema.tasks.tokensUsed}), 0)`,
+              taskCount: sql<number>`COUNT(${schema.tasks.id})`,
+            })
+            .from(schema.tasks)
+            .where(conditions)
+            .groupBy(sql`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER)`)
+            .orderBy(sql`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER)`)
+            .all()
+        : await db
+            .select({
+              dateUnix: sql<number>`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER) * 86400`,
+              totalCost: sql<string>`COALESCE(SUM(CAST(${schema.tasks.costUsd} AS REAL)), 0)`,
+              totalTokens: sql<number>`COALESCE(SUM(${schema.tasks.tokensUsed}), 0)`,
+              taskCount: sql<number>`COUNT(${schema.tasks.id})`,
+            })
+            .from(schema.tasks)
+            .groupBy(sql`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER)`)
+            .orderBy(sql`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER)`)
+            .all();
+
+      const data = rows.map((r) => {
+        const totalTokens = Number(r.totalTokens) || 0;
+        const inputTokens = Math.round(totalTokens * 0.3);
+        const outputTokens = totalTokens - inputTokens;
+        return {
+          date: new Date(Number(r.dateUnix) * 1000).toISOString().split("T")[0],
+          totalCost: parseFloat(String(r.totalCost)) || 0,
+          inputTokens,
+          outputTokens,
+          taskCount: Number(r.taskCount) || 0,
+        };
+      });
+
+      return res.json(data);
+    }
+
+    res.status(400).json({ error: "Invalid groupBy parameter. Use: agent, model, or day" });
+  } catch (error) {
+    logger.error("Failed to get usage analytics", "usage", { error: String(error) });
+    res.status(500).json({ error: "Failed to get usage analytics" });
   }
 });
 

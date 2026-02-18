@@ -303,7 +303,8 @@
     "failed": "失败",
     "successRate": "成功率",
     "avgTime": "平均时间",
-    "noData": "所选时间段无数据"
+    "noData": "所选时间段无数据",
+    "costsTab": "费用"
   },
   "actions": {
     "created": "任务已创建",

@@ -303,7 +303,8 @@
     "failed": "Failed",
     "successRate": "Success Rate",
     "avgTime": "Average Time",
-    "noData": "No data for the selected period"
+    "noData": "No data for the selected period",
+    "costsTab": "Costs"
   },
   "actions": {
     "created": "Task created",

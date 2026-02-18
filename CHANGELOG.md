@@ -2,6 +2,110 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.0] - 2026-02-18
+
+### Fase 18A: Subtask UI + Task Hierarchy
+
+#### Added
+
+- **Subtask Tree Component** (`apps/web/src/components/tasks/subtask-tree.tsx`)
+  - Árvore colapsável com status dots coloridos por estado
+  - Barra de progresso (completadas/total)
+  - Nome do agente atribuído em cada subtask
+  - Botão "+ Subtask" integrado ao topo da árvore
+
+- **Create Subtask Dialog** (`apps/web/src/components/tasks/create-subtask-dialog.tsx`)
+  - Formulário com título, descrição, prioridade e categoria
+  - Herda `parentTaskId` automaticamente da task pai
+
+- **Subtask API Endpoints** (`apps/orchestrator/src/routes/tasks.ts`)
+  - `GET /api/tasks/:id/subtasks` — lista subtasks de uma task pai
+  - `POST /api/tasks` agora aceita `parentTaskId` para criação de subtasks
+  - `GET /api/tasks` enriquecido com `subtaskCount` e `completedSubtaskCount` via single query
+  - Subtasks ocultas da listagem principal (filtro `isNull(parentTaskId)` por padrão)
+
+- **Subtask Count Chips** nos componentes de task:
+  - `task-card.tsx` — chip "X/Y subtasks" em cards de lista
+  - `kanban-card.tsx` — chip com ícone no board Kanban
+  - `kanban-board.tsx` — filtro para excluir subtasks do board
+  - `project-tasks.tsx` — badge de contagem na tabela
+
+- **Task Type Extension** (`packages/shared/src/types/task.ts`)
+  - Campos `subtaskCount?: number` e `completedSubtaskCount?: number`
+
+#### Changed
+
+- `apps/web/src/components/tasks/task-detail-drawer.tsx` — seção SubtaskTree com fetch de subtasks
+
+### Fase 18B: Cost & Token Analytics Dashboard
+
+#### Added
+
+- **Cost Dashboard** (`apps/web/src/components/analytics/cost-dashboard.tsx`)
+  - 4 stat cards: Total Cost, Total Tokens, Tasks Completed, Avg Cost/Task
+  - Layout responsivo com grid
+
+- **Cost by Agent Chart** (`apps/web/src/components/analytics/cost-by-agent-chart.tsx`)
+  - BarChart horizontal com custo por agente (Recharts)
+
+- **Cost by Model Chart** (`apps/web/src/components/analytics/cost-by-model-chart.tsx`)
+  - Donut PieChart com distribuição de custo por modelo
+
+- **Cost Trend Chart** (`apps/web/src/components/analytics/cost-trend-chart.tsx`)
+  - AreaChart com gradiente orange mostrando tendência temporal
+
+- **Token Breakdown Chart** (`apps/web/src/components/analytics/token-breakdown-chart.tsx`)
+  - Stacked BarChart separando tokens de input/output
+
+- **Analytics API** (`apps/orchestrator/src/routes/usage.ts`)
+  - `GET /api/usage/analytics` — agregação por agente, modelo e dia
+  - Suporte a filtro `period` (7d, 30d, 90d, all) e `groupBy`
+  - SQL joins com tasks e agents para enrichment
+
+- **Usage Store** (`apps/web/src/stores/usage-store.ts`)
+  - Interfaces `CostByAgentEntry`, `CostByModelEntry`, `CostTrendEntry`
+  - Actions `fetchCostByAgent`, `fetchCostByModel`, `fetchCostTrend`
+  - Estado `analyticsPeriod` com seletor de período
+
+- **Analytics Page** (`apps/web/src/routes/analytics.tsx`)
+  - Nova tab "Custos" com todos os charts
+  - Seletor de período (7d/30d/90d/all)
+  - Lazy loading dos componentes de chart
+
+#### Changed
+
+- i18n: 5 locales atualizados (`pt-BR`, `en-US`, `es`, `ja`, `zh-CN`) com `analytics.costsTab`
+
+#### Arquivos Criados
+
+- `apps/web/src/components/tasks/subtask-tree.tsx`
+- `apps/web/src/components/tasks/create-subtask-dialog.tsx`
+- `apps/web/src/components/analytics/cost-dashboard.tsx`
+- `apps/web/src/components/analytics/cost-by-agent-chart.tsx`
+- `apps/web/src/components/analytics/cost-by-model-chart.tsx`
+- `apps/web/src/components/analytics/cost-trend-chart.tsx`
+- `apps/web/src/components/analytics/token-breakdown-chart.tsx`
+
+#### Arquivos Modificados
+
+- `packages/shared/src/types/task.ts`
+- `apps/orchestrator/src/routes/tasks.ts`
+- `apps/orchestrator/src/routes/usage.ts`
+- `apps/web/src/components/board/kanban-board.tsx`
+- `apps/web/src/components/board/kanban-card.tsx`
+- `apps/web/src/components/tasks/task-card.tsx`
+- `apps/web/src/components/tasks/task-detail-drawer.tsx`
+- `apps/web/src/routes/analytics.tsx`
+- `apps/web/src/routes/project-tasks.tsx`
+- `apps/web/src/stores/usage-store.ts`
+- `apps/web/src/i18n/locales/pt-BR.json`
+- `apps/web/src/i18n/locales/en-US.json`
+- `apps/web/src/i18n/locales/es.json`
+- `apps/web/src/i18n/locales/ja.json`
+- `apps/web/src/i18n/locales/zh-CN.json`
+
+---
+
 ## [0.17.1] - 2026-02-18
 
 ### Fase 17A: WhatsApp Auto-Reconnect + Single Number Whitelist

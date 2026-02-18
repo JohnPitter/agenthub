@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   X, Clock, User, GitBranch, CheckCircle2, Tag,
   Calendar, FileDiff, DollarSign, Coins, Hash,
 } from "lucide-react";
-import { cn, formatDate, formatRelativeTime } from "../../lib/utils";
+import { cn, formatDate, formatRelativeTime, api } from "../../lib/utils";
 import { AgentAvatar } from "../agents/agent-avatar";
+import { SubtaskTree } from "./subtask-tree";
+import { CreateSubtaskDialog } from "./create-subtask-dialog";
 import type { Task, Agent } from "@agenthub/shared";
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -35,6 +37,21 @@ interface TaskDetailDrawerProps {
 export function TaskDetailDrawer({ task, agents, onClose, onViewChanges }: TaskDetailDrawerProps) {
   const [descExpanded, setDescExpanded] = useState(false);
   const [resultExpanded, setResultExpanded] = useState(false);
+  const [subtasks, setSubtasks] = useState<Task[]>([]);
+  const [showCreateSubtask, setShowCreateSubtask] = useState(false);
+
+  const fetchSubtasks = useCallback(async () => {
+    try {
+      const { subtasks: data } = await api<{ subtasks: Task[] }>(`/tasks/${task.id}/subtasks`);
+      setSubtasks(data);
+    } catch {
+      // silently fail
+    }
+  }, [task.id]);
+
+  useEffect(() => {
+    fetchSubtasks();
+  }, [fetchSubtasks]);
   const statusInfo = STATUS_LABELS[task.status] ?? STATUS_LABELS.created;
   const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null;
@@ -212,6 +229,17 @@ export function TaskDetailDrawer({ task, agents, onClose, onViewChanges }: TaskD
             )}
           </div>
 
+          {/* Subtasks */}
+          {!task.parentTaskId && (
+            <SubtaskTree
+              parentTask={task}
+              subtasks={subtasks}
+              agents={agents}
+              onCreateSubtask={() => setShowCreateSubtask(true)}
+              onClickTask={() => {}}
+            />
+          )}
+
           {/* Result — truncated with expand */}
           {task.result && (
             <div>
@@ -235,6 +263,18 @@ export function TaskDetailDrawer({ task, agents, onClose, onViewChanges }: TaskD
           )}
         </div>
       </div>
+
+      {showCreateSubtask && (
+        <CreateSubtaskDialog
+          parentTaskId={task.id}
+          projectId={task.projectId}
+          onCreated={(newTask) => {
+            setSubtasks((prev) => [...prev, newTask]);
+            setShowCreateSubtask(false);
+          }}
+          onClose={() => setShowCreateSubtask(false)}
+        />
+      )}
     </div>
   );
 }

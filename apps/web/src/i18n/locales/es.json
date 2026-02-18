@@ -303,7 +303,8 @@
     "failed": "Fallidas",
     "successRate": "Tasa de Éxito",
     "avgTime": "Tiempo Promedio",
-    "noData": "Sin datos para el período seleccionado"
+    "noData": "Sin datos para el período seleccionado",
+    "costsTab": "Costos"
   },
   "actions": {
     "created": "Tarea creada",

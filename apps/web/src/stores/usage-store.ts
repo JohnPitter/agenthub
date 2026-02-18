@@ -69,6 +69,30 @@ export interface UsageLimits {
   extraUsage: ExtraUsage | null;
 }
 
+export interface CostByAgentEntry {
+  agentId: string;
+  agentName: string;
+  agentColor: string | null;
+  totalCost: number;
+  totalTokens: number;
+  taskCount: number;
+}
+
+export interface CostByModelEntry {
+  model: string;
+  totalCost: number;
+  totalTokens: number;
+  taskCount: number;
+}
+
+export interface CostTrendEntry {
+  date: string;
+  totalCost: number;
+  inputTokens: number;
+  outputTokens: number;
+  taskCount: number;
+}
+
 interface UsageState {
   summary: UsageSummary | null;
   account: AccountInfo | null;
@@ -88,6 +112,13 @@ interface UsageState {
   openaiUsage: Record<string, unknown> | null;
   openaiUsageFetched: boolean;
   openaiUsageLastFetched: number | null;
+  // Analytics state
+  costByAgent: CostByAgentEntry[];
+  costByModel: CostByModelEntry[];
+  costTrend: CostTrendEntry[];
+  analyticsLoading: boolean;
+  analyticsPeriod: string;
+  // Actions
   fetchSummary: (period?: string) => Promise<void>;
   fetchAccount: () => Promise<void>;
   fetchModels: () => Promise<void>;
@@ -95,6 +126,9 @@ interface UsageState {
   fetchLimits: () => Promise<void>;
   fetchOpenAIConnection: () => Promise<void>;
   fetchOpenAIUsage: () => Promise<void>;
+  fetchCostByAgent: (period?: string) => Promise<void>;
+  fetchCostByModel: (period?: string) => Promise<void>;
+  fetchCostTrend: (period?: string) => Promise<void>;
 }
 
 export const useUsageStore = create<UsageState>((set, get) => ({
@@ -116,6 +150,12 @@ export const useUsageStore = create<UsageState>((set, get) => ({
   openaiUsage: null,
   openaiUsageFetched: false,
   openaiUsageLastFetched: null,
+  // Analytics defaults
+  costByAgent: [],
+  costByModel: [],
+  costTrend: [],
+  analyticsLoading: false,
+  analyticsPeriod: "30d",
 
   fetchSummary: async (period = "24h") => {
     const { lastFetched, loading } = get();
@@ -206,6 +246,34 @@ export const useUsageStore = create<UsageState>((set, get) => ({
       set({ openaiUsage: data, openaiUsageFetched: true, openaiUsageLastFetched: Date.now() });
     } catch {
       set({ openaiUsageFetched: true, openaiUsageLastFetched: Date.now() });
+    }
+  },
+
+  fetchCostByAgent: async (period = "30d") => {
+    set({ analyticsLoading: true });
+    try {
+      const data = await api<CostByAgentEntry[]>(`/usage/analytics?period=${period}&groupBy=agent`);
+      set({ costByAgent: data, analyticsLoading: false, analyticsPeriod: period });
+    } catch {
+      set({ costByAgent: [], analyticsLoading: false });
+    }
+  },
+
+  fetchCostByModel: async (period = "30d") => {
+    try {
+      const data = await api<CostByModelEntry[]>(`/usage/analytics?period=${period}&groupBy=model`);
+      set({ costByModel: data });
+    } catch {
+      set({ costByModel: [] });
+    }
+  },
+
+  fetchCostTrend: async (period = "30d") => {
+    try {
+      const data = await api<CostTrendEntry[]>(`/usage/analytics?period=${period}&groupBy=day`);
+      set({ costTrend: data });
+    } catch {
+      set({ costTrend: [] });
     }
   },
 }));

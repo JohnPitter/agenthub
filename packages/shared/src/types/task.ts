@@ -32,6 +32,8 @@ export interface Task {
   createdAt: Date;
   updatedAt: Date;
   completedAt: Date | null;
+  subtaskCount?: number;
+  completedSubtaskCount?: number;
 }
 
 export interface TaskLog {

@@ -76,6 +76,8 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChan
     const map = new Map<TaskStatus, Task[]>();
     for (const col of COLUMNS) map.set(col.id, []);
     for (const t of tasks) {
+      // Filter out subtasks — they should not appear as independent cards
+      if (t.parentTaskId) continue;
       const list = map.get(t.status as TaskStatus);
       if (list) list.push(t);
     }

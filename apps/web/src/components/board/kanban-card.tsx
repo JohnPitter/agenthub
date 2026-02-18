@@ -80,6 +80,18 @@ export function KanbanCard({ task, agent, onViewChanges, onTaskClick }: KanbanCa
         {task.title}
       </h4>
 
+      {/* Subtask chip */}
+      {(task.subtaskCount ?? 0) > 0 && (
+        <div className="mb-2 flex items-center">
+          <span className="inline-flex items-center gap-1 rounded-md bg-neutral-bg3 px-2 py-0.5 text-[9px] font-semibold text-neutral-fg2">
+            <span className="text-success">{task.completedSubtaskCount ?? 0}</span>
+            <span className="text-neutral-fg-disabled">/</span>
+            <span>{task.subtaskCount}</span>
+            <span className="text-neutral-fg3 ml-0.5">subtasks</span>
+          </span>
+        </div>
+      )}
+
       {/* Bottom row: agent + time */}
       <div className="flex items-center justify-between gap-2">
         {agent ? (

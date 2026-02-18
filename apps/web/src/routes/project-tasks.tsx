@@ -291,7 +291,12 @@ export function ProjectTasks() {
                         {t(`taskPriority.${task.priority}`)}
                       </td>
                       <td className="px-5 py-3.5 text-[13px] font-medium text-neutral-fg1 truncate max-w-[300px]">
-                        {task.title}
+                        <span>{task.title}</span>
+                        {(task.subtaskCount ?? 0) > 0 && (
+                          <span className="ml-2 inline-flex items-center gap-0.5 rounded bg-neutral-bg2 border border-stroke px-1.5 py-0.5 text-[10px] font-semibold text-neutral-fg3">
+                            {task.completedSubtaskCount ?? 0}/{task.subtaskCount}
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5 text-[13px] text-neutral-fg2">
                         {agent?.name ?? "—"}

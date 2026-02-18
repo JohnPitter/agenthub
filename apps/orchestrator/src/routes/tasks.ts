@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { readFile } from "fs/promises";
 import { join, extname } from "path";
@@ -13,15 +13,17 @@ const gitService = new GitService();
 
 export const tasksRouter = Router();
 
-// GET /api/tasks?projectId=...&status=...&limit=50&offset=0
+// GET /api/tasks?projectId=...&status=...&includeSubtasks=true&limit=50&offset=0
 tasksRouter.get("/", async (req, res) => {
-  const { projectId, status } = req.query;
+  const { projectId, status, includeSubtasks } = req.query;
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
   const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
   const conditions = [];
 
   if (projectId) conditions.push(eq(schema.tasks.projectId, projectId as string));
   if (status) conditions.push(eq(schema.tasks.status, status as typeof schema.tasks.status._.data));
+  // By default, hide subtasks from main list unless explicitly requested
+  if (includeSubtasks !== "true") conditions.push(isNull(schema.tasks.parentTaskId));
 
   const tasks = await db
     .select()
@@ -30,6 +32,33 @@ tasksRouter.get("/", async (req, res) => {
     .orderBy(desc(schema.tasks.createdAt))
     .limit(limit)
     .offset(offset);
+
+  // Compute subtask counts for all tasks in a single query
+  const taskIds = tasks.map((t) => t.id);
+  if (taskIds.length > 0) {
+    const subtaskCounts = await db
+      .select({
+        parentTaskId: schema.tasks.parentTaskId,
+        total: sql<number>`count(*)`.as("total"),
+        completed: sql<number>`sum(case when ${schema.tasks.status} in ('done', 'cancelled') then 1 else 0 end)`.as("completed"),
+      })
+      .from(schema.tasks)
+      .where(sql`${schema.tasks.parentTaskId} in (${sql.join(taskIds.map((id) => sql`${id}`), sql`, `)})`)
+      .groupBy(schema.tasks.parentTaskId);
+
+    const countMap = new Map(subtaskCounts.map((r) => [r.parentTaskId, { total: r.total, completed: r.completed }]));
+
+    const enriched = tasks.map((t) => {
+      const counts = countMap.get(t.id);
+      return {
+        ...t,
+        subtaskCount: counts?.total ?? 0,
+        completedSubtaskCount: counts?.completed ?? 0,
+      };
+    });
+
+    return res.json({ tasks: enriched });
+  }
 
   res.json({ tasks });
 });
@@ -48,7 +77,7 @@ tasksRouter.get("/:id", async (req, res) => {
 
 // POST /api/tasks
 tasksRouter.post("/", async (req, res) => {
-  const { projectId, title, description, priority, category, assignedAgentId } = req.body;
+  const { projectId, title, description, priority, category, assignedAgentId, parentTaskId } = req.body;
 
   const task = {
     id: nanoid(),
@@ -58,6 +87,7 @@ tasksRouter.post("/", async (req, res) => {
     priority: priority ?? "medium",
     category: category ?? null,
     assignedAgentId: assignedAgentId ?? null,
+    parentTaskId: parentTaskId ?? null,
     status: "created" as const,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -65,6 +95,17 @@ tasksRouter.post("/", async (req, res) => {
 
   await db.insert(schema.tasks).values(task);
   res.status(201).json({ task });
+});
+
+// GET /api/tasks/:id/subtasks
+tasksRouter.get("/:id/subtasks", async (req, res) => {
+  const subtasks = await db
+    .select()
+    .from(schema.tasks)
+    .where(eq(schema.tasks.parentTaskId, req.params.id))
+    .orderBy(schema.tasks.createdAt);
+
+  res.json({ subtasks });
 });
 
 // PATCH /api/tasks/:id

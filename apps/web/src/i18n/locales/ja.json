@@ -303,7 +303,8 @@
     "failed": "失敗",
     "successRate": "成功率",
     "avgTime": "平均時間",
-    "noData": "選択期間のデータがありません"
+    "noData": "選択期間のデータがありません",
+    "costsTab": "コスト"
   },
   "actions": {
     "created": "タスク作成",

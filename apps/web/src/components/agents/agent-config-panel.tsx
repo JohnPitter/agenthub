@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Settings, Activity, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { api, formatRelativeTime } from "../../lib/utils";
 import type { Agent, TaskLog } from "@agenthub/shared";
@@ -8,23 +9,21 @@ interface AgentConfigPanelProps {
   onOpenConfig: () => void;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  architect: "Arquiteto",
-  tech_lead: "Tech Lead",
-  frontend_dev: "Frontend Dev",
-  backend_dev: "Backend Dev",
-  qa: "QA Engineer",
-};
-
 const MODEL_LABELS: Record<string, string> = {
   "claude-opus-4-6": "Opus 4.6",
+  "claude-sonnet-4-6": "Sonnet 4.6",
   "claude-sonnet-4-5-20250929": "Sonnet 4.5",
-};
-
-const PERMISSION_LABELS: Record<string, string> = {
-  default: "Padrão",
-  acceptEdits: "Auto-aceitar edições",
-  bypassPermissions: "Bypass total",
+  "claude-haiku-4-5-20251001": "Haiku 4.5",
+  "gpt-5.3-codex": "GPT-5.3 Codex",
+  "gpt-5.2-codex": "GPT-5.2 Codex",
+  "gpt-5.1-codex": "GPT-5.1 Codex",
+  "gpt-5-codex-mini": "GPT-5 Codex Mini",
+  "gpt-4.1": "GPT-4.1",
+  "gpt-4.1-mini": "GPT-4.1 Mini",
+  "gpt-4.1-nano": "GPT-4.1 Nano",
+  "o3": "o3",
+  "o4-mini": "o4-mini",
+  "codex-mini": "Codex Mini",
 };
 
 const ACTION_ICONS: Record<string, React.ComponentType<any>> = {
@@ -37,6 +36,7 @@ const ACTION_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps) {
+  const { t } = useTranslation();
   const [activityLogs, setActivityLogs] = useState<TaskLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
@@ -71,53 +71,53 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
         </div>
         <div className="flex-1">
           <h2 className="text-heading text-neutral-fg1">{agent.name}</h2>
-          <p className="text-subtitle">{ROLE_LABELS[agent.role] ?? agent.role}</p>
+          <p className="text-subtitle">{t(`roles.${agent.role}`, agent.role)}</p>
         </div>
         <button
           onClick={onOpenConfig}
           className="btn-secondary flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px]"
         >
           <Settings className="h-3.5 w-3.5" />
-          Configurar
+          {t("agents.configure")}
         </button>
       </div>
 
       {/* Info Grid */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="card-glow p-5">
-          <dt className="text-label mb-2">Modelo</dt>
+          <dt className="text-label mb-2">{t("agents.model")}</dt>
           <dd className="text-[13px] text-neutral-fg1 font-mono">
             {MODEL_LABELS[agent.model] ?? agent.model}
           </dd>
         </div>
 
         <div className="card-glow p-5">
-          <dt className="text-label mb-2">Status</dt>
+          <dt className="text-label mb-2">{t("tasks.status")}</dt>
           <dd>
             {agent.isActive ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success-light px-3 py-1 text-[11px] font-semibold text-success">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
-                Ativo
+                {t("common.active")}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-bg1 px-3 py-1 text-[11px] font-semibold text-neutral-fg3">
-                Inativo
+                {t("common.inactive")}
               </span>
             )}
           </dd>
         </div>
 
         <div className="card-glow p-5">
-          <dt className="text-label mb-2">Permissões</dt>
+          <dt className="text-label mb-2">{t("agents.permissions")}</dt>
           <dd className="text-[13px] text-neutral-fg1">
-            {PERMISSION_LABELS[agent.permissionMode] ?? agent.permissionMode}
+            {t(`permissions.${agent.permissionMode}`, agent.permissionMode)}
           </dd>
         </div>
 
         <div className="card-glow p-5">
-          <dt className="text-label mb-2">Thinking Tokens</dt>
+          <dt className="text-label mb-2">{t("agents.thinkingTokens")}</dt>
           <dd className="text-[13px] text-neutral-fg1">
-            {agent.maxThinkingTokens ? agent.maxThinkingTokens.toLocaleString() : "Desabilitado"}
+            {agent.maxThinkingTokens ? agent.maxThinkingTokens.toLocaleString() : t("common.inactive")}
           </dd>
         </div>
       </div>
@@ -126,7 +126,7 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
       {Array.isArray(agent.allowedTools) && agent.allowedTools.length > 0 && (
         <div className="mb-8">
           <h3 className="text-label mb-3">
-            Ferramentas Ativas ({agent.allowedTools.length})
+            {t("agents.tools")} ({agent.allowedTools.length})
           </h3>
           <div className="flex flex-wrap gap-2">
             {agent.allowedTools.map((tool) => (
@@ -164,10 +164,10 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
         >
           <div className="flex items-center gap-2.5">
             <Activity className="h-4 w-4 text-brand" />
-            <span className="text-[13px] font-semibold text-neutral-fg1">Histórico de Atividades</span>
+            <span className="text-[13px] font-semibold text-neutral-fg1">{t("dashboard.recentActivity")}</span>
           </div>
           <span className="text-[11px] text-neutral-fg3">
-            {showActivity ? "Ocultar" : "Mostrar"}
+            {showActivity ? t("common.less") : t("common.more")}
           </span>
         </button>
 
@@ -181,7 +181,7 @@ export function AgentConfigPanel({ agent, onOpenConfig }: AgentConfigPanelProps)
             ) : activityLogs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Clock className="h-8 w-8 text-neutral-fg-disabled mb-2" />
-                <p className="text-[13px] text-neutral-fg3">Nenhuma atividade registrada</p>
+                <p className="text-[13px] text-neutral-fg3">{t("dashboard.noActivities")}</p>
               </div>
             ) : (
               activityLogs.map((log) => {

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   Zap, GitBranch, MessageSquare, Activity, BarChart3, Code2,
@@ -5,51 +6,16 @@ import {
 } from "lucide-react";
 
 const FEATURES = [
-  {
-    icon: Bot,
-    title: "Agentes Autonomos",
-    description: "Agentes Claude executam tasks reais de desenvolvimento em branches isoladas.",
-    color: "text-brand",
-    bg: "bg-brand-light",
-  },
-  {
-    icon: GitBranch,
-    title: "Git Integration",
-    description: "Branch, commit e push automaticos. Sync com remote e deteccao de conflitos.",
-    color: "text-purple",
-    bg: "bg-purple-light",
-  },
-  {
-    icon: MessageSquare,
-    title: "Code Review",
-    description: "Ciclo approve/reject com feedback estruturado antes de cada merge.",
-    color: "text-success",
-    bg: "bg-success-light",
-  },
-  {
-    icon: Activity,
-    title: "Real-time",
-    description: "WebSocket para acompanhar progresso, logs e status dos agentes ao vivo.",
-    color: "text-warning",
-    bg: "bg-warning-light",
-  },
-  {
-    icon: BarChart3,
-    title: "Analytics",
-    description: "Metricas de performance, taxa de sucesso e ranking de agentes.",
-    color: "text-info",
-    bg: "bg-info-light",
-  },
-  {
-    icon: Code2,
-    title: "Code Editor",
-    description: "Monaco Editor com IntelliSense, diff viewer e historico git integrado.",
-    color: "text-orange",
-    bg: "bg-orange/10",
-  },
+  { icon: Bot, titleKey: "landing.featureAgentsTitle", descKey: "landing.featureAgentsDesc", color: "text-brand", bg: "bg-brand-light" },
+  { icon: GitBranch, titleKey: "landing.featureGitTitle", descKey: "landing.featureGitDesc", color: "text-purple", bg: "bg-purple-light" },
+  { icon: MessageSquare, titleKey: "landing.featureReviewTitle", descKey: "landing.featureReviewDesc", color: "text-success", bg: "bg-success-light" },
+  { icon: Activity, titleKey: "landing.featureRealtimeTitle", descKey: "landing.featureRealtimeDesc", color: "text-warning", bg: "bg-warning-light" },
+  { icon: BarChart3, titleKey: "landing.featureAnalyticsTitle", descKey: "landing.featureAnalyticsDesc", color: "text-info", bg: "bg-info-light" },
+  { icon: Code2, titleKey: "landing.featureEditorTitle", descKey: "landing.featureEditorDesc", color: "text-orange", bg: "bg-orange/10" },
 ];
 
 export function LandingPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-app-bg text-neutral-fg1">
       {/* Nav */}
@@ -66,7 +32,7 @@ export function LandingPage() {
             className="btn-primary flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium"
           >
             <Github className="h-4 w-4" />
-            Entrar
+            {t("landing.login")}
           </Link>
         </div>
       </nav>
@@ -84,13 +50,11 @@ export function LandingPage() {
           </div>
 
           <h1 className="text-[52px] font-bold leading-[1.1] tracking-tight">
-            Orquestre agentes de IA para{" "}
-            <span className="text-gradient-brand">automatizar desenvolvimento</span>
+            {t("landing.hero")}
           </h1>
 
           <p className="mt-6 text-[18px] text-neutral-fg2 leading-relaxed max-w-2xl mx-auto">
-            Multiplos agentes Claude trabalhando em paralelo — executando tasks,
-            criando branches, fazendo commits e passando por code review automaticamente.
+            {t("landing.heroSub")}
           </p>
 
           <div className="mt-10 flex items-center justify-center gap-4">
@@ -98,7 +62,7 @@ export function LandingPage() {
               to="/login"
               className="btn-primary flex items-center gap-2.5 px-8 py-3.5 text-[15px] font-semibold"
             >
-              Comecar agora
+              {t("landing.getStarted")}
               <ArrowRight className="h-4.5 w-4.5" />
             </Link>
             <a
@@ -117,20 +81,20 @@ export function LandingPage() {
       {/* Features */}
       <section className="max-w-7xl mx-auto px-8 pb-32">
         <div className="text-center mb-16">
-          <h2 className="text-[32px] font-bold tracking-tight">Tudo que voce precisa</h2>
+          <h2 className="text-[32px] font-bold tracking-tight">{t("landing.featuresTitle")}</h2>
           <p className="mt-3 text-[16px] text-neutral-fg2">
-            Uma plataforma completa para orquestrar desenvolvimento com IA.
+            {t("landing.featuresSubtitle")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map((feature) => (
-            <div key={feature.title} className="card-interactive p-6">
+            <div key={feature.titleKey} className="card-interactive p-6">
               <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${feature.bg} mb-4`}>
                 <feature.icon className={`h-5.5 w-5.5 ${feature.color}`} strokeWidth={1.8} />
               </div>
-              <h3 className="text-[16px] font-semibold text-neutral-fg1 mb-2">{feature.title}</h3>
-              <p className="text-[14px] text-neutral-fg2 leading-relaxed">{feature.description}</p>
+              <h3 className="text-[16px] font-semibold text-neutral-fg1 mb-2">{t(feature.titleKey)}</h3>
+              <p className="text-[14px] text-neutral-fg2 leading-relaxed">{t(feature.descKey)}</p>
             </div>
           ))}
         </div>
@@ -142,15 +106,15 @@ export function LandingPage() {
           <div className="glow-orb glow-orb-brand absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2" />
           <div className="relative z-10">
             <Shield className="h-10 w-10 text-brand mx-auto mb-4" strokeWidth={1.5} />
-            <h2 className="text-[28px] font-bold tracking-tight mb-3">Pronto para automatizar?</h2>
+            <h2 className="text-[28px] font-bold tracking-tight mb-3">{t("landing.ctaTitle")}</h2>
             <p className="text-[16px] text-neutral-fg2 mb-8 max-w-lg mx-auto">
-              Conecte com GitHub e comece a orquestrar agentes em minutos.
+              {t("landing.ctaSubtitle")}
             </p>
             <Link
               to="/login"
               className="btn-primary inline-flex items-center gap-2.5 px-8 py-3.5 text-[15px] font-semibold"
             >
-              Comecar gratuitamente
+              {t("landing.ctaButton")}
               <ArrowRight className="h-4.5 w-4.5" />
             </Link>
           </div>

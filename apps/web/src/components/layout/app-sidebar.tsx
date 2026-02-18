@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { LayoutDashboard, BarChart3, Users, ListTodo, Settings, Zap, FolderOpen, ChevronLeft, ChevronRight, CheckCircle2, XCircle, BookOpen } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace-store";
@@ -11,12 +12,12 @@ import type { Project } from "@agenthub/shared";
 import { getStackIcon } from "@agenthub/shared";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/agents", icon: Users, label: "Agentes" },
-  { to: "/tasks", icon: ListTodo, label: "Tarefas" },
-  { to: "/docs", icon: BookOpen, label: "Documentação" },
-  { to: "/analytics", icon: BarChart3, label: "Analytics" },
-  { to: "/settings", icon: Settings, label: "Configurações" },
+  { to: "/dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
+  { to: "/agents", icon: Users, labelKey: "nav.agents" },
+  { to: "/tasks", icon: ListTodo, labelKey: "nav.tasks" },
+  { to: "/docs", icon: BookOpen, labelKey: "nav.docs" },
+  { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" },
+  { to: "/settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
 const AGENT_STATUS_COLORS: Record<string, string> = {
@@ -122,18 +123,21 @@ function UsageBar({ label, utilization, resetsAt, color }: {
 }
 
 function UsageWidget({ collapsed }: { collapsed: boolean }) {
-  const { account, connection, limits, fetchAccount, fetchConnection, fetchLimits } = useUsageStore();
+  const { account, connection, limits, openaiConnection, openaiUsage, fetchAccount, fetchConnection, fetchLimits, fetchOpenAIConnection, fetchOpenAIUsage } = useUsageStore();
 
   useEffect(() => {
     fetchAccount();
     fetchConnection();
     fetchLimits();
+    fetchOpenAIConnection();
+    fetchOpenAIUsage();
     const interval = setInterval(() => {
-      useUsageStore.setState({ limitsLastFetched: null });
+      useUsageStore.setState({ limitsLastFetched: null, openaiUsageLastFetched: null });
       fetchLimits();
+      fetchOpenAIUsage();
     }, 120_000);
     return () => clearInterval(interval);
-  }, [fetchAccount, fetchConnection, fetchLimits]);
+  }, [fetchAccount, fetchConnection, fetchLimits, fetchOpenAIConnection, fetchOpenAIUsage]);
 
   const connected = connection?.connected ?? false;
   const plan = detectPlan(account?.subscriptionType ?? connection?.subscriptionType);
@@ -232,11 +236,65 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
           ))}
         </div>
       )}
+
+      {openaiConnection?.connected && (
+        <div className="mt-2.5 pt-2.5 border-t border-stroke2">
+          {/* OpenAI header */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" strokeWidth={2} />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">OpenAI</span>
+            </div>
+            {openaiConnection.planType && (
+              <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-500 uppercase tracking-wider">
+                {openaiConnection.planType.toLowerCase().includes("pro") ? "Pro"
+                  : openaiConnection.planType.toLowerCase().includes("plus") ? "Plus"
+                  : openaiConnection.planType.toLowerCase().includes("enterprise") ? "Enterprise"
+                  : openaiConnection.planType}
+              </span>
+            )}
+          </div>
+
+          {/* OpenAI email */}
+          {openaiConnection.email && (
+            <p className="text-[10px] text-neutral-fg-disabled truncate mb-2">
+              {openaiConnection.email}
+            </p>
+          )}
+
+          {/* OpenAI usage bars from WHAM API */}
+          {openaiUsage && (() => {
+            const rl = (openaiUsage as { rate_limit?: { primary_window?: { used_percent: number; reset_at: number }; secondary_window?: { used_percent: number; reset_at: number } } }).rate_limit;
+            if (!rl) return null;
+            return (
+              <div className="flex flex-col gap-2.5">
+                {rl.primary_window && (
+                  <UsageBar
+                    label="Sessão"
+                    utilization={rl.primary_window.used_percent}
+                    resetsAt={new Date(rl.primary_window.reset_at * 1000).toISOString()}
+                    color="bg-emerald-500"
+                  />
+                )}
+                {rl.secondary_window && (
+                  <UsageBar
+                    label="Semanal"
+                    utilization={rl.secondary_window.used_percent}
+                    resetsAt={new Date(rl.secondary_window.reset_at * 1000).toISOString()}
+                    color="bg-teal-500"
+                  />
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }
 
 export function AppSidebar() {
+  const { t } = useTranslation();
   const { projects, setProjects, activeProjectId, setActiveProject, agents } = useWorkspaceStore();
   const { agentActivity } = useChatStore();
   const { id: routeProjectId } = useParams();
@@ -304,7 +362,7 @@ export function AppSidebar() {
                   ? "bg-brand-light text-brand font-semibold border-l-2 border-brand shadow-[inset_0_0_12px_rgba(99,102,241,0.06)]"
                   : "text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
               )}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? t(item.labelKey) : undefined}
             >
               <item.icon
                 className={cn(
@@ -313,7 +371,7 @@ export function AppSidebar() {
                 )}
                 strokeWidth={active ? 1.8 : 1.5}
               />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span>{t(item.labelKey)}</span>}
             </Link>
           );
         })}
@@ -405,7 +463,7 @@ export function AppSidebar() {
               <div
                 key={agent.id}
                 className="relative group"
-                title={collapsed ? agent.name : `${agent.name} - ${status}`}
+                title={collapsed ? agent.name : `${agent.name} - ${t(`agentStatus.${status}`, status)}`}
               >
                 <AgentAvatar
                   name={agent.name}

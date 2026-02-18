@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Power, Settings, Users, GitBranch, Trash2 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { useAgents } from "../hooks/use-agents";
@@ -10,26 +11,33 @@ import type { Agent, AgentWorkflow } from "@agenthub/shared";
 
 type AgentsTab = "agentes" | "workflow";
 
-const ROLE_LABELS: Record<string, string> = {
-  architect: "Arquiteto",
-  tech_lead: "Tech Lead",
-  frontend_dev: "Frontend Dev",
-  backend_dev: "Backend Dev",
-  qa: "QA Engineer",
-  custom: "Custom",
-};
-
 const MODEL_LABELS: Record<string, string> = {
   "claude-opus-4-6": "Opus 4.6",
+  "claude-sonnet-4-6": "Sonnet 4.6",
   "claude-sonnet-4-5-20250929": "Sonnet 4.5",
+  "claude-haiku-4-5-20251001": "Haiku 4.5",
+  "gpt-5.3-codex": "GPT-5.3 Codex",
+  "gpt-5.2-codex": "GPT-5.2 Codex",
+  "gpt-5.1-codex": "GPT-5.1 Codex",
+  "gpt-5-codex-mini": "GPT-5 Codex Mini",
+  "gpt-4.1": "GPT-4.1",
+  "gpt-4.1-mini": "GPT-4.1 Mini",
+  "gpt-4.1-nano": "GPT-4.1 Nano",
+  "o3": "o3",
+  "o4-mini": "o4-mini",
+  "codex-mini": "Codex Mini",
 };
 
-const WORKFLOW_STORAGE_KEY = "agenthub:workflow";
+const WORKFLOW_STORAGE_KEY = "agenthub:workflow:v5";
 
 function loadWorkflow(): AgentWorkflow | null {
   try {
     const raw = localStorage.getItem(WORKFLOW_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const wf = JSON.parse(raw) as AgentWorkflow;
+    // If workflow has only 1 step (old incomplete default), discard it
+    if (wf.steps.length <= 1) return null;
+    return wf;
   } catch {
     return null;
   }
@@ -40,6 +48,7 @@ function saveWorkflow(wf: AgentWorkflow) {
 }
 
 export function AgentsPage() {
+  const { t } = useTranslation();
   const { agents, toggleAgent, updateAgent, createAgent, deleteAgent } = useAgents();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
@@ -56,17 +65,17 @@ export function AgentsPage() {
   const handleDeleteAgent = async (agentId: string) => {
     const agent = agents.find((a) => a.id === agentId);
     if (!agent || agent.isDefault) return;
-    if (!confirm(`Excluir o agente "${agent.name}"? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(t("agents.deleteConfirm", { name: agent.name }))) return;
     await deleteAgent(agentId);
     if (selectedId === agentId) setSelectedId(null);
   };
 
   const handleAddAgent = async () => {
     const agent = await createAgent({
-      name: "Novo Agente",
+      name: t("agents.addAgent"),
       role: "custom",
       model: "claude-sonnet-4-5-20250929",
-      description: "Agente personalizado",
+      description: t("agents.typeCustom"),
     });
     setSelectedId(agent.id);
     setConfigAgent(agent);
@@ -93,7 +102,7 @@ export function AgentsPage() {
               )}
             >
               <Users className="h-3.5 w-3.5" />
-              Agentes
+              {t("agents.title")}
             </button>
             <button
               onClick={() => setActiveTab("workflow")}
@@ -105,7 +114,7 @@ export function AgentsPage() {
               )}
             >
               <GitBranch className="h-3.5 w-3.5" />
-              Workflow
+              {t("agents.workflow")}
             </button>
           </div>
 
@@ -122,11 +131,11 @@ export function AgentsPage() {
           {/* Left — Agent List */}
           <nav className="w-[280px] shrink-0 border-r border-stroke2 bg-neutral-bg-subtle flex flex-col">
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <span className="section-heading !mb-0">Agentes</span>
+              <span className="section-heading !mb-0">{t("agents.title")}</span>
               <button
                 onClick={handleAddAgent}
                 className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-white transition-all hover:bg-brand-hover hover:shadow-glow"
-                title="Adicionar agente"
+                title={t("agents.addAgent")}
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -155,7 +164,7 @@ export function AgentsPage() {
                         {agent.name}
                       </p>
                       <p className="truncate text-[11px] text-neutral-fg3">
-                        {ROLE_LABELS[agent.role] ?? agent.role}
+                        {t(`roles.${agent.role}`, agent.role)}
                       </p>
                     </div>
                     <span className={cn(
@@ -172,7 +181,7 @@ export function AgentsPage() {
                     <Users className="h-6 w-6 text-brand" />
                   </div>
                   <p className="text-[12px] text-neutral-fg3 leading-relaxed">
-                    Nenhum agente configurado.<br />Clique em + para adicionar.
+                    {t("agents.noAgents")}
                   </p>
                 </div>
               )}
@@ -191,7 +200,7 @@ export function AgentsPage() {
                       <h2 className="text-[20px] font-semibold text-neutral-fg1">{selected.name}</h2>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-[13px] font-medium text-neutral-fg2">
-                          {ROLE_LABELS[selected.role] ?? selected.role}
+                          {t(`roles.${selected.role}`, selected.role)}
                         </span>
                         <span className="text-neutral-fg-disabled">·</span>
                         <span className="text-[12px] font-medium text-neutral-fg3 bg-neutral-bg2 px-2 py-0.5 rounded-md">
@@ -212,7 +221,7 @@ export function AgentsPage() {
                       "text-[11px] font-semibold",
                       selected.isActive ? "text-success-dark" : "text-neutral-fg-disabled",
                     )}>
-                      {selected.isActive ? "Online" : "Offline"}
+                      {selected.isActive ? t("common.online") : t("common.offline")}
                     </span>
                   </span>
                 </div>
@@ -221,7 +230,7 @@ export function AgentsPage() {
                 {selected.description && (
                   <div className="card-glow p-6 mb-6">
                     <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2 mb-2">
-                      Descrição
+                      {t("agents.description")}
                     </h3>
                     <p className="text-[13px] text-neutral-fg1 leading-relaxed">{selected.description}</p>
                   </div>
@@ -231,29 +240,29 @@ export function AgentsPage() {
                 <div className="card-glow overflow-hidden mb-6">
                   <dl className="flex flex-col divide-y divide-stroke2">
                     <div className="flex items-center justify-between px-6 py-4">
-                      <dt className="text-[13px] text-neutral-fg2">Nível</dt>
+                      <dt className="text-[13px] text-neutral-fg2">{t("agents.level")}</dt>
                       <dd className="inline-flex items-center rounded-md bg-brand-light px-3 py-1">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-brand">
-                          {selected.level}
+                          {t(`levels.${selected.level}`, selected.level)}
                         </span>
                       </dd>
                     </div>
                     <div className="flex items-center justify-between px-6 py-4">
-                      <dt className="text-[13px] text-neutral-fg2">Permissões</dt>
+                      <dt className="text-[13px] text-neutral-fg2">{t("agents.permissions")}</dt>
                       <dd className="text-[13px] font-semibold text-neutral-fg1">
-                        {selected.permissionMode === "default" ? "Padrão" : selected.permissionMode === "acceptEdits" ? "Auto-aceitar edições" : "Bypass total"}
+                        {t(`permissions.${selected.permissionMode}`)}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between px-6 py-4">
-                      <dt className="text-[13px] text-neutral-fg2">Extended Thinking</dt>
+                      <dt className="text-[13px] text-neutral-fg2">{t("agents.thinkingTokens")}</dt>
                       <dd className="text-[13px] font-semibold text-neutral-fg1">
-                        {selected.maxThinkingTokens ? `${(selected.maxThinkingTokens / 1000).toFixed(0)}k tokens` : "Desativado"}
+                        {selected.maxThinkingTokens ? `${(selected.maxThinkingTokens / 1000).toFixed(0)}k tokens` : t("common.inactive")}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between px-6 py-4">
-                      <dt className="text-[13px] text-neutral-fg2">Tipo</dt>
+                      <dt className="text-[13px] text-neutral-fg2">{t("agents.type")}</dt>
                       <dd className="text-[13px] font-semibold text-neutral-fg1">
-                        {selected.isDefault ? "Padrão do sistema" : "Personalizado"}
+                        {selected.isDefault ? t("agents.typeDefault") : t("agents.typeCustom")}
                       </dd>
                     </div>
                   </dl>
@@ -262,7 +271,7 @@ export function AgentsPage() {
                 {/* Tools */}
                 <div className="card-glow p-6 mb-6">
                   <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2 mb-3">
-                    Ferramentas Permitidas
+                    {t("agents.tools")}
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {(typeof selected.allowedTools === "string"
@@ -291,20 +300,20 @@ export function AgentsPage() {
                     )}
                   >
                     <Power className="h-4 w-4" />
-                    {selected.isActive ? "Ativo" : "Inativo"}
+                    {selected.isActive ? t("common.active") : t("common.inactive")}
                   </button>
                   <button
                     onClick={() => setConfigAgent(selected)}
                     className="btn-primary flex flex-1 items-center justify-center gap-2 rounded-lg py-3 text-[13px] font-semibold text-white"
                   >
                     <Settings className="h-4 w-4" />
-                    Configurar
+                    {t("agents.configure")}
                   </button>
                   {!selected.isDefault && (
                     <button
                       onClick={() => handleDeleteAgent(selected.id)}
                       className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-neutral-bg2 text-neutral-fg3 hover:bg-danger-light hover:text-danger transition-colors"
-                      title="Excluir agente"
+                      title={t("common.delete")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -317,9 +326,9 @@ export function AgentsPage() {
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-light">
                     <Users className="h-8 w-8 text-brand" />
                   </div>
-                  <p className="text-[14px] font-semibold text-neutral-fg2">Nenhum agente selecionado</p>
+                  <p className="text-[14px] font-semibold text-neutral-fg2">{t("agents.noAgentSelected")}</p>
                   <p className="mt-1 text-[12px] text-neutral-fg3">
-                    Selecione um agente na lista ou crie um novo
+                    {t("agents.selectOrCreate")}
                   </p>
                 </div>
               </div>

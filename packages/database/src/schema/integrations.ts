@@ -3,7 +3,7 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 export const integrations = sqliteTable("integrations", {
   id: text("id").primaryKey(),
   projectId: text("project_id"),
-  type: text("type", { enum: ["whatsapp", "telegram", "git"] }).notNull(),
+  type: text("type", { enum: ["whatsapp", "telegram", "git", "openai"] }).notNull(),
   status: text("status", {
     enum: ["disconnected", "connecting", "connected", "error"],
   }).default("disconnected").notNull(),

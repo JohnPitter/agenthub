@@ -25,7 +25,7 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     permissionMode: "acceptEdits",
     level: "senior",
     color: "#6366F1",
-    avatar: "building",
+    avatar: "adventurer:gandalf-wizard",
   },
   {
     name: "Tech Lead",
@@ -37,7 +37,7 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     permissionMode: "acceptEdits",
     level: "senior",
     color: "#00A82D",
-    avatar: "user-cog",
+    avatar: "pixel-art:captain-america",
   },
   {
     name: "Frontend Dev",
@@ -49,7 +49,7 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     permissionMode: "acceptEdits",
     level: "senior",
     color: "#EC4899",
-    avatar: "palette",
+    avatar: "pixel-art:peter-parker-spider",
   },
   {
     name: "Backend Dev",
@@ -61,7 +61,7 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     permissionMode: "acceptEdits",
     level: "senior",
     color: "#F59E0B",
-    avatar: "server",
+    avatar: "pixel-art:tony-stark-ironman",
   },
   {
     name: "QA Engineer",
@@ -73,18 +73,18 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     permissionMode: "acceptEdits",
     level: "senior",
     color: "#10B981",
-    avatar: "shield-check",
+    avatar: "bottts:darth-vader",
   },
   {
-    name: "Recepcionista",
+    name: "Team Lead",
     role: "receptionist" as const,
     model: "claude-haiku-4-5-20251001",
     maxThinkingTokens: null,
-    description: "First responder do WhatsApp. Conversa com usuários, responde perguntas e direciona demandas para o time de desenvolvimento.",
+    description: "Scrum Master do time. Gerencia tarefas, coordena agentes e interage com usuários via WhatsApp e mensagens externas.",
     allowedTools: [],
     permissionMode: "default",
     level: "pleno",
     color: "#EC4899",
-    avatar: "headphones",
+    avatar: "fun-emoji:agent-x-spy",
   },
 ];

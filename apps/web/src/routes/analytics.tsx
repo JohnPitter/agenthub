@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { BarChart3, ListTodo, CheckCircle2, XCircle, Zap } from "lucide-react";
 import { PerformanceChart } from "../components/analytics/performance-chart";
 import { CommandBar } from "../components/layout/command-bar";
@@ -36,13 +37,14 @@ interface TrendDataPoint {
 type Period = "7d" | "30d" | "all";
 
 const STAT_ITEMS = [
-  { key: "total", label: "Total de Tasks", icon: ListTodo, color: "text-brand" },
-  { key: "completed", label: "Concluídas", icon: CheckCircle2, color: "text-success" },
-  { key: "failed", label: "Falhadas", icon: XCircle, color: "text-danger" },
-  { key: "rate", label: "Taxa de Sucesso", icon: Zap, color: "text-brand" },
+  { key: "total", labelKey: "analytics.totalTasks", icon: ListTodo, color: "text-brand" },
+  { key: "completed", labelKey: "analytics.completed", icon: CheckCircle2, color: "text-success" },
+  { key: "failed", labelKey: "analytics.failed", icon: XCircle, color: "text-danger" },
+  { key: "rate", labelKey: "analytics.successRate", icon: Zap, color: "text-brand" },
 ] as const;
 
 export function Analytics() {
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<Period>("30d");
   const [activeTab, setActiveTab] = useState<"overview" | "agents">("overview");
   const [metrics, setMetrics] = useState<AgentMetrics[]>([]);
@@ -107,7 +109,7 @@ export function Analytics() {
                     : "text-neutral-fg3 hover:text-neutral-fg1"
                 )}
               >
-                {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
+                {p === "7d" ? t("analytics.period7d") : p === "30d" ? t("analytics.period30d") : t("analytics.periodAll")}
               </button>
             ))}
           </div>
@@ -115,8 +117,8 @@ export function Analytics() {
       >
         <Tablist
           tabs={[
-            { key: "overview", label: "Visão Geral" },
-            { key: "agents", label: "Agentes" },
+            { key: "overview", label: t("analytics.overview") },
+            { key: "agents", label: t("analytics.agentsTab") },
           ]}
           activeTab={activeTab}
           onChange={(key) => setActiveTab(key as "overview" | "agents")}
@@ -139,7 +141,7 @@ export function Analytics() {
               return (
                 <div key={item.key} className="stat-card flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-label">{item.label}</span>
+                    <span className="text-label">{t(item.labelKey)}</span>
                     <Icon className={cn("h-4 w-4", item.color)} />
                   </div>
                   <span className={cn("text-[28px] font-bold tracking-tight", item.color)}>
@@ -153,7 +155,7 @@ export function Analytics() {
           {activeTab === "overview" ? (
             /* Chart view */
             <div className="card-glow p-8 animate-fade-up stagger-2">
-              <h2 className="text-title text-neutral-fg1 mb-6">Tendências de Performance</h2>
+              <h2 className="text-title text-neutral-fg1 mb-6">{t("analytics.overview")}</h2>
               <PerformanceChart data={trends} type="area" />
             </div>
           ) : (
@@ -163,12 +165,12 @@ export function Analytics() {
                 <thead>
                   <tr className="border-b border-stroke2 text-left">
                     <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 w-12">#</th>
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Total</th>
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Completas</th>
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Falhadas</th>
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Taxa</th>
-                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Tempo Médio</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("chat.agent")}</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">{t("analytics.totalTasks")}</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">{t("analytics.completed")}</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">{t("analytics.failed")}</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">{t("analytics.successRate")}</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">{t("analytics.avgTime")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stroke2">
@@ -195,7 +197,7 @@ export function Analytics() {
                   {metrics.length === 0 && (
                     <tr>
                       <td colSpan={7}>
-                        <EmptyState icon={BarChart3} title="Sem dados de analytics" variant="compact" />
+                        <EmptyState icon={BarChart3} title={t("analytics.noData")} variant="compact" />
                       </td>
                     </tr>
                   )}

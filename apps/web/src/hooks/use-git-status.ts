@@ -20,8 +20,6 @@ export interface GitCommit {
 export interface GitConfig {
   remoteUrl?: string;
   defaultBranch: string;
-  autoCommit: boolean;
-  autoCreateBranch: boolean;
   autoPR: boolean;
 }
 

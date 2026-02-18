@@ -1,14 +1,15 @@
+import { useTranslation } from "react-i18next";
 import { GripVertical, Clock, Trash2, User, Play, GitBranch, CheckCircle2, FileDiff } from "lucide-react";
 import { cn, formatDate } from "../../lib/utils";
 import { AgentAvatar } from "../agents/agent-avatar";
 import { TaskReviewActions } from "./task-review-actions";
 import type { Task, Agent } from "@agenthub/shared";
 
-const PRIORITY_STYLES: Record<string, { dot: string; label: string }> = {
-  urgent: { dot: "bg-danger", label: "Urgente" },
-  high: { dot: "bg-danger", label: "Alta" },
-  medium: { dot: "bg-warning", label: "Média" },
-  low: { dot: "bg-info", label: "Baixa" },
+const PRIORITY_DOT: Record<string, string> = {
+  urgent: "bg-danger",
+  high: "bg-danger",
+  medium: "bg-warning",
+  low: "bg-info",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -33,7 +34,8 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChanges, onApprove, onReject, draggable, onDragStart }: TaskCardProps) {
-  const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
+  const { t } = useTranslation();
+  const priorityDot = PRIORITY_DOT[task.priority] ?? PRIORITY_DOT.medium;
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null;
 
   return (
@@ -49,9 +51,9 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChan
       {/* Header: Priority + Grip */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className={cn("h-2 w-2 rounded-full", priority.dot)} />
+          <span className={cn("h-2 w-2 rounded-full", priorityDot)} />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3">
-            {priority.label}
+            {t(`taskPriority.${task.priority}`)}
           </span>
           {task.category && (
             <span className="rounded-md bg-neutral-bg2 px-2 py-1 text-[10px] font-semibold text-neutral-fg2 border border-stroke">
@@ -109,7 +111,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChan
           ) : (
             <div className="flex items-center gap-1.5 text-neutral-fg-disabled">
               <User className="h-4 w-4" />
-              <span className="text-[11px] font-medium">Sem agente</span>
+              <span className="text-[11px] font-medium">{t("board.unassigned")}</span>
             </div>
           )}
         </div>
@@ -126,7 +128,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChan
                 onViewChanges(task.id);
               }}
               className="rounded-md p-2 text-brand opacity-0 transition-colors hover:bg-brand-light group-hover:opacity-100"
-              title="Ver Alterações"
+              title={t("tasks.viewChanges")}
             >
               <FileDiff className="h-3.5 w-3.5" />
             </button>
@@ -138,7 +140,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChan
                 onExecute(task.id, task.assignedAgentId!);
               }}
               className="rounded-md p-2 text-success opacity-0 transition-colors hover:bg-success-light group-hover:opacity-100"
-              title="Executar"
+              title={t("tasks.run")}
             >
               <Play className="h-3.5 w-3.5" />
             </button>

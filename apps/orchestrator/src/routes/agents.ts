@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { eventBus } from "../realtime/event-bus.js";
 
 export const agentsRouter = Router();
 
@@ -64,6 +65,11 @@ agentsRouter.patch("/:id", async (req, res) => {
   await db.update(schema.agents).set(updates).where(eq(schema.agents.id, req.params.id));
 
   const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).get();
+
+  if (agent) {
+    eventBus.emit("agent:updated", { agent: agent as unknown as Record<string, unknown> });
+  }
+
   res.json({ agent });
 });
 

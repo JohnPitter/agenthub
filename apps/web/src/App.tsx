@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/app-layout";
 import { ProtectedRoute } from "./components/auth/protected-route";
@@ -17,8 +18,24 @@ import { AgentsPage } from "./routes/agents";
 import { TasksPage } from "./routes/tasks";
 import { SettingsPage } from "./routes/settings";
 import { DocsPage } from "./routes/docs";
+import { getSocket } from "./lib/socket";
+import { useWorkspaceStore } from "./stores/workspace-store";
+import type { Agent } from "@agenthub/shared";
 
 export function App() {
+  useEffect(() => {
+    const socket = getSocket();
+    const onAgentUpdated = (data: { agent: Record<string, unknown> }) => {
+      const updated = data.agent as unknown as Agent;
+      const { agents, setAgents } = useWorkspaceStore.getState();
+      setAgents(agents.map((a) => (a.id === updated.id ? updated : a)));
+    };
+    socket.on("agent:updated" as any, onAgentUpdated);
+    return () => {
+      socket.off("agent:updated" as any, onAgentUpdated);
+    };
+  }, []);
+
   return (
     <Routes>
       {/* Public routes */}

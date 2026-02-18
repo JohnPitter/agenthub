@@ -1,24 +1,27 @@
 import { useState, useEffect } from "react";
-import { FolderOpen, Palette, Info, ExternalLink, Plug, User, ChevronDown, ChevronUp, Check, Unplug, CheckCircle2, XCircle, RefreshCw, Terminal } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { FolderOpen, Palette, Info, ExternalLink, Plug, User, ChevronDown, ChevronUp, Check, CheckCircle2, XCircle, RefreshCw, Cpu, Eye, EyeOff, Loader2, Trash2, Globe } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { cn } from "../lib/utils";
 import { WhatsAppConfig } from "../components/integrations/whatsapp-config";
 import { TelegramConfig } from "../components/integrations/telegram-config";
+import { SUPPORTED_LANGUAGES } from "../i18n/i18n";
 import { useThemeStore } from "../stores/theme-store";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useUserStore } from "../stores/user-store";
 import { useUsageStore } from "../stores/usage-store";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../lib/agent-avatar";
+import { api } from "../lib/utils";
 
-type SettingsTab = "perfil" | "conexao" | "geral" | "integracoes" | "aparencia" | "sobre";
+type SettingsTab = "perfil" | "providers" | "geral" | "integracoes" | "aparencia" | "sobre";
 
-const TABS: { key: SettingsTab; label: string; icon: typeof FolderOpen }[] = [
-  { key: "perfil", label: "Perfil", icon: User },
-  { key: "conexao", label: "Conexão", icon: Unplug },
-  { key: "geral", label: "Geral", icon: FolderOpen },
-  { key: "integracoes", label: "Integrações", icon: Plug },
-  { key: "aparencia", label: "Aparência", icon: Palette },
-  { key: "sobre", label: "Sobre", icon: Info },
+const TABS: { key: SettingsTab; labelKey: string; icon: typeof FolderOpen }[] = [
+  { key: "perfil", labelKey: "settings.profile", icon: User },
+  { key: "providers", labelKey: "settings.aiProviders", icon: Cpu },
+  { key: "geral", labelKey: "settings.general", icon: FolderOpen },
+  { key: "integracoes", labelKey: "settings.integrations", icon: Plug },
+  { key: "aparencia", labelKey: "settings.appearance", icon: Palette },
+  { key: "sobre", labelKey: "settings.about", icon: Info },
 ];
 
 const COLOR_PRESETS = [
@@ -30,6 +33,7 @@ const COLOR_PRESETS = [
 ];
 
 function ProfileSection() {
+  const { t } = useTranslation();
   const { name, avatar, color, setProfile } = useUserStore();
   const [draftName, setDraftName] = useState(name);
   const [draftAvatar, setDraftAvatar] = useState(avatar);
@@ -57,8 +61,8 @@ function ProfileSection() {
   return (
     <div className="flex flex-col gap-6 animate-fade-up">
       <div>
-        <h3 className="text-title text-neutral-fg1 mb-1">Meu Perfil</h3>
-        <p className="text-[12px] text-neutral-fg3 mb-6">Personalize seu nome, avatar e cor de identificação</p>
+        <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.myProfile")}</h3>
+        <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.profileDesc")}</p>
       </div>
 
       {/* Avatar Preview */}
@@ -83,7 +87,7 @@ function ProfileSection() {
       {/* Name */}
       <div className="card-glow p-6">
         <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-          Nome
+          {t("settings.name")}
         </label>
         <input
           type="text"
@@ -97,7 +101,7 @@ function ProfileSection() {
       {/* Avatar Picker */}
       <div className="card-glow p-6">
         <label className="mb-3 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-          Avatar
+          {t("settings.avatar")}
         </label>
 
         {/* First category always visible */}
@@ -137,7 +141,7 @@ function ProfileSection() {
           onClick={() => setAvatarOpen(!avatarOpen)}
           className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-brand hover:text-brand-hover transition-colors"
         >
-          {avatarOpen ? "Menos avatares" : `Ver todos (${AVATAR_PRESETS.reduce((a, g) => a + g.avatars.length, 0)})`}
+          {avatarOpen ? t("settings.lessAvatars") : `${t("settings.moreAvatars")} (${AVATAR_PRESETS.reduce((a, g) => a + g.avatars.length, 0)})`}
           {avatarOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
 
@@ -188,7 +192,7 @@ function ProfileSection() {
             onClick={() => setDraftAvatar("")}
             className="mt-2 text-[11px] font-medium text-danger hover:underline"
           >
-            Remover avatar
+            {t("settings.removeAvatar")}
           </button>
         )}
       </div>
@@ -196,7 +200,7 @@ function ProfileSection() {
       {/* Color Picker */}
       <div className="card-glow p-6">
         <label className="mb-3 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-          Cor do Perfil
+          {t("settings.profileColor")}
         </label>
         <div className="flex flex-wrap gap-2">
           {COLOR_PRESETS.map((c) => {
@@ -233,165 +237,629 @@ function ProfileSection() {
             !hasChanges && !saved && "opacity-50 cursor-not-allowed",
           )}
         >
-          {saved ? "Salvo!" : "Salvar"}
+          {saved ? t("settings.saved") : t("common.save")}
         </button>
       </div>
     </div>
   );
 }
 
-function ConnectionSection() {
-  const { connection, account, fetchConnection, fetchAccount } = useUsageStore();
-  const [checking, setChecking] = useState(false);
+interface WhamWindow {
+  used_percent: number;
+  limit_window_seconds: number;
+  reset_after_seconds: number;
+  reset_at: number;
+}
 
-  useEffect(() => {
-    fetchConnection();
-    fetchAccount();
-  }, [fetchConnection, fetchAccount]);
+interface WhamRateLimit {
+  allowed: boolean;
+  limit_reached: boolean;
+  primary_window: WhamWindow | null;
+  secondary_window: WhamWindow | null;
+}
 
-  const handleRecheck = async () => {
-    setChecking(true);
-    useUsageStore.setState({ connectionFetched: false, accountFetched: false });
-    await Promise.all([fetchConnection(), fetchAccount()]);
-    setChecking(false);
+interface WhamUsage {
+  plan_type?: string;
+  rate_limit?: WhamRateLimit;
+  code_review_rate_limit?: WhamRateLimit;
+}
+
+function OpenAIUsageBars({ usage }: { usage: Record<string, unknown> }) {
+  const { t } = useTranslation();
+  const wham = usage as unknown as WhamUsage;
+  const rl = wham.rate_limit;
+
+  if (!rl) return null;
+
+  const formatResetTime = (resetAt: number) => {
+    const d = new Date(resetAt * 1000);
+    return d.toLocaleString();
   };
 
-  const connected = connection?.connected ?? false;
-  const email = connection?.email ?? account?.email;
-  const plan = connection?.subscriptionType ?? account?.subscriptionType;
-  const tokenSource = connection?.tokenSource ?? account?.tokenSource;
-
-  const planLabel = plan
-    ? plan.toLowerCase().includes("max_20x") || plan.toLowerCase().includes("20x") ? "Max 20x"
-    : plan.toLowerCase().includes("max_5x") || plan.toLowerCase().includes("5x") ? "Max 5x"
-    : plan.toLowerCase().includes("max") ? "Max"
-    : plan.toLowerCase().includes("enterprise") ? "Enterprise"
-    : plan.toLowerCase().includes("team") ? "Team"
-    : plan.toLowerCase().includes("pro") ? "Pro"
-    : plan.toLowerCase().includes("free") ? "Free"
-    : plan
-    : null;
-
   return (
-    <div className="flex flex-col gap-6 animate-fade-up">
-      <div>
-        <h3 className="text-title text-neutral-fg1 mb-1">Claude Code CLI</h3>
-        <p className="text-[12px] text-neutral-fg3 mb-6">
-          Conexão com o Claude Code CLI via OAuth para execução de agentes
-        </p>
-      </div>
+    <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1">{t("providers.usageLimits")}</p>
 
-      {/* Connection status card */}
-      <div className={cn(
-        "card-glow p-6 border-2",
-        connected ? "border-success/30" : "border-danger/30",
-      )}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {connected ? (
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-              </div>
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10">
-                <XCircle className="h-5 w-5 text-danger" />
-              </div>
-            )}
-            <div>
-              <p className={cn("text-[14px] font-semibold", connected ? "text-success" : "text-danger")}>
-                {connected ? "Conectado" : "Desconectado"}
-              </p>
-              <p className="text-[11px] text-neutral-fg3">
-                {connected ? "Claude Code CLI autenticado via OAuth" : "CLI não autenticado"}
-              </p>
-            </div>
+      {/* Primary window — session (5h) */}
+      {rl.primary_window && (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-neutral-fg2">{t("providers.session")}</span>
+            <span className={cn("text-[10px] font-semibold tabular-nums", rl.primary_window.used_percent >= 80 ? "text-danger" : "text-neutral-fg1")}>
+              {Math.round(rl.primary_window.used_percent)}%
+            </span>
           </div>
-          <button
-            onClick={handleRecheck}
-            disabled={checking}
-            className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", checking && "animate-spin")} />
-            Verificar
-          </button>
-        </div>
-
-        {connected && (
-          <div className="flex flex-col gap-2 pt-4 border-t border-stroke2">
-            {email && (
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-neutral-fg3">Email</span>
-                <span className="text-[12px] font-medium text-neutral-fg1">{email}</span>
-              </div>
-            )}
-            {planLabel && (
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-neutral-fg3">Plano</span>
-                <span className="text-[12px] font-semibold text-brand">{planLabel}</span>
-              </div>
-            )}
-            {tokenSource && (
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-neutral-fg3">Autenticação</span>
-                <span className="text-[12px] font-medium text-neutral-fg1 capitalize">{tokenSource}</span>
-              </div>
-            )}
+          <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+            <div
+              className={cn("h-full rounded-full transition-all duration-500", rl.primary_window.used_percent >= 80 ? "bg-danger" : "bg-emerald-500")}
+              style={{ width: `${Math.min(100, rl.primary_window.used_percent)}%` }}
+            />
           </div>
-        )}
-      </div>
-
-      {/* Instructions when not connected */}
-      {!connected && (
-        <div className="card-glow p-6">
-          <h4 className="text-[13px] font-semibold text-neutral-fg1 mb-3 flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-brand" />
-            Como conectar
-          </h4>
-          <ol className="flex flex-col gap-2.5 text-[12px] text-neutral-fg2 leading-relaxed">
-            <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-light text-[10px] font-bold text-brand">1</span>
-              <span>Instale o Claude Code CLI: <code className="rounded bg-neutral-bg3 px-1.5 py-0.5 text-[11px] font-mono text-brand">npm install -g @anthropic-ai/claude-code</code></span>
-            </li>
-            <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-light text-[10px] font-bold text-brand">2</span>
-              <span>Execute <code className="rounded bg-neutral-bg3 px-1.5 py-0.5 text-[11px] font-mono text-brand">claude</code> no terminal e faça login via OAuth</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-light text-[10px] font-bold text-brand">3</span>
-              <span>Reinicie o orchestrator e clique em "Verificar" acima</span>
-            </li>
-          </ol>
         </div>
       )}
 
-      {/* Note about rate limits */}
-      {connected && (
-        <div className="card-glow p-6">
-          <h4 className="text-[13px] font-semibold text-neutral-fg1 mb-2">Sobre os limites de uso</h4>
-          <p className="text-[12px] text-neutral-fg3 leading-relaxed">
-            O widget de uso no menu lateral mostra o custo estimado das tarefas executadas pelo AgentHub.
-            Os limites de sessão e semanais (como exibidos no claude.ai) não são expostos pela API do SDK,
-            então usamos estimativas baseadas no seu plano (<span className="font-semibold text-brand">{planLabel ?? "Pro"}</span>).
-          </p>
+      {/* Secondary window — weekly (7d) */}
+      {rl.secondary_window && (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-neutral-fg2">{t("providers.weekly")}</span>
+            <span className={cn("text-[10px] font-semibold tabular-nums", rl.secondary_window.used_percent >= 80 ? "text-danger" : "text-neutral-fg1")}>
+              {Math.round(rl.secondary_window.used_percent)}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+            <div
+              className={cn("h-full rounded-full transition-all duration-500", rl.secondary_window.used_percent >= 80 ? "bg-danger" : "bg-purple")}
+              style={{ width: `${Math.min(100, rl.secondary_window.used_percent)}%` }}
+            />
+          </div>
         </div>
+      )}
+
+      {/* Reset time */}
+      {rl.primary_window?.reset_at && (
+        <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
+          Resets {formatResetTime(rl.primary_window.reset_at)}
+        </p>
+      )}
+
+      {/* Rate limit warning */}
+      {rl.limit_reached && (
+        <p className="text-[10px] text-danger font-medium mt-1">Rate limit reached</p>
       )}
     </div>
   );
 }
 
+function ProvidersSection() {
+  const { t } = useTranslation();
+  const { connection, account, limits, fetchConnection, fetchAccount, fetchLimits } = useUsageStore();
+  const [claudeChecking, setClaudeChecking] = useState(false);
+
+  // OpenAI state
+  const [openaiStatus, setOpenaiStatus] = useState<{
+    connected: boolean; source?: string; masked?: string; email?: string;
+    planType?: string; subscriptionActiveUntil?: string;
+  } | null>(null);
+  const [openaiLoading, setOpenaiLoading] = useState(true);
+  const [openaiUsage, setOpenaiUsage] = useState<Record<string, unknown> | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [openaiError, setOpenaiError] = useState<string | null>(null);
+  const [openaiSuccess, setOpenaiSuccess] = useState(false);
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
+  useEffect(() => {
+    fetchConnection();
+    fetchAccount();
+    fetchLimits();
+    fetchOpenAIStatus();
+  }, [fetchConnection, fetchAccount, fetchLimits]);
+
+  // Detect OAuth callback success via URL param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("openai_oauth") === "success") {
+      window.history.replaceState({}, "", "/settings");
+      fetchOpenAIStatus();
+    } else if (params.get("openai_oauth") === "error") {
+      window.history.replaceState({}, "", "/settings");
+      setOpenaiError(t("providers.oauthError"));
+    }
+  }, [t]);
+
+  const fetchOpenAIUsage = async () => {
+    try {
+      const data = await api<Record<string, unknown>>("/openai/oauth/usage");
+      setOpenaiUsage(data);
+    } catch {
+      // Usage not available — not critical
+    }
+  };
+
+  const fetchOpenAIStatus = async () => {
+    setOpenaiLoading(true);
+    try {
+      // Check OAuth first
+      const oauthData = await api<{ connected: boolean; source?: string; email?: string; planType?: string; subscriptionActiveUntil?: string }>("/openai/oauth/connection");
+      if (oauthData.connected) {
+        setOpenaiStatus(oauthData);
+        setOpenaiLoading(false);
+        fetchOpenAIUsage(); // fetch usage in background
+        return;
+      }
+    } catch { /* fall through */ }
+    try {
+      // Check API key / env
+      const data = await api<{ connected: boolean; masked?: string; source?: string }>("/openai/status");
+      setOpenaiStatus(data);
+    } catch {
+      setOpenaiStatus({ connected: false });
+    } finally {
+      setOpenaiLoading(false);
+    }
+  };
+
+  const handleClaudeRecheck = async () => {
+    setClaudeChecking(true);
+    useUsageStore.setState({ connectionFetched: false, accountFetched: false, limitsLastFetched: null });
+    await Promise.all([fetchConnection(), fetchAccount(), fetchLimits()]);
+    setClaudeChecking(false);
+  };
+
+  const handleClaudeDisconnect = async () => {
+    try {
+      await api("/usage/disconnect", { method: "POST" });
+      useUsageStore.setState({
+        connection: { connected: false, email: null, subscriptionType: null, tokenSource: null, apiKeySource: null },
+        account: null,
+        limits: null,
+        connectionFetched: false,
+        accountFetched: false,
+        limitsFetched: false,
+        limitsLastFetched: null,
+      });
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleOpenAIApiKey = async () => {
+    if (!apiKey.trim()) return;
+    setSaving(true);
+    setOpenaiError(null);
+    try {
+      const data = await api<{ connected: boolean; masked?: string; error?: string }>("/openai/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: apiKey.trim() }),
+      });
+      if (data.connected) {
+        setOpenaiStatus({ connected: true, masked: data.masked, source: "db" });
+        setApiKey("");
+        setOpenaiSuccess(true);
+        setShowApiKeyInput(false);
+        setTimeout(() => setOpenaiSuccess(false), 3000);
+      } else {
+        setOpenaiError(data.error ?? "Failed to connect");
+      }
+    } catch (err) {
+      setOpenaiError(err instanceof Error ? err.message : "Failed to connect");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenAIDisconnect = async () => {
+    try {
+      if (openaiStatus?.source === "oauth") {
+        await api("/openai/oauth/disconnect", { method: "POST" });
+      } else {
+        await api("/openai/disconnect", { method: "POST" });
+      }
+      setOpenaiStatus({ connected: false });
+      setApiKey("");
+    } catch {
+      setOpenaiError("Failed to disconnect");
+    }
+  };
+
+  const claudeConnected = connection?.connected ?? false;
+  const claudeEmail = connection?.email ?? account?.email;
+  const claudePlan = connection?.subscriptionType ?? account?.subscriptionType;
+  const claudeTokenSource = connection?.tokenSource ?? account?.tokenSource;
+
+  const planLabel = claudePlan
+    ? claudePlan.toLowerCase().includes("max_20x") || claudePlan.toLowerCase().includes("20x") ? "Max 20x"
+    : claudePlan.toLowerCase().includes("max_5x") || claudePlan.toLowerCase().includes("5x") ? "Max 5x"
+    : claudePlan.toLowerCase().includes("max") ? "Max"
+    : claudePlan.toLowerCase().includes("enterprise") ? "Enterprise"
+    : claudePlan.toLowerCase().includes("team") ? "Team"
+    : claudePlan.toLowerCase().includes("pro") ? "Pro"
+    : claudePlan.toLowerCase().includes("free") ? "Free"
+    : claudePlan
+    : null;
+
+  const openaiConnected = openaiStatus?.connected ?? false;
+  const openaiIsOAuth = openaiStatus?.source === "oauth";
+  const openaiIsEnv = openaiStatus?.source === "env";
+
+  const openaiPlanLabel = openaiStatus?.planType
+    ? openaiStatus.planType.toLowerCase().includes("pro") ? "Pro"
+    : openaiStatus.planType.toLowerCase().includes("plus") ? "Plus"
+    : openaiStatus.planType.toLowerCase().includes("enterprise") ? "Enterprise"
+    : openaiStatus.planType.toLowerCase().includes("team") ? "Team"
+    : openaiStatus.planType.toLowerCase().includes("free") ? "Free"
+    : openaiStatus.planType
+    : null;
+
+  const openaiSubscriptionActive = openaiStatus?.subscriptionActiveUntil
+    ? new Date(openaiStatus.subscriptionActiveUntil) > new Date()
+    : false;
+
+  return (
+    <div className="flex flex-col gap-6 animate-fade-up">
+      <div>
+        <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.aiProviders")}</h3>
+        <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.aiProvidersDesc")}</p>
+      </div>
+
+      {/* Two provider cards side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* ---- Claude (Anthropic) Card ---- */}
+        <div className={cn(
+          "card-glow p-6 border-2 flex flex-col",
+          claudeConnected ? "border-success/30" : "border-danger/30",
+        )}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {claudeConnected ? (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10">
+                  <XCircle className="h-5 w-5 text-danger" />
+                </div>
+              )}
+              <div>
+                <p className="text-[14px] font-semibold text-neutral-fg1">{t("providers.claude")}</p>
+                <p className={cn("text-[11px]", claudeConnected ? "text-success" : "text-danger")}>
+                  {claudeConnected ? t("settings.connected") : t("settings.disconnected")}
+                </p>
+              </div>
+            </div>
+            {planLabel && (
+              <span className="rounded-md bg-brand-light px-2 py-0.5 text-[10px] font-bold text-brand uppercase tracking-wider">
+                {planLabel}
+              </span>
+            )}
+          </div>
+
+          {/* Details */}
+          {claudeConnected && (
+            <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
+              {claudeEmail && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">Email</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 truncate ml-2">{claudeEmail}</span>
+                </div>
+              )}
+              {claudeTokenSource && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
+                    {claudeTokenSource === "claude_ai_oauth" ? t("providers.oauth")
+                      : claudeTokenSource === "api_key" ? t("providers.apiKey")
+                      : claudeTokenSource === "env" ? t("providers.envVar")
+                      : claudeTokenSource}
+                  </span>
+                </div>
+              )}
+              {planLabel && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.plan")}</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1">
+                    Claude {planLabel}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-neutral-fg3">{t("openai.availableModels")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1">Opus 4.6, Sonnet 4.5, Haiku 4.5</span>
+              </div>
+            </div>
+          )}
+
+          {/* Usage bars */}
+          {claudeConnected && limits && (
+            <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1">{t("providers.usageLimits")}</p>
+              {limits.fiveHour && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-neutral-fg2">{t("providers.session")}</span>
+                    <span className={cn("text-[10px] font-semibold tabular-nums", limits.fiveHour.utilization >= 80 ? "text-danger" : "text-neutral-fg1")}>
+                      {Math.round(limits.fiveHour.utilization)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-500", limits.fiveHour.utilization >= 80 ? "bg-danger" : "bg-brand")} style={{ width: `${Math.min(100, limits.fiveHour.utilization)}%` }} />
+                  </div>
+                  {limits.fiveHour.resetsAt && (
+                    <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
+                      Resets {new Date(limits.fiveHour.resetsAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+              {limits.sevenDay && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-neutral-fg2">{t("providers.weekly")}</span>
+                    <span className={cn("text-[10px] font-semibold tabular-nums", limits.sevenDay.utilization >= 80 ? "text-danger" : "text-neutral-fg1")}>
+                      {Math.round(limits.sevenDay.utilization)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-500", limits.sevenDay.utilization >= 80 ? "bg-danger" : "bg-purple")} style={{ width: `${Math.min(100, limits.sevenDay.utilization)}%` }} />
+                  </div>
+                  {limits.sevenDay.resetsAt && (
+                    <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
+                      Resets {new Date(limits.sevenDay.resetsAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+              {limits.extraUsage?.isEnabled && (
+                <div className="mt-1 pt-2 border-t border-stroke2/50">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-neutral-fg2">Extra Usage</span>
+                    <span className={cn("text-[10px] font-semibold tabular-nums", (limits.extraUsage.utilization ?? 0) >= 80 ? "text-danger" : "text-neutral-fg1")}>
+                      ${limits.extraUsage.usedCredits.toFixed(2)} / ${limits.extraUsage.monthlyLimit.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-500", (limits.extraUsage.utilization ?? 0) >= 80 ? "bg-danger" : "bg-amber-500")}
+                      style={{ width: `${Math.min(100, limits.extraUsage.utilization ?? 0)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action */}
+          <div className="mt-auto">
+            {claudeConnected ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClaudeRecheck}
+                  disabled={claudeChecking}
+                  className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all disabled:opacity-50 justify-center"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", claudeChecking && "animate-spin")} />
+                  {t("providers.recheck")}
+                </button>
+                <button
+                  onClick={handleClaudeDisconnect}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-danger bg-danger/10 border border-danger/20 hover:bg-danger/20 transition-all justify-center"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t("providers.disconnect")}
+                </button>
+              </div>
+            ) : (
+              <div className="card-glow p-4 bg-neutral-bg3/30">
+                <p className="text-[11px] text-neutral-fg3 leading-relaxed">
+                  {t("providers.claudeInstructions")}
+                </p>
+                <p className="text-[11px] text-neutral-fg-disabled mt-2">
+                  <code className="rounded bg-neutral-bg3 px-1.5 py-0.5 text-[10px] font-mono text-brand">npm i -g @anthropic-ai/claude-code && claude</code>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ---- OpenAI Card ---- */}
+        <div className={cn(
+          "card-glow p-6 border-2 flex flex-col",
+          openaiConnected ? "border-success/30" : "border-stroke",
+        )}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {openaiConnected ? (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-bg3">
+                  <Cpu className="h-5 w-5 text-neutral-fg3" />
+                </div>
+              )}
+              <div>
+                <p className="text-[14px] font-semibold text-neutral-fg1">{t("providers.openai")}</p>
+                <p className={cn("text-[11px]", openaiConnected ? "text-success" : "text-neutral-fg3")}>
+                  {openaiLoading ? t("common.loading") : openaiConnected ? t("settings.connected") : t("providers.notConnected")}
+                </p>
+              </div>
+            </div>
+            {openaiPlanLabel && (
+              <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                {openaiPlanLabel}
+              </span>
+            )}
+          </div>
+
+          {/* Connected details */}
+          {openaiConnected && (
+            <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
+              {openaiStatus?.email && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">Email</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 truncate ml-2">{openaiStatus.email}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
+                  {openaiIsOAuth ? t("providers.oauth") : openaiIsEnv ? t("providers.envVar") : t("providers.apiKey")}
+                </span>
+              </div>
+              {openaiStatus?.masked && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.apiKey")}</span>
+                  <span className="text-[11px] font-mono text-neutral-fg-disabled">{openaiStatus.masked}</span>
+                </div>
+              )}
+              {openaiStatus?.planType && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.plan")}</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
+                    ChatGPT {openaiPlanLabel}
+                  </span>
+                </div>
+              )}
+              {openaiStatus?.subscriptionActiveUntil && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.subscriptionStatus")}</span>
+                  <span className={cn("text-[11px] font-medium", openaiSubscriptionActive ? "text-success" : "text-danger")}>
+                    {openaiSubscriptionActive
+                      ? `${t("providers.activeUntil")} ${new Date(openaiStatus.subscriptionActiveUntil).toLocaleDateString()}`
+                      : t("providers.expired")}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-neutral-fg3">{t("openai.availableModels")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1">GPT-5.3 Codex, GPT-5.2, o3, o4-mini</span>
+              </div>
+            </div>
+          )}
+
+          {/* OpenAI Usage bars */}
+          {openaiConnected && openaiIsOAuth && openaiUsage && (
+            <OpenAIUsageBars usage={openaiUsage} />
+          )}
+
+          {/* Actions */}
+          <div className="mt-auto flex flex-col gap-3">
+            {openaiConnected && !openaiIsEnv ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => fetchOpenAIStatus()}
+                  disabled={openaiLoading}
+                  className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", openaiLoading && "animate-spin")} />
+                  {t("providers.recheck")}
+                </button>
+                <button
+                  onClick={handleOpenAIDisconnect}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-danger bg-danger/10 border border-danger/20 hover:bg-danger/20 transition-all justify-center"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t("providers.disconnect")}
+                </button>
+              </div>
+            ) : !openaiConnected ? (
+              <>
+                {/* Codex CLI instructions */}
+                <div className="card-glow p-4 bg-neutral-bg3/30">
+                  <p className="text-[11px] text-neutral-fg3 leading-relaxed mb-2">
+                    {t("providers.codexInstructions")}
+                  </p>
+                  <p className="text-[11px] text-neutral-fg-disabled">
+                    <code className="rounded bg-neutral-bg3 px-1.5 py-0.5 text-[10px] font-mono text-brand">npm i -g @openai/codex && codex login</code>
+                  </p>
+                </div>
+
+                {/* Recheck after CLI login */}
+                <button
+                  onClick={() => fetchOpenAIStatus()}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {t("providers.recheck")}
+                </button>
+
+                {/* API key fallback */}
+                <button
+                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                  className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center"
+                >
+                  {showApiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {t("providers.apiKeyFallback")}
+                </button>
+
+                {showApiKeyInput && (
+                  <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type={showKey ? "text" : "password"}
+                          value={apiKey}
+                          onChange={(e) => { setApiKey(e.target.value); setOpenaiError(null); }}
+                          placeholder="sk-..."
+                          className="w-full input-fluent pr-10 text-[12px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowKey(!showKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors"
+                        >
+                          {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                      <button
+                        onClick={handleOpenAIApiKey}
+                        disabled={!apiKey.trim() || saving}
+                        className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                        {t("settings.connect")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {openaiError && (
+                  <p className="text-[11px] text-danger">{openaiError}</p>
+                )}
+                {openaiSuccess && (
+                  <p className="text-[11px] text-success flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {t("providers.oauthSuccess")}
+                  </p>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ThemeSection() {
+  const { t } = useTranslation();
   const { theme, setTheme } = useThemeStore();
 
   const options = [
-    { value: "dark" as const, label: "Escuro", desc: "Tema padrão premium dark", preview: "bg-neutral-bg1" },
-    { value: "light" as const, label: "Claro", desc: "Tema claro para ambientes iluminados", preview: "bg-white" },
+    { value: "dark" as const, labelKey: "settings.dark", descKey: "settings.darkDesc", preview: "bg-neutral-bg1" },
+    { value: "light" as const, labelKey: "settings.light", descKey: "settings.lightDesc", preview: "bg-white" },
   ];
 
   return (
     <div className="flex flex-col gap-6 animate-fade-up">
       <div>
-        <h3 className="text-title text-neutral-fg1 mb-1">Tema</h3>
-        <p className="text-[12px] text-neutral-fg3 mb-6">Personalize a aparência do AgentHub</p>
+        <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.theme")}</h3>
+        <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.themeDesc")}</p>
       </div>
       <div className="flex flex-col gap-3">
         {options.map((opt) => {
@@ -414,9 +882,9 @@ function ThemeSection() {
               />
               <div>
                 <p className={cn("text-[13px] font-semibold", isActive ? "text-brand" : "text-neutral-fg2")}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </p>
-                <p className="text-[11px] text-neutral-fg3">{opt.desc}</p>
+                <p className="text-[11px] text-neutral-fg3">{t(opt.descKey)}</p>
               </div>
             </button>
           );
@@ -427,6 +895,7 @@ function ThemeSection() {
 }
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>("perfil");
   const [workspacePath, setWorkspacePath] = useState(
     () => localStorage.getItem("agenthub:workspacePath") ?? "",
@@ -447,7 +916,7 @@ export function SettingsPage() {
   return (
     <div className="flex h-full flex-col">
       <CommandBar>
-        <span className="text-[13px] font-semibold text-neutral-fg1">Configurações</span>
+        <span className="text-[13px] font-semibold text-neutral-fg1">{t("settings.title")}</span>
       </CommandBar>
 
       <div className="flex flex-1 overflow-hidden">
@@ -468,7 +937,7 @@ export function SettingsPage() {
                   )}
                 >
                   <tab.icon className={cn("h-4 w-4", isActive && "text-brand")} />
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               );
             })}
@@ -480,13 +949,13 @@ export function SettingsPage() {
           <div className="mx-auto max-w-2xl">
             {activeTab === "perfil" && <ProfileSection />}
 
-            {activeTab === "conexao" && <ConnectionSection />}
+            {activeTab === "providers" && <ProvidersSection />}
 
             {activeTab === "geral" && (
               <div className="flex flex-col gap-6 animate-fade-up">
                 <div className="card-glow p-8">
-                  <h3 className="text-title text-neutral-fg1 mb-1">Workspace Padrão</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-6">Diretório padrão para escanear projetos automaticamente</p>
+                  <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.workspace")}</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.workspaceDesc")}</p>
                   <div className="flex gap-3">
                     <input
                       type="text"
@@ -499,8 +968,43 @@ export function SettingsPage() {
                       onClick={handleSaveWorkspace}
                       className="btn-primary rounded-lg px-5 py-2.5 text-[13px] font-medium text-white"
                     >
-                      Salvar
+                      {t("common.save")}
                     </button>
+                  </div>
+                </div>
+
+                {/* Language Switcher */}
+                <div className="card-glow p-8">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Globe className="h-4 w-4 text-brand" />
+                    <h3 className="text-title text-neutral-fg1">{t("settings.language")}</h3>
+                  </div>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.languageDesc")}</p>
+                  <div className="flex flex-col gap-2">
+                    {SUPPORTED_LANGUAGES.map((lang) => {
+                      const isActive = i18n.language === lang.code;
+                      return (
+                        <button
+                          key={lang.code}
+                          onClick={() => i18n.changeLanguage(lang.code)}
+                          className={cn(
+                            "card-glow flex items-center gap-4 px-5 py-3.5 text-left transition-all",
+                            isActive && "border-2 border-brand",
+                          )}
+                        >
+                          <span className="text-[20px]">{lang.flag}</span>
+                          <div>
+                            <p className={cn("text-[13px] font-semibold", isActive ? "text-brand" : "text-neutral-fg1")}>
+                              {lang.label}
+                            </p>
+                            <p className="text-[11px] text-neutral-fg3">{lang.code}</p>
+                          </div>
+                          {isActive && (
+                            <Check className="ml-auto h-4 w-4 text-brand" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -509,9 +1013,9 @@ export function SettingsPage() {
             {activeTab === "integracoes" && (
               <div className="flex flex-col gap-8 animate-fade-up">
                 <div>
-                  <h3 className="text-title text-neutral-fg1 mb-1">Integrações de Mensagens</h3>
+                  <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.integrations")}</h3>
                   <p className="text-[12px] text-neutral-fg3 mb-6">
-                    Conecte canais de comunicação para interagir com o Tech Lead via mensagens externas
+                    {t("settings.integrations")}
                   </p>
                 </div>
 
@@ -519,14 +1023,14 @@ export function SettingsPage() {
                 {projects.length > 1 && (
                   <div className="card-glow p-4">
                     <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                      Projeto
+                      {t("project.overview")}
                     </label>
                     <select
                       value={activeProjectId ?? ""}
                       onChange={(e) => setActiveProject(e.target.value || null)}
                       className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
                     >
-                      <option value="" disabled>Selecione um projeto</option>
+                      <option value="" disabled>{t("project.overview")}</option>
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
@@ -536,7 +1040,7 @@ export function SettingsPage() {
 
                 {projects.length === 0 && (
                   <div className="card-glow px-6 py-8 text-center text-[13px] text-neutral-fg-disabled">
-                    Nenhum projeto encontrado. Adicione um projeto primeiro.
+                    {t("dashboard.noProjects")}
                   </div>
                 )}
 
@@ -554,24 +1058,24 @@ export function SettingsPage() {
             {activeTab === "sobre" && (
               <div className="flex flex-col gap-6 animate-fade-up">
                 <div>
-                  <h3 className="text-title text-neutral-fg1 mb-1">Sobre o AgentHub</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-6">Informações sobre a aplicação</p>
+                  <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.aboutTitle")}</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.about")}</p>
                 </div>
                 <dl className="flex flex-col divide-y divide-stroke2 card-glow overflow-hidden">
                   <div className="flex items-center justify-between px-6 py-4">
-                    <dt className="text-[13px] text-neutral-fg2">Versão</dt>
+                    <dt className="text-[13px] text-neutral-fg2">{t("settings.version")}</dt>
                     <dd className="text-[13px] font-semibold text-brand">0.15.0</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
-                    <dt className="text-[13px] text-neutral-fg2">Agentes SDK</dt>
-                    <dd className="text-[13px] font-semibold text-neutral-fg1">Claude Code CLI (OAuth)</dd>
+                    <dt className="text-[13px] text-neutral-fg2">{t("settings.agentSdk")}</dt>
+                    <dd className="text-[13px] font-semibold text-neutral-fg1">Claude + OpenAI</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
-                    <dt className="text-[13px] text-neutral-fg2">Database</dt>
+                    <dt className="text-[13px] text-neutral-fg2">{t("settings.database")}</dt>
                     <dd className="text-[13px] font-semibold text-neutral-fg1">SQLite (libsql)</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
-                    <dt className="text-[13px] text-neutral-fg2">Repositório</dt>
+                    <dt className="text-[13px] text-neutral-fg2">{t("settings.repository")}</dt>
                     <dd>
                       <a
                         href="https://github.com/JohnPitter/agenthub"

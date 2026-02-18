@@ -1,20 +1,24 @@
+import { useTranslation } from "react-i18next";
 import { Settings, Power, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AgentAvatar } from "./agent-avatar";
 import type { Agent } from "@agenthub/shared";
 
-const ROLE_LABELS: Record<string, string> = {
-  architect: "Arquiteto",
-  tech_lead: "Tech Lead",
-  frontend_dev: "Frontend Dev",
-  backend_dev: "Backend Dev",
-  qa: "QA Engineer",
-  custom: "Custom",
-};
-
 const MODEL_LABELS: Record<string, string> = {
   "claude-opus-4-6": "Opus 4.6",
+  "claude-sonnet-4-6": "Sonnet 4.6",
   "claude-sonnet-4-5-20250929": "Sonnet 4.5",
+  "claude-haiku-4-5-20251001": "Haiku 4.5",
+  "gpt-5.3-codex": "GPT-5.3 Codex",
+  "gpt-5.2-codex": "GPT-5.2 Codex",
+  "gpt-5.1-codex": "GPT-5.1 Codex",
+  "gpt-5-codex-mini": "GPT-5 Codex Mini",
+  "gpt-4.1": "GPT-4.1",
+  "gpt-4.1-mini": "GPT-4.1 Mini",
+  "gpt-4.1-nano": "GPT-4.1 Nano",
+  "o3": "o3",
+  "o4-mini": "o4-mini",
+  "codex-mini": "Codex Mini",
 };
 
 interface AgentCardProps {
@@ -25,6 +29,7 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agent, onToggle, onConfigure, onDelete }: AgentCardProps) {
+  const { t } = useTranslation();
   return (
     <div className={cn(
       "group rounded-lg bg-neutral-bg1 p-5 shadow-2 border border-stroke transition-shadow hover:shadow-4",
@@ -45,14 +50,14 @@ export function AgentCard({ agent, onToggle, onConfigure, onDelete }: AgentCardP
             "text-[11px] font-semibold",
             agent.isActive ? "text-success-dark" : "text-neutral-fg-disabled",
           )}>
-            {agent.isActive ? "Online" : "Offline"}
+            {agent.isActive ? t("common.online") : t("common.offline")}
           </span>
         </span>
       </div>
 
       {/* Info */}
       <h3 className="text-[16px] font-semibold text-neutral-fg1">{agent.name}</h3>
-      <p className="mt-1 text-[13px] font-semibold text-neutral-fg2">{ROLE_LABELS[agent.role] ?? agent.role}</p>
+      <p className="mt-1 text-[13px] font-semibold text-neutral-fg2">{t(`roles.${agent.role}`, agent.role)}</p>
       <p className="text-[11px] font-medium text-neutral-fg3 bg-neutral-bg2 px-2 py-1 rounded-md inline-block mt-1">
         {MODEL_LABELS[agent.model] ?? agent.model}
       </p>
@@ -64,7 +69,7 @@ export function AgentCard({ agent, onToggle, onConfigure, onDelete }: AgentCardP
       {/* Level badge */}
       <div className="mt-4 inline-flex items-center rounded-md bg-brand-light px-3 py-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-brand">
-          {agent.level}
+          {t(`levels.${agent.level}`, agent.level)}
         </span>
       </div>
 
@@ -80,14 +85,14 @@ export function AgentCard({ agent, onToggle, onConfigure, onDelete }: AgentCardP
           )}
         >
           <Power className="h-4 w-4" />
-          {agent.isActive ? "Ativo" : "Inativo"}
+          {agent.isActive ? t("common.active") : t("common.inactive")}
         </button>
         <button
           onClick={() => onConfigure(agent)}
           className="btn-primary flex flex-1 items-center justify-center gap-2 rounded-md py-2.5 text-[13px] font-semibold text-white"
         >
           <Settings className="h-4 w-4" />
-          Config
+          {t("agents.configure")}
         </button>
         {onDelete && !agent.isDefault && (
           <button

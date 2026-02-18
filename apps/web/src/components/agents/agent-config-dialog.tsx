@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Brain, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../../lib/agent-avatar";
 import { useUsageStore } from "../../stores/usage-store";
 import type { Agent, AgentModel, AgentRole, PermissionMode } from "@agenthub/shared";
-import { DEFAULT_SOULS } from "@agenthub/shared";
+import { DEFAULT_SOULS, OPENAI_MODELS } from "@agenthub/shared";
 
 interface AgentConfigDialogProps {
   agent: Agent;
@@ -18,6 +19,11 @@ const FALLBACK_MODELS: { value: string; label: string }[] = [
   { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
 ];
 
+const OPENAI_MODEL_OPTIONS: { value: string; label: string }[] = OPENAI_MODELS.map((m) => ({
+  value: m.id,
+  label: m.label,
+}));
+
 // SDK returns shorthand aliases — map to actual model IDs
 const SDK_ALIAS_TO_MODEL: Record<string, { value: string; label: string }> = {
   default: { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
@@ -26,45 +32,50 @@ const SDK_ALIAS_TO_MODEL: Record<string, { value: string; label: string }> = {
   haiku: { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
 };
 
-const PERMISSION_MODES: { value: PermissionMode; label: string; description: string }[] = [
-  { value: "default", label: "Padrão", description: "Requer aprovação para ações arriscadas" },
-  { value: "acceptEdits", label: "Auto-aceitar edições", description: "Aprova automaticamente edições de arquivos" },
-  { value: "bypassPermissions", label: "Bypass total", description: "Sem verificação de permissões (use com cautela)" },
-];
+const PERMISSION_MODE_VALUES: PermissionMode[] = ["default", "acceptEdits", "bypassPermissions"];
 
-const LEVELS: { value: Agent["level"]; label: string; description: string }[] = [
-  { value: "junior", label: "Junior", description: "Executa tarefas simples, requer supervisão constante" },
-  { value: "pleno", label: "Pleno", description: "Autonomia moderada, segue diretrizes estabelecidas" },
-  { value: "senior", label: "Senior", description: "Autonomia alta, decisões complexas e independentes" },
-  { value: "especialista", label: "Especialista", description: "Domínio profundo em área específica, referência técnica" },
-  { value: "arquiteto", label: "Arquiteto", description: "Visão sistêmica, define padrões e arquitetura" },
-];
+const LEVEL_VALUES: Agent["level"][] = ["junior", "pleno", "senior", "especialista", "arquiteto"];
 
 const ALL_TOOLS = ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task", "WebSearch", "WebFetch"];
 
 export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogProps) {
+  const { t } = useTranslation();
   const { models: sdkModels, fetchModels } = useUsageStore();
+  const [openaiConnected, setOpenaiConnected] = useState(false);
 
   useEffect(() => {
     fetchModels();
+    // Check OpenAI connection status
+    fetch("/api/openai/status", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setOpenaiConnected(data.connected === true))
+      .catch(() => {});
   }, [fetchModels]);
 
   const modelOptions = (() => {
-    if (sdkModels.length === 0) return FALLBACK_MODELS;
-
-    const seen = new Set<string>();
-    const mapped: { value: string; label: string }[] = [];
-
-    for (const m of sdkModels) {
-      const alias = SDK_ALIAS_TO_MODEL[m.value];
-      const entry = alias ?? { value: m.value, label: m.displayName };
-      if (!seen.has(entry.value)) {
-        seen.add(entry.value);
-        mapped.push(entry);
+    // Build Claude models list
+    let claudeModels: { value: string; label: string }[];
+    if (sdkModels.length === 0) {
+      claudeModels = FALLBACK_MODELS;
+    } else {
+      const seen = new Set<string>();
+      const mapped: { value: string; label: string }[] = [];
+      for (const m of sdkModels) {
+        const alias = SDK_ALIAS_TO_MODEL[m.value];
+        const entry = alias ?? { value: m.value, label: m.displayName };
+        if (!seen.has(entry.value)) {
+          seen.add(entry.value);
+          mapped.push(entry);
+        }
       }
+      claudeModels = mapped.length > 0 ? mapped : FALLBACK_MODELS;
     }
 
-    return mapped.length > 0 ? mapped : FALLBACK_MODELS;
+    // Add OpenAI models if connected
+    if (openaiConnected) {
+      return [...claudeModels, ...OPENAI_MODEL_OPTIONS];
+    }
+    return claudeModels;
   })();
 
   const parsedTools: string[] = typeof agent.allowedTools === "string"
@@ -138,7 +149,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
           {/* Avatar Picker */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Avatar
+              {t("settings.avatar")}
             </label>
 
             {/* First category always visible */}
@@ -178,7 +189,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               onClick={() => setAvatarOpen(!avatarOpen)}
               className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-brand hover:text-brand-hover transition-colors"
             >
-              {avatarOpen ? "Menos avatares" : `Ver todos (${AVATAR_PRESETS.reduce((a, g) => a + g.avatars.length, 0)})`}
+              {avatarOpen ? t("settings.lessAvatars") : `${t("settings.moreAvatars")} (${AVATAR_PRESETS.reduce((a, g) => a + g.avatars.length, 0)})`}
               {avatarOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
             </button>
 
@@ -229,7 +240,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
                 onClick={() => setAvatar("")}
                 className="mt-2 text-[11px] font-medium text-danger hover:underline"
               >
-                Remover avatar
+                {t("settings.removeAvatar")}
               </button>
             )}
           </div>
@@ -237,55 +248,61 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
           {/* Model */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Modelo
+              {t("agents.model")}
             </label>
             <select
               value={model}
               onChange={(e) => setModel(e.target.value as AgentModel)}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
-              {modelOptions.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
+              <optgroup label="Claude (Anthropic)">
+                {modelOptions.filter((m) => m.value.startsWith("claude-")).map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </optgroup>
+              {openaiConnected && (
+                <optgroup label="OpenAI">
+                  {OPENAI_MODEL_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
 
           {/* Permission Mode */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Modo de Permissão
+              {t("agents.permissions")}
             </label>
             <select
               value={permissionMode}
               onChange={(e) => setPermissionMode(e.target.value as PermissionMode)}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
-              {PERMISSION_MODES.map((pm) => (
-                <option key={pm.value} value={pm.value}>{pm.label}</option>
+              {PERMISSION_MODE_VALUES.map((pm) => (
+                <option key={pm} value={pm}>{t(`permissions.${pm}`)}</option>
               ))}
             </select>
             <p className="mt-1.5 text-[11px] text-neutral-fg3">
-              {PERMISSION_MODES.find((pm) => pm.value === permissionMode)?.description}
+              {t(`permissions.${permissionMode}Desc`)}
             </p>
           </div>
 
           {/* Level */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Nível
+              {t("agents.level")}
             </label>
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value as Agent["level"])}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
-              {LEVELS.map((l) => (
-                <option key={l.value} value={l.value}>{l.label}</option>
+              {LEVEL_VALUES.map((l) => (
+                <option key={l} value={l}>{t(`levels.${l}`)}</option>
               ))}
             </select>
-            <p className="mt-1.5 text-[11px] text-neutral-fg3">
-              {LEVELS.find((l) => l.value === level)?.description}
-            </p>
           </div>
 
           {/* Extended Thinking */}
@@ -314,7 +331,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               </button>
             </div>
             <p className="text-[11px] text-neutral-fg3 mb-3">
-              Permite que o agente "pense" antes de responder, melhorando raciocínio complexo
+              {t("agents.thinkingTokens")}
             </p>
 
             {thinkingTokens > 0 && (
@@ -348,7 +365,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
           {/* Tools */}
           <div>
             <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Ferramentas Permitidas
+              {t("agents.tools")}
             </label>
             <div className="flex flex-wrap gap-2">
               {ALL_TOOLS.map((tool) => {
@@ -376,7 +393,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-purple" />
                 <label className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                  Soul (Personalidade)
+                  {t("agents.soul")}
                 </label>
               </div>
               <button
@@ -384,7 +401,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
                 onClick={() => setSoul(DEFAULT_SOULS[agent.role as AgentRole] ?? "")}
                 className="text-[11px] font-medium text-brand hover:text-brand-hover transition-colors"
               >
-                Usar template padrao
+                Usar template
               </button>
             </div>
             <p className="mb-2 text-[11px] text-neutral-fg3">
@@ -402,7 +419,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
           {/* System Prompt */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              System Prompt (Opcional)
+              {t("agents.systemPrompt")}
             </label>
             <textarea
               value={systemPrompt}
@@ -419,13 +436,13 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               onClick={onClose}
               className="rounded-md px-5 py-2.5 text-[14px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               onClick={handleSave}
               className="rounded-md bg-brand px-6 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-brand-hover"
             >
-              Salvar Configuracao
+              {t("common.save")}
             </button>
           </div>
         </div>

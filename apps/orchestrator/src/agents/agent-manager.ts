@@ -1,18 +1,20 @@
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
 import { AgentSession } from "./agent-session";
+import { OpenAISession } from "./openai-session";
 import { transitionTask, logTaskAction } from "../tasks/task-lifecycle";
 import { eventBus } from "../realtime/event-bus";
 import { logger } from "../lib/logger";
 import { GitService } from "../git/git-service";
 import { slugify } from "../lib/utils";
 import type { Agent, TaskStatus, AgentRole, TaskCategory } from "@agenthub/shared";
+import { getModelProvider } from "@agenthub/shared";
 import { agentMemory } from "./agent-memory.js";
 
 const gitService = new GitService();
 
 interface ActiveSession {
-  session: AgentSession;
+  session: AgentSession | OpenAISession;
   agentId: string;
   taskId: string;
   projectId: string;
@@ -27,15 +29,17 @@ interface QueuedTask {
 
 /** Tracks the current phase of the agent workflow for a task */
 type WorkflowPhase =
-  | "tech_lead_triage"    // Tech Lead analyzing the request
-  | "architect_planning"  // Architect creating a plan
-  | "tech_lead_review"    // Tech Lead reviewing the plan and picking a dev
-  | "dev_execution"       // Dev implementing the task
-  | "qa_review"           // QA reviewing the implementation
-  | "dev_fix"             // Dev fixing issues found by QA
-  | "tech_lead_fix_plan"  // Tech Lead creating improvement plan after dev failed to fix
-  | "dev_fix_with_plan"   // Dev fixing with Tech Lead's improvement plan
-  | "direct";             // Direct assignment, no workflow
+  | "tech_lead_triage"      // Tech Lead analyzing the request
+  | "architect_planning"    // Architect creating a plan
+  | "tech_lead_review"      // Tech Lead reviewing the plan and picking a dev
+  | "dev_execution"         // Dev implementing the task
+  | "qa_review"             // QA reviewing the implementation
+  | "dev_fix"               // Dev fixing issues found by QA
+  | "tech_lead_fix_plan"    // Tech Lead creating improvement plan after dev failed to fix
+  | "dev_fix_with_plan"     // Dev fixing with Tech Lead's improvement plan
+  | "architect_fix_plan"    // Architect creating plan after Tech Lead couldn't solve
+  | "tech_lead_relay_plan"  // Tech Lead receives Architect's plan and relays to dev
+  | "direct";               // Direct assignment, no workflow
 
 interface WorkflowState {
   phase: WorkflowPhase;
@@ -64,7 +68,7 @@ class AgentManager {
 
   /**
    * Run the full agent workflow for a task:
-   * Tech Lead (triage) → Architect (plan) → Tech Lead (review + pick dev) → Dev (execute)
+   * Tech Lead (triage) → [simple: plan + pick dev | complex: Architect → plan → pick dev] → Dev → QA
    */
   async runWorkflow(taskId: string, techLeadId: string): Promise<void> {
     const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
@@ -73,21 +77,11 @@ class AgentManager {
       return;
     }
 
-    // Find the Architect agent
-    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
-    const architect = agents.find((a) => a.role === "architect");
-
-    if (!architect) {
-      logger.warn("No Architect agent found, falling back to direct assignment", "agent-manager");
-      await this.assignTask(taskId, techLeadId);
-      return;
-    }
-
-    // Store workflow state
+    // Store workflow state — start with Tech Lead triage
     this.workflowStates.set(taskId, {
-      phase: "architect_planning",
+      phase: "tech_lead_triage",
       techLeadId,
-      architectId: architect.id,
+      architectId: null,
       architectPlan: null,
       originalTaskId: taskId,
       selectedDevId: null,
@@ -98,27 +92,26 @@ class AgentManager {
     eventBus.emit("workflow:phase", {
       taskId,
       projectId: task.projectId,
-      phase: "architect_planning",
-      agentId: architect.id,
-      agentName: architect.name,
-      detail: "Architect creating execution plan",
+      phase: "tech_lead_triage",
+      agentId: techLeadId,
+      agentName: "Tech Lead",
+      detail: "Tech Lead analyzing task scope",
     });
 
     logger.info(
-      `Workflow started for task ${taskId}: sending to Architect (${architect.name}) for planning`,
+      `Workflow started for task ${taskId}: sending to Tech Lead for triage`,
       "agent-manager",
     );
 
-    // Emit workflow event
     eventBus.emit("agent:notification", {
       agentId: techLeadId,
       projectId: task.projectId,
-      message: `Enviando task para ${architect.name} criar o plano de execução...`,
+      message: `Analisando a task para decidir o melhor fluxo de execução...`,
       level: "info",
     });
 
-    // Send to Architect for planning
-    await this.assignTask(taskId, architect.id);
+    // Send to Tech Lead for triage analysis
+    await this.assignTask(taskId, techLeadId);
   }
 
   /**
@@ -131,12 +124,102 @@ class AgentManager {
     const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
     if (!task) return false;
 
-    if (workflow.phase === "architect_planning") {
-      // Architect finished → store plan, send to Tech Lead to pick a dev
-      workflow.architectPlan = result ?? "No plan provided";
-      workflow.phase = "tech_lead_review";
+    if (workflow.phase === "tech_lead_triage") {
+      // Tech Lead finished triage → decide: send to Architect or plan directly
+      const triageDecision = this.parseTriageDecision(result);
 
-      logger.info(`Workflow: Architect plan ready for task ${taskId}, sending to Tech Lead for dev selection`, "agent-manager");
+      if (triageDecision.needsArchitect) {
+        // Complex task → send to Architect for detailed planning
+        const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+        const architect = agents.find((a) => a.role === "architect");
+
+        if (!architect) {
+          logger.warn("No Architect agent found, Tech Lead will plan directly", "agent-manager");
+          // Fall through to direct planning below
+        } else {
+          workflow.phase = "architect_planning";
+          workflow.architectId = architect.id;
+          this.workflowStates.set(taskId, workflow);
+
+          eventBus.emit("workflow:phase", {
+            taskId,
+            projectId: task.projectId,
+            phase: "architect_planning",
+            agentId: architect.id,
+            agentName: architect.name,
+            detail: "Architect creating execution plan",
+          });
+
+          logger.info(
+            `Workflow: Tech Lead decided task ${taskId} is COMPLEX, sending to Architect (${architect.name})`,
+            "agent-manager",
+          );
+
+          eventBus.emit("agent:notification", {
+            agentId: workflow.techLeadId,
+            projectId: task.projectId,
+            message: `Task complexa — enviando para ${architect.name} criar o plano de execução...`,
+            level: "info",
+          });
+
+          // Append Tech Lead's analysis to task description
+          if (triageDecision.analysis) {
+            const updatedDescription = [
+              task.description ?? "",
+              "\n\n---\n## Análise do Tech Lead\n",
+              triageDecision.analysis,
+            ].join("");
+
+            await db.update(schema.tasks).set({
+              description: updatedDescription,
+              updatedAt: new Date(),
+            }).where(eq(schema.tasks.id, taskId));
+          }
+
+          await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead triage: complex task, sending to Architect");
+          await this.assignTask(taskId, architect.id);
+          return true;
+        }
+      }
+
+      // Simple task → Tech Lead planned directly, pick dev and execute
+      const plan = triageDecision.plan || result || "No plan provided";
+      workflow.architectPlan = plan;
+      workflow.phase = "dev_execution";
+      this.workflowStates.set(taskId, workflow);
+
+      logger.info(
+        `Workflow: Tech Lead decided task ${taskId} is SIMPLE, planning directly and picking dev`,
+        "agent-manager",
+      );
+
+      // Update the task description with the Tech Lead's plan
+      const planDescription = [
+        task.description ?? "",
+        "\n\n---\n## Plano do Tech Lead\n",
+        plan,
+      ].join("");
+
+      await db.update(schema.tasks).set({
+        description: planDescription,
+        parsedSpec: plan,
+        updatedAt: new Date(),
+      }).where(eq(schema.tasks.id, taskId));
+
+      await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead triage: simple task, planned directly");
+
+      // Pick the best dev
+      await this.selectAndAssignDev(taskId, task.projectId, workflow, plan);
+      return true;
+    }
+
+    if (workflow.phase === "architect_planning") {
+      // Architect finished → store plan, pick dev and assign
+      workflow.architectPlan = result ?? "No plan provided";
+      workflow.phase = "dev_execution";
+      this.workflowStates.set(taskId, workflow);
+
+      logger.info(`Workflow: Architect plan ready for task ${taskId}, selecting dev`, "agent-manager");
 
       eventBus.emit("agent:notification", {
         agentId: workflow.techLeadId,
@@ -158,61 +241,10 @@ class AgentManager {
         updatedAt: new Date(),
       }).where(eq(schema.tasks.id, taskId));
 
-      // Reset task status for re-assignment
       await transitionTask(taskId, "created" as TaskStatus, undefined, "Architect plan complete, selecting dev");
 
-      // Now auto-assign to the best dev based on the plan
-      workflow.phase = "dev_execution";
-      this.workflowStates.set(taskId, workflow);
-
-      // Pick the best dev using category mapping or recommendation from architect's plan
-      const devRole = this.detectDevFromPlan(workflow.architectPlan);
-      const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
-
-      let selectedDev = agents.find((a) => a.role === devRole && !this.isAgentBusy(a.id));
-      if (!selectedDev) {
-        selectedDev = agents.find((a) => a.role === devRole);
-      }
-      if (!selectedDev) {
-        // Fallback: any dev that's not tech_lead or architect
-        selectedDev = agents.find(
-          (a) => !["tech_lead", "architect", "qa"].includes(a.role) && !this.isAgentBusy(a.id),
-        );
-      }
-      if (!selectedDev) {
-        selectedDev = agents.find((a) => !["tech_lead", "architect"].includes(a.role));
-      }
-
-      if (selectedDev) {
-        workflow.selectedDevId = selectedDev.id;
-
-        logger.info(
-          `Workflow: Tech Lead selected ${selectedDev.name} (${selectedDev.role}) for task ${taskId}`,
-          "agent-manager",
-        );
-
-        eventBus.emit("agent:notification", {
-          agentId: workflow.techLeadId,
-          projectId: task.projectId,
-          message: `Dev selecionado: ${selectedDev.name}. Iniciando implementação...`,
-          level: "info",
-        });
-
-        eventBus.emit("workflow:phase", {
-          taskId,
-          projectId: task.projectId,
-          phase: "dev_execution",
-          agentId: selectedDev.id,
-          agentName: selectedDev.name,
-          detail: `${selectedDev.name} implementing the task`,
-        });
-
-        await this.assignTask(taskId, selectedDev.id);
-      } else {
-        logger.warn(`Workflow: No dev available for task ${taskId}, falling back to auto-assign`, "agent-manager");
-        await this.autoAssignTask(taskId);
-      }
-
+      // Pick the best dev
+      await this.selectAndAssignDev(taskId, task.projectId, workflow, workflow.architectPlan);
       return true;
     }
 
@@ -327,13 +359,18 @@ class AgentManager {
         detail: `${devName} fixing QA issues (attempt ${workflow.qaRetryCount})`,
       });
 
-      // Append QA feedback to task description
+      // Append QA feedback to task description with DEV_NEEDS_HELP instructions
       const qaFeedback = qaVerdict.reason || result || "QA found issues";
       const updatedDescription = [
         task.description ?? "",
         `\n\n---\n## QA Feedback (Tentativa ${workflow.qaRetryCount})\n`,
         qaFeedback,
         "\n\nPor favor, corrija os problemas apontados acima pelo QA.",
+        "\n\n## IMPORTANTE — Decisão do Dev",
+        "\nAnalise os problemas reportados pelo QA e decida:",
+        "\n- Se você CONSEGUE corrigir: implemente as correções normalmente.",
+        "\n- Se você NÃO CONSEGUE corrigir (problema muito complexo, fora do seu escopo, ou precisa de ajuda): ",
+        "termine sua resposta com DEV_NEEDS_HELP na última linha para escalar ao Tech Lead.",
       ].join("");
 
       await db.update(schema.tasks).set({
@@ -348,7 +385,18 @@ class AgentManager {
     }
 
     if (workflow.phase === "dev_fix") {
-      // Dev finished fixing QA issues → send back to QA for re-review
+      // Dev finished — check if dev asked for help or fixed it
+      const needsHelp = this.parseDevNeedsHelp(result);
+
+      if (needsHelp) {
+        // Dev couldn't fix → escalate to Tech Lead for improvement plan
+        const devResult = result ?? "Dev could not fix the issues";
+        logger.info(`Workflow: Dev requested help for task ${taskId}, escalating to Tech Lead`, "agent-manager");
+        await this.escalateToTechLead(taskId, workflow, devResult);
+        return true;
+      }
+
+      // Dev fixed it → send back to QA for re-review
       const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
       const qaAgent = agents.find((a) => a.role === "qa");
 
@@ -385,7 +433,18 @@ class AgentManager {
     }
 
     if (workflow.phase === "tech_lead_fix_plan") {
-      // Tech Lead created an improvement plan → send back to dev with the plan
+      // Tech Lead finished analyzing — check if they need the Architect or created a plan
+      const triageDecision = this.parseTriageDecision(result);
+
+      if (triageDecision.needsArchitect) {
+        // Tech Lead couldn't solve it → escalate to Architect
+        const techLeadAnalysis = result ?? "Tech Lead could not create improvement plan";
+        logger.info(`Workflow: Tech Lead needs Architect help for task ${taskId}, escalating`, "agent-manager");
+        await this.escalateToArchitect(taskId, workflow, techLeadAnalysis);
+        return true;
+      }
+
+      // Tech Lead created an improvement plan → send back to dev
       const devId = workflow.selectedDevId;
       if (!devId) {
         logger.error(`No dev recorded in workflow for task ${taskId}`, "agent-manager");
@@ -400,7 +459,7 @@ class AgentManager {
       this.workflowStates.set(taskId, workflow);
 
       // Append Tech Lead's improvement plan to task description
-      const improvementPlan = result || "No plan provided";
+      const improvementPlan = triageDecision.plan || result || "No plan provided";
       const updatedDescription = [
         task.description ?? "",
         "\n\n---\n## Plano de Melhorias do Tech Lead\n",
@@ -475,6 +534,109 @@ class AgentManager {
       return false;
     }
 
+    if (workflow.phase === "architect_fix_plan") {
+      // Architect created a fix plan → send to Tech Lead who will relay it to dev
+      const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).get();
+      if (!techLead) {
+        logger.error(`Tech Lead not found for relay, marking task as failed`, "agent-manager");
+        await transitionTask(taskId, "failed" as TaskStatus, undefined, "Tech Lead not found for architect plan relay");
+        this.workflowStates.delete(taskId);
+        return false;
+      }
+
+      workflow.phase = "tech_lead_relay_plan";
+      this.workflowStates.set(taskId, workflow);
+
+      // Append Architect's fix plan to task description
+      const architectFixPlan = result || "No plan provided";
+      const updatedDescription = [
+        task.description ?? "",
+        "\n\n---\n## Plano de Correção do Arquiteto\n",
+        architectFixPlan,
+        "\n\nComo Tech Lead, revise o plano do Arquiteto e crie instruções claras para o dev implementar.",
+      ].join("");
+
+      await db.update(schema.tasks).set({
+        description: updatedDescription,
+        updatedAt: new Date(),
+      }).where(eq(schema.tasks.id, taskId));
+
+      logger.info(`Workflow: Architect fix plan ready for task ${taskId}, sending to Tech Lead to relay`, "agent-manager");
+
+      eventBus.emit("agent:notification", {
+        agentId: workflow.techLeadId,
+        projectId: task.projectId,
+        message: `Plano do Arquiteto pronto. Repassando para o Tech Lead criar instruções para o dev...`,
+        level: "info",
+      });
+
+      eventBus.emit("workflow:phase", {
+        taskId,
+        projectId: task.projectId,
+        phase: "tech_lead_relay_plan",
+        agentId: techLead.id,
+        agentName: techLead.name,
+        detail: `${techLead.name} reviewing Architect's fix plan`,
+      });
+
+      await transitionTask(taskId, "created" as TaskStatus, undefined, "Architect fix plan ready, sending to Tech Lead");
+      await this.assignTask(taskId, techLead.id);
+      return true;
+    }
+
+    if (workflow.phase === "tech_lead_relay_plan") {
+      // Tech Lead reviewed Architect's plan → send to dev with combined instructions
+      const devId = workflow.selectedDevId;
+      if (!devId) {
+        logger.error(`No dev recorded in workflow for task ${taskId}`, "agent-manager");
+        this.workflowStates.delete(taskId);
+        return false;
+      }
+
+      const devAgent = await db.select().from(schema.agents).where(eq(schema.agents.id, devId)).get();
+      const devName = devAgent?.name ?? "Dev";
+
+      workflow.phase = "dev_fix_with_plan";
+      this.workflowStates.set(taskId, workflow);
+
+      // Append Tech Lead's relay instructions to task description
+      const relayPlan = result || "No plan provided";
+      const updatedDescription = [
+        task.description ?? "",
+        "\n\n---\n## Instruções do Tech Lead (baseado no plano do Arquiteto)\n",
+        relayPlan,
+        "\n\nSiga as instruções acima para corrigir os problemas. O QA irá revisar novamente após suas correções.",
+      ].join("");
+
+      await db.update(schema.tasks).set({
+        description: updatedDescription,
+        parsedSpec: relayPlan,
+        updatedAt: new Date(),
+      }).where(eq(schema.tasks.id, taskId));
+
+      logger.info(`Workflow: Tech Lead relayed Architect plan for task ${taskId}, sending to ${devName}`, "agent-manager");
+
+      eventBus.emit("agent:notification", {
+        agentId: workflow.techLeadId,
+        projectId: task.projectId,
+        message: `Plano de correção pronto. Enviando para ${devName} implementar...`,
+        level: "info",
+      });
+
+      eventBus.emit("workflow:phase", {
+        taskId,
+        projectId: task.projectId,
+        phase: "dev_fix_with_plan",
+        agentId: devId,
+        agentName: devName,
+        detail: `${devName} implementing Architect's fix plan via Tech Lead`,
+      });
+
+      await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead relayed Architect plan, sending to dev");
+      await this.assignTask(taskId, devId);
+      return true;
+    }
+
     return false;
   }
 
@@ -515,6 +677,114 @@ class AgentManager {
     }
 
     return frontendScore >= backendScore ? "frontend_dev" : "backend_dev";
+  }
+
+  /**
+   * Parse the Dev's response to check if they need help fixing QA issues.
+   * Looks for DEV_NEEDS_HELP marker in the last lines of the result.
+   */
+  private parseDevNeedsHelp(result: string | undefined): boolean {
+    if (!result) return false;
+
+    const lines = result.trim().split("\n");
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 5); i--) {
+      const line = lines[i].trim();
+      if (line === "DEV_NEEDS_HELP") return true;
+    }
+    return false;
+  }
+
+  /**
+   * Parse the Tech Lead's triage decision.
+   * Looks for NEEDS_ARCHITECT or SIMPLE_TASK markers in the result.
+   */
+  private parseTriageDecision(result: string | undefined): {
+    needsArchitect: boolean;
+    plan: string | null;
+    analysis: string | null;
+  } {
+    if (!result) return { needsArchitect: true, plan: null, analysis: null };
+
+    const lines = result.trim().split("\n");
+
+    // Search from the last lines for the decision marker
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 5); i--) {
+      const line = lines[i].trim();
+
+      if (line === "NEEDS_ARCHITECT") {
+        // Complex task — extract the analysis (everything before the marker)
+        const analysis = lines.slice(0, i).join("\n").trim() || null;
+        return { needsArchitect: true, plan: null, analysis };
+      }
+
+      if (line === "SIMPLE_TASK") {
+        // Simple task — the text before the marker IS the plan
+        const plan = lines.slice(0, i).join("\n").trim() || null;
+        return { needsArchitect: false, plan, analysis: null };
+      }
+    }
+
+    // No explicit marker — default to sending to Architect (safer for complex tasks)
+    logger.warn("Tech Lead triage did not contain a decision marker, defaulting to Architect", "agent-manager");
+    return { needsArchitect: true, plan: null, analysis: result };
+  }
+
+  /**
+   * Select the best dev for a task based on the plan and assign them.
+   */
+  private async selectAndAssignDev(
+    taskId: string,
+    projectId: string,
+    workflow: WorkflowState,
+    plan: string,
+  ): Promise<void> {
+    const devRole = this.detectDevFromPlan(plan);
+    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+
+    let selectedDev = agents.find((a: Agent) => a.role === devRole && !this.isAgentBusy(a.id));
+    if (!selectedDev) {
+      selectedDev = agents.find((a: Agent) => a.role === devRole);
+    }
+    if (!selectedDev) {
+      // Fallback: any dev that's not tech_lead, architect, or qa
+      selectedDev = agents.find(
+        (a: Agent) => !["tech_lead", "architect", "qa", "receptionist"].includes(a.role) && !this.isAgentBusy(a.id),
+      );
+    }
+    if (!selectedDev) {
+      selectedDev = agents.find((a: Agent) => !["tech_lead", "architect", "receptionist"].includes(a.role));
+    }
+
+    if (selectedDev) {
+      workflow.selectedDevId = selectedDev.id;
+      this.workflowStates.set(taskId, workflow);
+
+      logger.info(
+        `Workflow: Selected ${selectedDev.name} (${selectedDev.role}) for task ${taskId}`,
+        "agent-manager",
+      );
+
+      eventBus.emit("agent:notification", {
+        agentId: workflow.techLeadId,
+        projectId,
+        message: `Dev selecionado: ${selectedDev.name}. Iniciando implementação...`,
+        level: "info",
+      });
+
+      eventBus.emit("workflow:phase", {
+        taskId,
+        projectId,
+        phase: "dev_execution",
+        agentId: selectedDev.id,
+        agentName: selectedDev.name,
+        detail: `${selectedDev.name} implementing the task`,
+      });
+
+      await this.assignTask(taskId, selectedDev.id);
+    } else {
+      logger.warn(`Workflow: No dev available for task ${taskId}, falling back to auto-assign`, "agent-manager");
+      await this.autoAssignTask(taskId);
+    }
   }
 
   /**
@@ -588,11 +858,13 @@ class AgentManager {
     // Append error context to task description for Tech Lead
     const updatedDescription = [
       task.description ?? "",
-      "\n\n---\n## Dev Failed to Fix — Errors\n",
+      "\n\n---\n## Dev não conseguiu resolver — Contexto\n",
       errors,
-      "\n\nComo Tech Lead, analise os erros acima junto com o feedback anterior do QA.",
-      " Crie um plano detalhado de melhorias para o dev implementar as correções.",
-      " O plano deve ser claro, passo a passo, com os arquivos que precisam ser alterados.",
+      "\n\nComo Tech Lead, analise o contexto acima junto com o feedback anterior do QA.",
+      "\n\n## Decisão do Tech Lead",
+      "\nAnalise se você CONSEGUE criar um plano de melhorias para o dev:",
+      "\n- Se SIM: crie um plano detalhado, passo a passo, com os arquivos que precisam ser alterados. Termine com: SIMPLE_TASK",
+      "\n- Se NÃO (problema muito complexo, precisa de análise arquitetural profunda): termine com: NEEDS_ARCHITECT",
     ].join("");
 
     await db.update(schema.tasks).set({
@@ -603,6 +875,69 @@ class AgentManager {
     // Reset and assign to Tech Lead
     await transitionTask(taskId, "created" as TaskStatus, undefined, "Dev fix failed, escalating to Tech Lead");
     await this.assignTask(taskId, techLead.id);
+  }
+
+  /**
+   * Escalate to Architect when Tech Lead's improvement plan also failed.
+   * Architect creates a detailed fix plan → goes back to Tech Lead → then to Dev.
+   */
+  private async escalateToArchitect(taskId: string, workflow: WorkflowState, errors: string): Promise<void> {
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    if (!task) return;
+
+    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+    const architect = agents.find((a: Agent) => a.role === "architect");
+
+    if (!architect) {
+      logger.error("No Architect agent found, marking task as failed", "agent-manager");
+      await transitionTask(taskId, "failed" as TaskStatus, undefined, "No Architect available for escalation");
+      this.workflowStates.delete(taskId);
+      return;
+    }
+
+    workflow.phase = "architect_fix_plan";
+    workflow.architectId = architect.id;
+    this.workflowStates.set(taskId, workflow);
+
+    logger.info(
+      `Workflow: Tech Lead's plan failed for task ${taskId}, escalating to Architect (${architect.name})`,
+      "agent-manager",
+    );
+
+    eventBus.emit("agent:notification", {
+      agentId: workflow.techLeadId,
+      projectId: task.projectId,
+      message: `Plano do Tech Lead não foi suficiente. Escalando para ${architect.name} criar um plano detalhado...`,
+      level: "warn",
+    });
+
+    eventBus.emit("workflow:phase", {
+      taskId,
+      projectId: task.projectId,
+      phase: "architect_fix_plan",
+      agentId: architect.id,
+      agentName: architect.name,
+      detail: `${architect.name} creating fix plan after Tech Lead plan failed`,
+    });
+
+    // Append context for Architect
+    const updatedDescription = [
+      task.description ?? "",
+      "\n\n---\n## Escalação para Arquiteto — Contexto\n",
+      errors,
+      "\n\nO Tech Lead analisou mas não conseguiu criar um plano de melhorias suficiente para o dev.",
+      " Como Arquiteto, analise todo o histórico acima e crie um plano detalhado e definitivo.",
+      " Considere abordagens alternativas e inclua exemplos de código quando necessário.",
+      " Seu plano será repassado ao Tech Lead que o enviará ao dev para implementação.",
+    ].join("");
+
+    await db.update(schema.tasks).set({
+      description: updatedDescription,
+      updatedAt: new Date(),
+    }).where(eq(schema.tasks.id, taskId));
+
+    await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead plan failed, escalating to Architect");
+    await this.assignTask(taskId, architect.id);
   }
 
   /**
@@ -699,41 +1034,51 @@ class AgentManager {
     }
 
     // Git branch auto-creation logic
+    // Auto-creates a branch for every task when the project is a git repo.
+    // If an explicit git integration config exists, uses its defaultBranch setting;
+    // otherwise defaults to the repo's current branch.
     let branchName: string | null = null;
     try {
-      const gitConfig = await db
-        .select()
-        .from(schema.integrations)
-        .where(
-          and(
-            eq(schema.integrations.projectId, task.projectId),
-            eq(schema.integrations.type, "git")
+      const isGitRepo = await gitService.detectGitRepo(project.path);
+      if (isGitRepo) {
+        // Read explicit config if available (for defaultBranch override)
+        let baseBranch: string | null = null;
+        const gitConfig = await db
+          .select()
+          .from(schema.integrations)
+          .where(
+            and(
+              eq(schema.integrations.projectId, task.projectId),
+              eq(schema.integrations.type, "git")
+            )
           )
-        )
-        .get();
+          .get();
 
-      if (gitConfig && gitConfig.config) {
-        const config = JSON.parse(gitConfig.config);
-        if (config.autoCreateBranch) {
-          const isGitRepo = await gitService.detectGitRepo(project.path);
-          if (isGitRepo) {
-            branchName = `task/${task.id}-${slugify(task.title as string)}`;
-            const branchExists = await gitService.branchExists(project.path, branchName);
+        if (gitConfig?.config) {
+          const config = JSON.parse(gitConfig.config);
+          baseBranch = config.defaultBranch || null;
+        }
 
-            if (!branchExists) {
-              await gitService.createBranch(project.path, branchName, config.defaultBranch);
-              logger.info(`Created git branch: ${branchName}`, "agent-manager");
+        // Fallback: use the repo's current branch as base
+        if (!baseBranch) {
+          baseBranch = await gitService.getCurrentBranch(project.path);
+        }
 
-              await logTaskAction(taskId, "git_branch_created", agentId, branchName);
+        branchName = `task/${task.id}-${slugify(task.title as string)}`;
+        const branchExists = await gitService.branchExists(project.path, branchName);
 
-              eventBus.emit("task:git_branch", {
-                taskId: task.id,
-                projectId: task.projectId,
-                branchName,
-                baseBranch: config.defaultBranch,
-              });
-            }
-          }
+        if (!branchExists) {
+          await gitService.createBranch(project.path, branchName, baseBranch);
+          logger.info(`Created git branch: ${branchName} from ${baseBranch}`, "agent-manager");
+
+          await logTaskAction(taskId, "git_branch_created", agentId, branchName);
+
+          eventBus.emit("task:git_branch", {
+            taskId: task.id,
+            projectId: task.projectId,
+            branchName,
+            baseBranch,
+          });
         }
       }
     } catch (error) {
@@ -754,14 +1099,19 @@ class AgentManager {
     // Build prompt
     const prompt = buildTaskPrompt(task as Record<string, unknown>, agent as unknown as Agent);
 
-    // Create and start session
-    const session = new AgentSession({
+    // Create and start session — pick runtime based on model provider
+    const sessionConfig = {
       agent: agent as unknown as Agent,
       projectId: task.projectId,
       projectPath: project.path,
       taskId,
       prompt,
-    });
+    };
+
+    const provider = getModelProvider(agent.model);
+    const session = provider === "openai"
+      ? new OpenAISession(sessionConfig)
+      : new AgentSession(sessionConfig);
 
     this.activeSessions.set(taskId, {
       session,
@@ -770,7 +1120,7 @@ class AgentManager {
       projectId: task.projectId,
     });
 
-    await logTaskAction(taskId, "agent_assigned", agentId, `Agent ${agent.name} started working`);
+    await logTaskAction(taskId, "agent_assigned", agentId, `Agent ${agent.name} started working (${provider})`);
 
     // Execute in background (don't await)
     this.executeSession(taskId, agentId, session).catch((err) => {
@@ -778,12 +1128,15 @@ class AgentManager {
     });
   }
 
-  private async executeSession(taskId: string, agentId: string, session: AgentSession) {
+  private async executeSession(taskId: string, agentId: string, session: AgentSession | OpenAISession) {
     try {
       const result = await session.execute();
 
       // Move to review on success
       if (!result.isError) {
+        // Auto-commit agent changes if task has a branch
+        await this.autoCommitChanges(taskId, agentId);
+
         // Check if this is part of a workflow (e.g., architect just finished planning)
         const workflowHandled = await this.advanceWorkflow(taskId, result.result);
 
@@ -838,13 +1191,15 @@ class AgentManager {
           // Max retries reached
           this.taskRetryCount.delete(taskId);
 
-          // Check if this is a dev_fix or dev_fix_with_plan phase — escalate to Tech Lead
+          // Check if this is a dev fix phase — escalate appropriately
           const workflow = this.workflowStates.get(taskId);
-          const isDevFixPhase = workflow && (workflow.phase === "dev_fix" || workflow.phase === "dev_fix_with_plan");
 
-          if (isDevFixPhase && workflow) {
-            // Dev couldn't fix → escalate to Tech Lead for improvement plan
+          if (workflow && workflow.phase === "dev_fix") {
+            // Dev couldn't fix QA issues → escalate to Tech Lead for improvement plan
             await this.escalateToTechLead(taskId, workflow, result.errors.join("; "));
+          } else if (workflow && workflow.phase === "dev_fix_with_plan") {
+            // Dev couldn't fix even with Tech Lead's plan → escalate to Architect
+            await this.escalateToArchitect(taskId, workflow, result.errors.join("; "));
           } else {
             // Normal failure — mark as failed
             await transitionTask(taskId, "failed" as TaskStatus, session.agentId, "Max retries exceeded");
@@ -869,6 +1224,109 @@ class AgentManager {
       if (retryCount === 0) {
         this.processQueue(agentId);
       }
+    }
+  }
+
+  private async autoCommitChanges(taskId: string, agentId: string): Promise<void> {
+    try {
+      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      if (!task?.branch) return;
+
+      const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
+      if (!project?.path) return;
+
+      const isGitRepo = await gitService.detectGitRepo(project.path);
+      if (!isGitRepo) return;
+
+      // Ensure we're on the task branch
+      const currentBranch = await gitService.getCurrentBranch(project.path);
+      if (currentBranch !== task.branch) {
+        await gitService.checkoutBranch(project.path, task.branch);
+      }
+
+      // Stage all changes
+      await gitService.stageAll(project.path);
+
+      // Commit (will fail if nothing to commit — that's fine)
+      const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, agentId)).get();
+      const agentName = agent?.name ?? "Agent";
+      const message = `feat(${agentName}): ${task.title}`;
+
+      const sha = await gitService.commit(project.path, message, `${agentName} <agent@agenthub.dev>`);
+      logger.info(`Auto-committed changes for task ${taskId}: ${sha.slice(0, 8)}`, "agent-manager");
+
+      await logTaskAction(taskId, "git_commit", agentId, `Committed ${sha.slice(0, 8)}: ${message}`);
+
+      // Auto-push to remote
+      await this.autoPushBranch(taskId, agentId, task.branch, project.path, task.projectId);
+    } catch (err) {
+      // "nothing to commit" is expected when agent made no file changes
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("nothing to commit") || msg.includes("nothing added")) {
+        logger.debug(`No changes to commit for task ${taskId}`, "agent-manager");
+      } else {
+        logger.warn(`Auto-commit failed for task ${taskId}: ${msg}`, "agent-manager");
+      }
+    }
+  }
+
+  /**
+   * Push the task branch to remote after commit.
+   * Uses -u to set upstream tracking on first push.
+   */
+  private async autoPushBranch(
+    taskId: string,
+    agentId: string,
+    branch: string,
+    projectPath: string,
+    projectId: string,
+  ): Promise<void> {
+    try {
+      // Check if remote exists
+      const remoteUrl = await gitService.getRemoteUrl(projectPath);
+      if (!remoteUrl) {
+        logger.debug(`No remote configured for project, skipping push`, "agent-manager");
+        return;
+      }
+
+      // Load credentials from git integration config
+      let credentials: { type: "ssh" | "https"; token?: string } | undefined;
+      const gitConfig = await db
+        .select()
+        .from(schema.integrations)
+        .where(
+          and(
+            eq(schema.integrations.projectId, projectId),
+            eq(schema.integrations.type, "git")
+          )
+        )
+        .get();
+
+      if (gitConfig?.credentials) {
+        try {
+          const { decrypt } = await import("../lib/encryption.js");
+          const creds = JSON.parse(decrypt(gitConfig.credentials));
+          if (creds.token) {
+            credentials = { type: "https", token: creds.token };
+          }
+        } catch {
+          // No credentials or decryption failed — try push without auth
+        }
+      }
+
+      await gitService.push(projectPath, branch, "origin", credentials);
+      logger.info(`Auto-pushed branch ${branch} for task ${taskId}`, "agent-manager");
+
+      await logTaskAction(taskId, "git_push", agentId, `Pushed branch ${branch} to origin`);
+
+      eventBus.emit("task:git_push", {
+        taskId,
+        projectId,
+        branch,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(`Auto-push failed for task ${taskId}: ${msg}`, "agent-manager");
     }
   }
 

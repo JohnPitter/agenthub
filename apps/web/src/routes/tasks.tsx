@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   Loader2, FolderOpen, Play, Clock, GitBranch,
@@ -22,30 +23,30 @@ import type {
 
 /* ═══ Constants ═══ */
 
-const KANBAN_COLUMNS: { status: TaskStatus; label: string; dotColor: string; glowColor: string }[] = [
-  { status: "created", label: "Backlog", dotColor: "bg-info", glowColor: "ring-info/30" },
-  { status: "assigned", label: "Disponível", dotColor: "bg-brand", glowColor: "ring-brand/30" },
-  { status: "in_progress", label: "Em Progresso", dotColor: "bg-warning", glowColor: "ring-warning/30" },
-  { status: "review", label: "Review", dotColor: "bg-purple", glowColor: "ring-purple/30" },
-  { status: "done", label: "Concluídas", dotColor: "bg-success", glowColor: "ring-success/30" },
-  { status: "cancelled", label: "Canceladas", dotColor: "bg-neutral-fg3", glowColor: "ring-neutral-fg3/30" },
+const KANBAN_COLUMNS: { status: TaskStatus; labelKey: string; dotColor: string; glowColor: string }[] = [
+  { status: "created", labelKey: "taskStatus.backlog", dotColor: "bg-info", glowColor: "ring-info/30" },
+  { status: "assigned", labelKey: "taskStatus.assigned", dotColor: "bg-brand", glowColor: "ring-brand/30" },
+  { status: "in_progress", labelKey: "taskStatus.in_progress", dotColor: "bg-warning", glowColor: "ring-warning/30" },
+  { status: "review", labelKey: "taskStatus.review", dotColor: "bg-purple", glowColor: "ring-purple/30" },
+  { status: "done", labelKey: "taskStatus.done", dotColor: "bg-success", glowColor: "ring-success/30" },
+  { status: "cancelled", labelKey: "taskStatus.cancelled", dotColor: "bg-neutral-fg3", glowColor: "ring-neutral-fg3/30" },
 ];
 
-const PRIORITY_STYLES: Record<string, { dot: string; label: string }> = {
-  urgent: { dot: "bg-danger", label: "Urgente" },
-  high: { dot: "bg-danger", label: "Alta" },
-  medium: { dot: "bg-warning", label: "Média" },
-  low: { dot: "bg-info", label: "Baixa" },
+const PRIORITY_STYLES: Record<string, { dot: string; labelKey: string }> = {
+  urgent: { dot: "bg-danger", labelKey: "taskPriority.urgent" },
+  high: { dot: "bg-danger", labelKey: "taskPriority.high" },
+  medium: { dot: "bg-warning", labelKey: "taskPriority.medium" },
+  low: { dot: "bg-info", labelKey: "taskPriority.low" },
 };
 
-const AGENT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; pulse?: boolean }> = {
-  idle: { label: "Idle", color: "text-neutral-fg3", bg: "bg-neutral-fg-disabled" },
-  running: { label: "Trabalhando", color: "text-success", bg: "bg-success", pulse: true },
-  paused: { label: "Pausado", color: "text-warning", bg: "bg-warning" },
-  error: { label: "Erro", color: "text-danger", bg: "bg-danger" },
-  thinking: { label: "Pensando", color: "text-purple", bg: "bg-purple", pulse: true },
-  working: { label: "Codando", color: "text-success", bg: "bg-success", pulse: true },
-  busy: { label: "Ocupado", color: "text-warning", bg: "bg-warning", pulse: true },
+const AGENT_STATUS_CONFIG: Record<string, { labelKey: string; color: string; bg: string; pulse?: boolean }> = {
+  idle: { labelKey: "agentStatus.idle", color: "text-neutral-fg3", bg: "bg-neutral-fg-disabled" },
+  running: { labelKey: "agentStatus.running", color: "text-success", bg: "bg-success", pulse: true },
+  paused: { labelKey: "agentStatus.paused", color: "text-warning", bg: "bg-warning" },
+  error: { labelKey: "agentStatus.error", color: "text-danger", bg: "bg-danger" },
+  thinking: { labelKey: "agentStatus.thinking", color: "text-purple", bg: "bg-purple", pulse: true },
+  working: { labelKey: "agentStatus.coding", color: "text-success", bg: "bg-success", pulse: true },
+  busy: { labelKey: "agentStatus.running", color: "text-warning", bg: "bg-warning", pulse: true },
 };
 
 interface ActivityEntry {
@@ -59,6 +60,7 @@ interface ActivityEntry {
 /* ═══ Component ═══ */
 
 export function TasksPage() {
+  const { t } = useTranslation();
   const { projects, agents } = useWorkspaceStore();
   const { agentActivity, updateAgentActivity } = useChatStore();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -256,11 +258,11 @@ export function TasksPage() {
   if (loading) {
     return (
       <div className="flex h-full flex-col">
-        <CommandBar><span className="text-[13px] font-semibold text-neutral-fg1">Tarefas</span></CommandBar>
+        <CommandBar><span className="text-[13px] font-semibold text-neutral-fg1">{t("tasks.title")}</span></CommandBar>
         <div className="flex flex-1 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-brand" />
-            <p className="text-[13px] text-neutral-fg3 font-medium">Carregando missões...</p>
+            <p className="text-[13px] text-neutral-fg3 font-medium">{t("common.loading")}</p>
           </div>
         </div>
       </div>
@@ -274,14 +276,14 @@ export function TasksPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-brand" />
-            <span className="text-[13px] font-semibold text-neutral-fg1">Tarefas</span>
+            <span className="text-[13px] font-semibold text-neutral-fg1">{t("tasks.title")}</span>
           </div>
 
           {/* Live counters */}
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-md bg-warning-light px-2.5 py-1 text-[11px] font-semibold text-warning">
               <Play className="h-3 w-3" />
-              {totalActive} ativas
+              {totalActive} {t("common.active").toLowerCase()}
             </span>
             <span className="flex items-center gap-1.5 rounded-md bg-purple-light px-2.5 py-1 text-[11px] font-semibold text-purple">
               <Eye className="h-3 w-3" />
@@ -289,7 +291,7 @@ export function TasksPage() {
             </span>
             <span className="flex items-center gap-1.5 rounded-md bg-success-light px-2.5 py-1 text-[11px] font-semibold text-success">
               <Zap className="h-3 w-3" />
-              {runningAgents.length} agentes ativos
+              {runningAgents.length} {t("dashboard.agents")}
             </span>
           </div>
 
@@ -301,7 +303,7 @@ export function TasksPage() {
               onChange={(e) => setProjectFilter(e.target.value)}
               className="rounded-md border border-stroke bg-neutral-bg2 px-3 py-1.5 text-[12px] text-neutral-fg2 outline-none transition-all focus:border-brand"
             >
-              <option value="">Todos projetos</option>
+              <option value="">{t("common.all")}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -313,7 +315,7 @@ export function TasksPage() {
             className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-[12px] font-semibold text-white transition-all hover:bg-brand-hover shadow-brand"
           >
             <Plus className="h-3.5 w-3.5" />
-            Nova Task
+            {t("tasks.newTask")}
           </button>
         </div>
       </CommandBar>
@@ -358,7 +360,7 @@ export function TasksPage() {
                         <p className="text-[12px] font-semibold text-neutral-fg1 truncate">{agent.name}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className={cn("text-[10px] font-semibold", config.color)}>
-                            {config.label}
+                            {t(config.labelKey)}
                           </span>
                           {status !== "idle" && currentTool && (
                             <>
@@ -410,7 +412,7 @@ export function TasksPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className={cn("h-2 w-2 rounded-full", column.dotColor)} />
-                          <span className="text-[13px] font-semibold text-neutral-fg1">{column.label}</span>
+                          <span className="text-[13px] font-semibold text-neutral-fg1">{t(column.labelKey)}</span>
                         </div>
                         <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
                           {columnTasks.length}
@@ -434,7 +436,7 @@ export function TasksPage() {
                         ))
                       ) : (
                         <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-stroke py-8">
-                          <p className="text-[11px] text-neutral-fg-disabled">Vazio</p>
+                          <p className="text-[11px] text-neutral-fg-disabled">{t("common.empty")}</p>
                         </div>
                       )}
                     </div>
@@ -454,7 +456,7 @@ export function TasksPage() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
               </span>
               <span className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                Feed ao Vivo
+                {t("dashboard.recentActivity")}
               </span>
             </div>
           </div>
@@ -462,7 +464,7 @@ export function TasksPage() {
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
             {activityLog.length === 0 && (
               <p className="py-8 text-center text-[11px] text-neutral-fg-disabled">
-                Aguardando atividade dos agentes...
+                {t("dashboard.noActivities")}
               </p>
             )}
 
@@ -532,15 +534,15 @@ export function TasksPage() {
 
 /* ═══ Task Detail Panel ═══ */
 
-const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  created: { label: "Backlog", color: "text-info", bg: "bg-info-light" },
-  assigned: { label: "Disponível", color: "text-brand", bg: "bg-brand-light" },
-  in_progress: { label: "Em Progresso", color: "text-warning", bg: "bg-warning-light" },
-  review: { label: "Review", color: "text-purple", bg: "bg-purple-light" },
-  done: { label: "Concluída", color: "text-success", bg: "bg-success-light" },
-  cancelled: { label: "Cancelada", color: "text-neutral-fg3", bg: "bg-neutral-bg2" },
-  failed: { label: "Falhou", color: "text-danger", bg: "bg-danger-light" },
-  changes_requested: { label: "Revisão Solicitada", color: "text-warning", bg: "bg-warning-light" },
+const STATUS_LABELS: Record<string, { labelKey: string; color: string; bg: string }> = {
+  created: { labelKey: "taskStatus.backlog", color: "text-info", bg: "bg-info-light" },
+  assigned: { labelKey: "taskStatus.assigned", color: "text-brand", bg: "bg-brand-light" },
+  in_progress: { labelKey: "taskStatus.in_progress", color: "text-warning", bg: "bg-warning-light" },
+  review: { labelKey: "taskStatus.review", color: "text-purple", bg: "bg-purple-light" },
+  done: { labelKey: "taskStatus.done", color: "text-success", bg: "bg-success-light" },
+  cancelled: { labelKey: "taskStatus.cancelled", color: "text-neutral-fg3", bg: "bg-neutral-bg2" },
+  failed: { labelKey: "taskStatus.failed", color: "text-danger", bg: "bg-danger-light" },
+  changes_requested: { labelKey: "actions.changes_requested", color: "text-warning", bg: "bg-warning-light" },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -561,6 +563,7 @@ interface TaskDetailPanelProps {
 }
 
 function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, onViewChanges }: TaskDetailPanelProps) {
+  const { t } = useTranslation();
   const [descExpanded, setDescExpanded] = useState(false);
   const [resultExpanded, setResultExpanded] = useState(false);
   const [specExpanded, setSpecExpanded] = useState(false);
@@ -592,11 +595,11 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
         <div className="flex items-center justify-between border-b border-stroke2 px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold", statusInfo.bg, statusInfo.color)}>
-              {statusInfo.label}
+              {t(statusInfo.labelKey)}
             </span>
             <span className="flex items-center gap-1.5">
               <span className={cn("h-2 w-2 rounded-full", priority.dot)} />
-              <span className="text-[10px] font-semibold text-neutral-fg3">{priority.label}</span>
+              <span className="text-[10px] font-semibold text-neutral-fg3">{t(priority.labelKey)}</span>
             </span>
           </div>
           <button
@@ -619,9 +622,18 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-brand/20 bg-brand-light/50 px-4 py-2.5 text-[12px] font-semibold text-brand transition-all hover:bg-brand-light hover:border-brand/40"
             >
               <FileDiff className="h-4 w-4" />
-              Ver Alterações
+              {t("tasks.viewChanges")}
             </button>
           )}
+
+          {/* View Project Button */}
+          <Link
+            to={`/project/${task.projectId}`}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-stroke2 bg-neutral-bg2/50 px-4 py-2.5 text-[12px] font-semibold text-neutral-fg2 transition-all hover:bg-neutral-bg-hover hover:text-neutral-fg1 hover:border-stroke"
+          >
+            <FolderOpen className="h-4 w-4" />
+            {t("tasks.viewProject")}
+          </Link>
 
           {/* Live agent working indicator */}
           {isAgentWorking && activity && (
@@ -631,9 +643,9 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-brand">Agente trabalhando</p>
+                <p className="text-[11px] font-semibold text-brand">{t("agentStatus.running")}</p>
                 <p className="text-[10px] text-brand/80 truncate">
-                  {activity.currentTask ?? "Executando"}
+                  {activity.currentTask ?? t("agentStatus.running")}
                   {activity.currentFile ? ` · ${activity.currentFile}` : ""}
                 </p>
               </div>
@@ -643,7 +655,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
           {/* Description — truncated with expand */}
           {task.description && (
             <div>
-              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">Descrição</h3>
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">{t("tasks.description")}</h3>
               <p className="text-[12px] text-neutral-fg2 leading-relaxed whitespace-pre-wrap">
                 {descIsLong && !descExpanded
                   ? task.description.slice(0, DESC_LIMIT) + "..."
@@ -654,7 +666,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
                   onClick={() => setDescExpanded(!descExpanded)}
                   className="mt-1 text-[11px] font-medium text-brand hover:underline"
                 >
-                  {descExpanded ? "Ver menos" : "Ver mais"}
+                  {descExpanded ? t("common.less") : t("common.more")}
                 </button>
               )}
             </div>
@@ -667,7 +679,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
               <div className="flex items-center justify-between px-3.5 py-2.5">
                 <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <FolderOpen className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-medium">Projeto</span>
+                  <span className="text-[11px] font-medium">{t("project.overview")}</span>
                 </div>
                 <Link
                   to={`/project/${task.projectId}`}
@@ -682,7 +694,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
             <div className="flex items-center justify-between px-3.5 py-2.5">
               <div className="flex items-center gap-1.5 text-neutral-fg3">
                 <User className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-medium">Agente</span>
+                <span className="text-[11px] font-medium">{t("tasks.assignedTo")}</span>
               </div>
               {agent ? (
                 <div className="flex items-center gap-1.5">
@@ -690,7 +702,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
                   <span className="text-[11px] font-semibold text-neutral-fg1">{agent.name}</span>
                 </div>
               ) : (
-                <span className="text-[11px] text-neutral-fg-disabled">Não atribuído</span>
+                <span className="text-[11px] text-neutral-fg-disabled">{t("tasks.noneAssigned")}</span>
               )}
             </div>
 
@@ -699,7 +711,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
               <div className="flex items-center justify-between px-3.5 py-2.5">
                 <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <Tag className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-medium">Categoria</span>
+                  <span className="text-[11px] font-medium">Category</span>
                 </div>
                 <span className="rounded bg-neutral-bg2 px-2 py-0.5 text-[10px] font-semibold text-neutral-fg2">
                   {CATEGORY_LABELS[task.category] ?? task.category}
@@ -712,7 +724,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
               <div className="flex items-center justify-between px-3.5 py-2.5">
                 <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <GitBranch className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-medium">Branch</span>
+                  <span className="text-[11px] font-medium">{t("tasks.branch")}</span>
                 </div>
                 <span className="rounded bg-purple-light px-2 py-0.5 text-[10px] font-semibold text-purple-dark">
                   {task.branch}
@@ -725,7 +737,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
               <div className="flex items-center justify-between px-3.5 py-2.5">
                 <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <DollarSign className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-medium">Custo</span>
+                  <span className="text-[11px] font-medium">Cost</span>
                 </div>
                 <span className="text-[11px] font-semibold text-neutral-fg1">${task.costUsd}</span>
               </div>
@@ -748,7 +760,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
             <div className="flex items-center justify-between px-3.5 py-2.5">
               <div className="flex items-center gap-1.5 text-neutral-fg3">
                 <Calendar className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-medium">Criada</span>
+                <span className="text-[11px] font-medium">{t("tasks.createdAt")}</span>
               </div>
               <span className="text-[11px] font-semibold text-neutral-fg1">{formatDate(task.createdAt)}</span>
             </div>
@@ -758,7 +770,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
               <div className="flex items-center justify-between px-3.5 py-2.5">
                 <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-medium">Concluída</span>
+                  <span className="text-[11px] font-medium">{t("taskStatus.done")}</span>
                 </div>
                 <span className="text-[11px] font-semibold text-success">{formatDate(task.completedAt)}</span>
               </div>
@@ -769,7 +781,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
               <div className="flex items-center justify-between px-3.5 py-2.5">
                 <div className="flex items-center gap-1.5 text-neutral-fg3">
                   <Hash className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-medium">Sessão</span>
+                  <span className="text-[11px] font-medium">Session</span>
                 </div>
                 <span className="text-[10px] font-mono text-neutral-fg3 truncate max-w-[160px]">{task.sessionId}</span>
               </div>
@@ -779,7 +791,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
           {/* Result — truncated with expand */}
           {task.result && (
             <div>
-              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">Resultado</h3>
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">{t("tasks.result")}</h3>
               <div className="rounded-lg bg-neutral-bg2 border border-stroke2 p-3 max-h-[200px] overflow-y-auto">
                 <p className="text-[11px] text-neutral-fg1 leading-relaxed whitespace-pre-wrap font-mono">
                   {resultIsLong && !resultExpanded
@@ -792,7 +804,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
                   onClick={() => setResultExpanded(!resultExpanded)}
                   className="mt-1 text-[11px] font-medium text-brand hover:underline"
                 >
-                  {resultExpanded ? "Ver menos" : "Ver mais"}
+                  {resultExpanded ? t("common.less") : t("common.more")}
                 </button>
               )}
             </div>
@@ -801,7 +813,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
           {/* Parsed Spec — truncated with expand */}
           {task.parsedSpec && (
             <div>
-              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">Especificação</h3>
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1.5">Spec</h3>
               <div className="rounded-lg bg-neutral-bg2 border border-stroke2 p-3 max-h-[150px] overflow-y-auto">
                 <p className="text-[11px] text-neutral-fg2 leading-relaxed whitespace-pre-wrap">
                   {specIsLong && !specExpanded
@@ -814,7 +826,7 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
                   onClick={() => setSpecExpanded(!specExpanded)}
                   className="mt-1 text-[11px] font-medium text-brand hover:underline"
                 >
-                  {specExpanded ? "Ver menos" : "Ver mais"}
+                  {specExpanded ? t("common.less") : t("common.more")}
                 </button>
               )}
             </div>
@@ -837,6 +849,7 @@ interface WarRoomCardProps {
 }
 
 function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, onClick }: WarRoomCardProps) {
+  const { t } = useTranslation();
   const priority = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
   const agent = task.assignedAgentId ? agentMap.get(task.assignedAgentId) : null;
   const activity = task.assignedAgentId ? agentActivity.get(task.assignedAgentId) : null;
@@ -865,7 +878,7 @@ function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, o
         <div className="flex items-center gap-2">
           <span className={cn("h-1.5 w-1.5 rounded-full", priority.dot)} />
           <span className="text-[9px] font-semibold uppercase tracking-wider text-neutral-fg3">
-            {priority.label}
+            {t(priority.labelKey)}
           </span>
         </div>
         {projectName && (
@@ -894,7 +907,7 @@ function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, o
             <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
           </span>
           <span className="text-[10px] font-medium text-brand truncate">
-            {activity.currentTask ?? "Executando"}
+            {activity.currentTask ?? t("agentStatus.running")}
             {activity.currentFile ? ` · ${activity.currentFile}` : ""}
           </span>
         </div>
@@ -918,7 +931,7 @@ function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, o
         ) : (
           <div className="flex items-center gap-1 text-neutral-fg-disabled">
             <User className="h-3 w-3" />
-            <span className="text-[10px]">Sem agente</span>
+            <span className="text-[10px]">{t("board.unassigned")}</span>
           </div>
         )}
         <div className="flex items-center gap-1 text-neutral-fg-disabled">

@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { LayoutGrid, Table2, Loader2 } from "lucide-react";
 import { useSocket } from "../hooks/use-socket";
 import { useAgents } from "../hooks/use-agents";
@@ -19,6 +20,7 @@ const TaskTable = lazy(() =>
 type BoardView = "kanban" | "table";
 
 export function ProjectBoard() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { agents } = useAgents();
   const { tasks: initialTasks } = useTasks(id);
@@ -81,7 +83,7 @@ export function ProjectBoard() {
               <Table2 className="h-4 w-4 text-brand" />
             )}
             <span className="text-[13px] font-semibold text-neutral-fg1">
-              {view === "kanban" ? "Kanban Board" : "Task Table"}
+              {view === "kanban" ? "Kanban Board" : t("tasks.title")}
             </span>
             <span className="text-[13px] text-neutral-fg3">
               {tasks.length} task{tasks.length !== 1 ? "s" : ""}
@@ -112,7 +114,7 @@ export function ProjectBoard() {
               )}
             >
               <Table2 className="h-3.5 w-3.5" />
-              Tabela
+              {t("tasks.title")}
             </button>
           </div>
         </div>

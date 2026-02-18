@@ -466,4 +466,27 @@ router.get("/usage/limits", async (_req, res) => {
   }
 });
 
+/**
+ * POST /api/usage/disconnect
+ * Deletes Claude Code OAuth credentials (~/.claude/.credentials.json).
+ */
+router.post("/usage/disconnect", async (_req, res) => {
+  try {
+    const { unlink } = await import("fs/promises");
+    try {
+      await unlink(CREDENTIALS_PATH);
+    } catch {
+      // File may not exist
+    }
+    // Clear caches
+    accountCache = null;
+    usageLimitsCache = null;
+    logger.info("Claude Code CLI disconnected", "usage");
+    res.json({ disconnected: true });
+  } catch (err) {
+    logger.error(`Failed to disconnect Claude: ${err}`, "usage");
+    res.status(500).json({ error: "Failed to disconnect" });
+  }
+});
+
 export { router as usageRouter };

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { FolderOpen, Users, GitBranch, AlertTriangle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { AgentAvatar } from "../components/agents/agent-avatar";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useNotificationStore } from "../stores/notification-store";
 import { useAgents } from "../hooks/use-agents";
@@ -9,24 +11,17 @@ import { useGitStatus } from "../hooks/use-git-status";
 import { CommandBar } from "../components/layout/command-bar";
 import { api, cn, formatRelativeTime } from "../lib/utils";
 
-const ROLE_LABELS: Record<string, string> = {
-  architect: "Arquiteto",
-  tech_lead: "Tech Lead",
-  frontend_dev: "Frontend Dev",
-  backend_dev: "Backend Dev",
-  qa: "QA Engineer",
-};
-
 type SettingsTab = "geral" | "agentes" | "git" | "avancado";
 
-const TABS: { key: SettingsTab; label: string; icon: typeof FolderOpen }[] = [
-  { key: "geral", label: "Geral", icon: FolderOpen },
-  { key: "agentes", label: "Agentes", icon: Users },
-  { key: "git", label: "Git", icon: GitBranch },
-  { key: "avancado", label: "Avançado", icon: AlertTriangle },
+const SETTINGS_TABS: { key: SettingsTab; labelKey: string; icon: typeof FolderOpen }[] = [
+  { key: "geral", labelKey: "settings.general", icon: FolderOpen },
+  { key: "agentes", labelKey: "agents.title", icon: Users },
+  { key: "git", labelKey: "Git", icon: GitBranch },
+  { key: "avancado", labelKey: "settings.about", icon: AlertTriangle },
 ];
 
 export function ProjectSettings() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { projects, removeProject } = useWorkspaceStore();
@@ -40,8 +35,6 @@ export function ProjectSettings() {
   const [gitConfigForm, setGitConfigForm] = useState({
     remoteUrl: "",
     defaultBranch: "main",
-    autoCommit: false,
-    autoCreateBranch: false,
     autoPR: false,
   });
 
@@ -59,7 +52,7 @@ export function ProjectSettings() {
   };
 
   if (!project) {
-    return <div className="p-10 text-neutral-fg2">Projeto não encontrado.</div>;
+    return <div className="p-10 text-neutral-fg2">{t("project.notFound")}</div>;
   }
 
   return (
@@ -73,7 +66,7 @@ export function ProjectSettings() {
         {/* Pill Tab Nav */}
         <nav className="w-[220px] shrink-0 border-r border-stroke2 bg-neutral-bg-subtle p-4">
           <div className="space-y-1">
-            {TABS.map((tab) => {
+            {SETTINGS_TABS.map((tab) => {
               const isActive = activeTab === tab.key;
               const isDanger = tab.key === "avancado";
               return (
@@ -90,7 +83,7 @@ export function ProjectSettings() {
                   )}
                 >
                   <tab.icon className={cn("h-4 w-4", isActive && (isDanger ? "text-danger" : "text-brand"))} />
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               );
             })}
@@ -105,8 +98,8 @@ export function ProjectSettings() {
             {activeTab === "geral" && (
               <div className="flex flex-col gap-6 animate-fade-up">
                 <div className="card-glow p-8">
-                  <h3 className="text-title text-neutral-fg1 mb-1">Caminho do Workspace</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-6">Diretório raiz do projeto</p>
+                  <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.workspace")}</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.workspaceDesc")}</p>
                   <div className="rounded-lg bg-neutral-bg3 border border-stroke px-4 py-3 font-mono text-[13px] text-neutral-fg2">
                     {project.path}
                   </div>
@@ -118,25 +111,20 @@ export function ProjectSettings() {
             {activeTab === "agentes" && (
               <div className="flex flex-col gap-6 animate-fade-up">
                 <div>
-                  <h3 className="text-title text-neutral-fg1 mb-1">Agentes Ativos</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-6">Ative ou desative agentes para este workspace</p>
+                  <h3 className="text-title text-neutral-fg1 mb-1">{t("agents.team")}</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("agents.configure")}</p>
                 </div>
                 <div className="flex flex-col divide-y divide-stroke2 card-glow overflow-hidden">
-                  {agents.map((agent) => (
+                  {agents.filter((a) => a.role !== "receptionist").map((agent) => (
                     <div
                       key={agent.id}
                       className="flex items-center justify-between px-6 py-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div
-                          className="flex h-9 w-9 items-center justify-center rounded-lg text-[12px] font-semibold text-white shadow-xs"
-                          style={{ backgroundColor: agent.color ?? "#6366F1" }}
-                        >
-                          {agent.name.charAt(0)}
-                        </div>
+                        <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" />
                         <div>
                           <p className="text-[13px] font-semibold text-neutral-fg1">{agent.name}</p>
-                          <p className="text-[11px] text-neutral-fg3">{ROLE_LABELS[agent.role] ?? agent.role}</p>
+                          <p className="text-[11px] text-neutral-fg3">{t(`roles.${agent.role}`)}</p>
                         </div>
                       </div>
                       <button
@@ -157,7 +145,7 @@ export function ProjectSettings() {
                   ))}
                   {agents.length === 0 && (
                     <div className="px-6 py-8 text-center text-[13px] text-neutral-fg-disabled">
-                      Nenhum agente configurado
+                      {t("agents.noAgents")}
                     </div>
                   )}
                 </div>
@@ -304,48 +292,6 @@ export function ProjectSettings() {
                         </div>
 
                         <div className="section-divider" />
-
-                        <div className="flex items-center justify-between py-1">
-                          <div>
-                            <p className="text-[12px] font-semibold text-neutral-fg1">Auto-criar branch para tasks</p>
-                            <p className="text-[11px] text-neutral-fg3">Cria branch automática ao atribuir task</p>
-                          </div>
-                          <button
-                            onClick={() => setGitConfigForm({ ...gitConfigForm, autoCreateBranch: !gitConfigForm.autoCreateBranch })}
-                            className={cn(
-                              "relative h-5 w-9 rounded-full transition-all duration-200",
-                              (config?.autoCreateBranch ?? gitConfigForm.autoCreateBranch) ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke"
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
-                                (config?.autoCreateBranch ?? gitConfigForm.autoCreateBranch) && "left-[18px]"
-                              )}
-                            />
-                          </button>
-                        </div>
-
-                        <div className="flex items-center justify-between py-1">
-                          <div>
-                            <p className="text-[12px] font-semibold text-neutral-fg1">Auto-commit ao aprovar</p>
-                            <p className="text-[11px] text-neutral-fg3">Cria commit automático quando task aprovada</p>
-                          </div>
-                          <button
-                            onClick={() => setGitConfigForm({ ...gitConfigForm, autoCommit: !gitConfigForm.autoCommit })}
-                            className={cn(
-                              "relative h-5 w-9 rounded-full transition-all duration-200",
-                              (config?.autoCommit ?? gitConfigForm.autoCommit) ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke"
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
-                                (config?.autoCommit ?? gitConfigForm.autoCommit) && "left-[18px]"
-                              )}
-                            />
-                          </button>
-                        </div>
 
                         <div className="flex items-center justify-between py-1">
                           <div>

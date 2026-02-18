@@ -159,8 +159,49 @@ tasksRouter.get("/:id/changes", async (req, res) => {
 
     const commits: CommitInfo[] = [];
 
+    // Helper: extract file diffs for a list of commit hashes
+    const extractCommitDiffs = async (commitLines: string[]) => {
+      for (const line of commitLines) {
+        const [hash, shortHash, message, date, author] = line.split("|");
+        if (!hash) continue;
+
+        const diffTreeResult = await execFileNoThrow(
+          "git",
+          ["diff-tree", "--no-commit-id", "-r", "--name-only", hash],
+          { cwd: project.path, timeout: 5000 }
+        );
+
+        const changedFiles = diffTreeResult.stdout?.trim().split("\n").filter(Boolean) ?? [];
+        const files: FileChange[] = [];
+
+        for (const filePath of changedFiles) {
+          const beforeResult = await execFileNoThrow(
+            "git", ["show", `${hash}^:${filePath}`],
+            { cwd: project.path, timeout: 5000 }
+          );
+          const original = beforeResult.error ? "" : beforeResult.stdout;
+
+          const afterResult = await execFileNoThrow(
+            "git", ["show", `${hash}:${filePath}`],
+            { cwd: project.path, timeout: 5000 }
+          );
+          const modified = afterResult.error ? "" : afterResult.stdout;
+
+          if (original === modified) continue;
+
+          const ext = extname(filePath).toLowerCase();
+          const language = LANG_MAP[ext] ?? "plaintext";
+          files.push({ path: filePath.replace(/\\/g, "/"), original, modified, language });
+        }
+
+        if (files.length > 0) {
+          commits.push({ hash, shortHash, message, date, author, files });
+        }
+      }
+    };
+
     if (task.branch) {
-      // Get commits on the task branch that are not on the base branch
+      // Mode 1: Task has a dedicated branch — diff against base
       const logResult = await execFileNoThrow(
         "git",
         ["log", "--format=%H|%h|%s|%aI|%an", `${baseBranch}..${task.branch}`],
@@ -168,53 +209,10 @@ tasksRouter.get("/:id/changes", async (req, res) => {
       );
 
       if (!logResult.error && logResult.stdout.trim()) {
-        const commitLines = logResult.stdout.trim().split("\n").filter(Boolean);
-
-        for (const line of commitLines) {
-          const [hash, shortHash, message, date, author] = line.split("|");
-          if (!hash) continue;
-
-          // Get list of changed files for this commit
-          const diffTreeResult = await execFileNoThrow(
-            "git",
-            ["diff-tree", "--no-commit-id", "-r", "--name-only", hash],
-            { cwd: project.path, timeout: 5000 }
-          );
-
-          const changedFiles = diffTreeResult.stdout?.trim().split("\n").filter(Boolean) ?? [];
-          const files: FileChange[] = [];
-
-          for (const filePath of changedFiles) {
-            // Get file content BEFORE this commit (parent)
-            const beforeResult = await execFileNoThrow(
-              "git",
-              ["show", `${hash}^:${filePath}`],
-              { cwd: project.path, timeout: 5000 }
-            );
-            const original = beforeResult.error ? "" : beforeResult.stdout;
-
-            // Get file content AFTER this commit
-            const afterResult = await execFileNoThrow(
-              "git",
-              ["show", `${hash}:${filePath}`],
-              { cwd: project.path, timeout: 5000 }
-            );
-            const modified = afterResult.error ? "" : afterResult.stdout;
-
-            if (original === modified) continue;
-
-            const ext = extname(filePath).toLowerCase();
-            const language = LANG_MAP[ext] ?? "plaintext";
-            files.push({ path: filePath.replace(/\\/g, "/"), original, modified, language });
-          }
-
-          if (files.length > 0) {
-            commits.push({ hash, shortHash, message, date, author, files });
-          }
-        }
+        await extractCommitDiffs(logResult.stdout.trim().split("\n").filter(Boolean));
       }
 
-      // Also check for uncommitted changes on the task branch
+      // Check for uncommitted changes on the task branch
       const currentBranchResult = await execFileNoThrow(
         "git", ["rev-parse", "--abbrev-ref", "HEAD"],
         { cwd: project.path, timeout: 5000 }
@@ -259,6 +257,73 @@ tasksRouter.get("/:id/changes", async (req, res) => {
               files,
             });
           }
+        }
+      }
+    } else {
+      // Mode 2: No branch — find commits made during the task's lifetime
+      const since = task.createdAt ? new Date(task.createdAt).toISOString() : null;
+      const until = task.completedAt ? new Date(task.completedAt).toISOString() : null;
+
+      if (since) {
+        const logArgs = ["log", "--format=%H|%h|%s|%aI|%an"];
+        logArgs.push(`--since=${since}`);
+        if (until) logArgs.push(`--until=${until}`);
+        logArgs.push(baseBranch);
+
+        const logResult = await execFileNoThrow(
+          "git", logArgs,
+          { cwd: project.path, timeout: 10000 }
+        );
+
+        if (!logResult.error && logResult.stdout.trim()) {
+          await extractCommitDiffs(logResult.stdout.trim().split("\n").filter(Boolean));
+        }
+      }
+
+      // Also show uncommitted changes (working tree)
+      const uncommittedResult = await execFileNoThrow(
+        "git", ["diff", "--name-only", "HEAD"],
+        { cwd: project.path, timeout: 5000 }
+      );
+      const untrackedResult = await execFileNoThrow(
+        "git", ["ls-files", "--others", "--exclude-standard"],
+        { cwd: project.path, timeout: 5000 }
+      );
+      const uncommittedFiles = [
+        ...(uncommittedResult.stdout?.trim().split("\n").filter(Boolean) ?? []),
+        ...(untrackedResult.stdout?.trim().split("\n").filter(Boolean) ?? []),
+      ];
+
+      if (uncommittedFiles.length > 0) {
+        const files: FileChange[] = [];
+        for (const filePath of uncommittedFiles) {
+          const headResult = await execFileNoThrow(
+            "git", ["show", `HEAD:${filePath}`],
+            { cwd: project.path, timeout: 5000 }
+          );
+          const original = headResult.error ? "" : headResult.stdout;
+
+          let modified = "";
+          try {
+            modified = await readFile(join(project.path, filePath), "utf-8");
+          } catch { modified = ""; }
+
+          if (original === modified) continue;
+
+          const ext = extname(filePath).toLowerCase();
+          const language = LANG_MAP[ext] ?? "plaintext";
+          files.push({ path: filePath.replace(/\\/g, "/"), original, modified, language });
+        }
+
+        if (files.length > 0) {
+          commits.unshift({
+            hash: "uncommitted",
+            shortHash: "uncommitted",
+            message: "Alterações não commitadas",
+            date: new Date().toISOString(),
+            author: "",
+            files,
+          });
         }
       }
     }

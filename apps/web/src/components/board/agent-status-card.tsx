@@ -11,6 +11,7 @@ const ROLE_LABELS: Record<string, string> = {
   frontend_dev: "Frontend Dev",
   backend_dev: "Backend Dev",
   qa: "QA Engineer",
+  receptionist: "Team Lead",
   custom: "Custom",
 };
 

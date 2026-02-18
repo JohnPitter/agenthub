@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Plus, Loader2 } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useTasks } from "../hooks/use-tasks";
@@ -14,33 +15,27 @@ import { Tablist } from "../components/ui/tablist";
 import { cn, formatRelativeTime } from "../lib/utils";
 import type { Task, TaskStatus, TaskPriority } from "@agenthub/shared";
 
-const KANBAN_COLUMNS: { status: TaskStatus; label: string; dotColor: string }[] = [
-  { status: "created", label: "Backlog", dotColor: "bg-info" },
-  { status: "assigned", label: "Disponível", dotColor: "bg-brand" },
-  { status: "in_progress", label: "Em Progresso", dotColor: "bg-warning" },
-  { status: "review", label: "Review", dotColor: "bg-purple" },
-  { status: "done", label: "Concluídas", dotColor: "bg-success" },
-  { status: "cancelled", label: "Canceladas", dotColor: "bg-neutral-fg3" },
+const KANBAN_COLUMNS: { status: TaskStatus; labelKey: string; dotColor: string }[] = [
+  { status: "created", labelKey: "taskStatus.backlog", dotColor: "bg-info" },
+  { status: "assigned", labelKey: "taskStatus.assigned", dotColor: "bg-brand" },
+  { status: "in_progress", labelKey: "taskStatus.in_progress", dotColor: "bg-warning" },
+  { status: "review", labelKey: "taskStatus.review", dotColor: "bg-purple" },
+  { status: "done", labelKey: "taskStatus.done", dotColor: "bg-success" },
+  { status: "cancelled", labelKey: "taskStatus.cancelled", dotColor: "bg-neutral-fg3" },
 ];
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  created: { label: "Backlog", cls: "bg-info-light text-info" },
-  assigned: { label: "Disponível", cls: "bg-brand-light text-brand" },
-  in_progress: { label: "Em Progresso", cls: "bg-warning-light text-warning" },
-  review: { label: "Review", cls: "bg-purple-light text-purple" },
-  done: { label: "Concluída", cls: "bg-success-light text-success" },
-  cancelled: { label: "Cancelada", cls: "bg-neutral-bg2 text-neutral-fg3" },
-  failed: { label: "Falhou", cls: "bg-danger-light text-danger" },
-};
-
-const PRIORITY_LABEL: Record<string, string> = {
-  low: "Baixa",
-  medium: "Média",
-  high: "Alta",
-  critical: "Crítica",
+const STATUS_BADGE_CLS: Record<string, string> = {
+  created: "bg-info-light text-info",
+  assigned: "bg-brand-light text-brand",
+  in_progress: "bg-warning-light text-warning",
+  review: "bg-purple-light text-purple",
+  done: "bg-success-light text-success",
+  cancelled: "bg-neutral-bg2 text-neutral-fg3",
+  failed: "bg-danger-light text-danger",
 };
 
 export function ProjectTasks() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { projects, agents } = useWorkspaceStore();
   const project = projects.find((p) => p.id === id);
@@ -159,7 +154,7 @@ export function ProjectTasks() {
   }, [tasks, priorityFilter, agentFilter]);
 
   if (!project) {
-    return <div className="p-8 text-neutral-fg2">Projeto não encontrado.</div>;
+    return <div className="p-8 text-neutral-fg2">{t("project.notFound")}</div>;
   }
 
   return (
@@ -172,7 +167,7 @@ export function ProjectTasks() {
             className="btn-primary flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
           >
             <Plus className="h-3.5 w-3.5" />
-            Nova Task
+            {t("tasks.newTask")}
           </button>
         }
       >
@@ -199,7 +194,7 @@ export function ProjectTasks() {
         <div className="flex flex-1 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-brand" />
-            <p className="text-[13px] text-neutral-fg3 font-medium">Carregando tasks...</p>
+            <p className="text-[13px] text-neutral-fg3 font-medium">{t("common.loading")}</p>
           </div>
         </div>
       ) : viewMode === "kanban" ? (
@@ -225,7 +220,7 @@ export function ProjectTasks() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className={cn("h-2 w-2 rounded-full", column.dotColor)} />
-                        <span className="text-[13px] font-semibold text-neutral-fg1">{column.label}</span>
+                        <span className="text-[13px] font-semibold text-neutral-fg1">{t(column.labelKey)}</span>
                       </div>
                       <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
                         {columnTasks.length}
@@ -252,7 +247,7 @@ export function ProjectTasks() {
                       ))
                     ) : (
                       <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-stroke py-10">
-                        <p className="text-[12px] text-neutral-fg-disabled">Vazio</p>
+                        <p className="text-[12px] text-neutral-fg-disabled">{t("common.empty")}</p>
                       </div>
                     )}
                   </div>
@@ -268,17 +263,17 @@ export function ProjectTasks() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-stroke2 text-left">
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Status</th>
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Prioridade</th>
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Título</th>
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Categoria</th>
-                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Criada</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("tasks.status")}</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("tasks.priority")}</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("tasks.title")}</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("chat.agent")}</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("tasks.description")}</th>
+                  <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">{t("tasks.createdAt")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stroke2">
                 {getAllFilteredTasks().map((task) => {
-                  const badge = STATUS_BADGE[task.status] ?? { label: task.status, cls: "bg-neutral-bg2 text-neutral-fg2" };
+                  const badgeCls = STATUS_BADGE_CLS[task.status] ?? "bg-neutral-bg2 text-neutral-fg2";
                   const agent = agents.find((a) => a.id === task.assignedAgentId);
                   return (
                     <tr
@@ -287,12 +282,12 @@ export function ProjectTasks() {
                       className="table-row cursor-pointer"
                     >
                       <td className="px-5 py-3.5">
-                        <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold", badge.cls)}>
-                          {badge.label}
+                        <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold", badgeCls)}>
+                          {t(`taskStatus.${task.status}`)}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-[12px] text-neutral-fg3">
-                        {PRIORITY_LABEL[task.priority] ?? task.priority}
+                        {t(`taskPriority.${task.priority}`)}
                       </td>
                       <td className="px-5 py-3.5 text-[13px] font-medium text-neutral-fg1 truncate max-w-[300px]">
                         {task.title}
@@ -312,7 +307,7 @@ export function ProjectTasks() {
                 {tasks.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-5 py-10 text-center text-[13px] text-neutral-fg-disabled">
-                      Nenhuma task criada ainda
+                      {t("tasks.noTasks")}
                     </td>
                   </tr>
                 )}

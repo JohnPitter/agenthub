@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, Loader2, Check, Sparkles, Activity, FolderOpen, ListTodo, Users, Zap, CheckCircle2,
@@ -49,22 +50,22 @@ interface DashboardStats {
   }[];
 }
 
-const ACTION_MAP: Record<string, { icon: LucideIcon; label: string; color: string }> = {
-  created: { icon: Plus, label: "Task criada", color: "text-brand" },
-  assigned: { icon: UserCheck, label: "Task atribuída", color: "text-info" },
-  agent_assigned: { icon: UserCheck, label: "Agente atribuído", color: "text-info" },
-  started: { icon: Play, label: "Execução iniciada", color: "text-success" },
-  completed: { icon: CheckCircle2, label: "Task concluída", color: "text-success" },
-  review: { icon: Eye, label: "Enviada para review", color: "text-purple" },
-  approved: { icon: ThumbsUp, label: "Task aprovada", color: "text-success" },
-  rejected: { icon: XCircle, label: "Task rejeitada", color: "text-danger" },
-  changes_requested: { icon: MessageSquare, label: "Alterações solicitadas", color: "text-warning" },
-  queued: { icon: Clock, label: "Adicionada à fila", color: "text-neutral-fg2" },
-  agent_error: { icon: AlertTriangle, label: "Erro na execução", color: "text-danger" },
-  status_change: { icon: ArrowRightLeft, label: "Mudança de status", color: "text-neutral-fg2" },
+const ACTION_MAP: Record<string, { icon: LucideIcon; key: string; color: string }> = {
+  created: { icon: Plus, key: "actions.created", color: "text-brand" },
+  assigned: { icon: UserCheck, key: "actions.assigned", color: "text-info" },
+  agent_assigned: { icon: UserCheck, key: "actions.agent_assigned", color: "text-info" },
+  started: { icon: Play, key: "actions.execution_started", color: "text-success" },
+  completed: { icon: CheckCircle2, key: "actions.completed", color: "text-success" },
+  review: { icon: Eye, key: "actions.sent_to_review", color: "text-purple" },
+  approved: { icon: ThumbsUp, key: "actions.approved", color: "text-success" },
+  rejected: { icon: XCircle, key: "actions.rejected", color: "text-danger" },
+  changes_requested: { icon: MessageSquare, key: "actions.changes_requested", color: "text-warning" },
+  queued: { icon: Clock, key: "actions.queued", color: "text-neutral-fg2" },
+  agent_error: { icon: AlertTriangle, key: "actions.agent_error", color: "text-danger" },
+  status_change: { icon: ArrowRightLeft, key: "actions.status_change", color: "text-neutral-fg2" },
 };
 
-const DEFAULT_ACTION = { icon: HelpCircle, label: "Ação desconhecida", color: "text-neutral-fg3" };
+const DEFAULT_ACTION = { icon: HelpCircle, key: "actions.unknown", color: "text-neutral-fg3" };
 
 function ActionIcon({ action }: { action: string }) {
   const { icon: Icon, color } = ACTION_MAP[action] ?? DEFAULT_ACTION;
@@ -78,10 +79,11 @@ function ActionIcon({ action }: { action: string }) {
 
 function ActionLegendHeader() {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="relative inline-flex items-center gap-1.5">
-      <span>Ação</span>
+      <span>{t("dashboard.action")}</span>
       <button
         className="text-neutral-fg-disabled hover:text-neutral-fg2 transition-colors"
         onMouseEnter={() => setOpen(true)}
@@ -91,12 +93,12 @@ function ActionLegendHeader() {
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-2 z-50 rounded-lg bg-neutral-bg1 border border-stroke p-3 shadow-16 animate-scale-in w-[200px]">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">Legenda</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-2">{t("dashboard.legend")}</p>
           <div className="flex flex-col gap-1.5">
-            {Object.entries(ACTION_MAP).map(([key, { icon: Icon, label, color }]) => (
-              <div key={key} className="flex items-center gap-2">
+            {Object.entries(ACTION_MAP).map(([actionKey, { icon: Icon, key, color }]) => (
+              <div key={actionKey} className="flex items-center gap-2">
                 <Icon className={cn("h-3 w-3 shrink-0", color)} />
-                <span className="text-[11px] text-neutral-fg2">{label}</span>
+                <span className="text-[11px] text-neutral-fg2">{t(key)}</span>
               </div>
             ))}
           </div>
@@ -107,14 +109,15 @@ function ActionLegendHeader() {
 }
 
 const STAT_ITEMS = [
-  { key: "totalProjects", label: "Projetos", icon: FolderOpen, color: "text-brand" },
-  { key: "activeAgents", label: "Agentes Ativos", icon: Users, color: "text-purple" },
-  { key: "runningTasks", label: "Em Progresso", icon: Zap, color: "text-warning" },
-  { key: "reviewTasks", label: "Em Review", icon: Activity, color: "text-purple" },
-  { key: "doneTasks", label: "Concluídas", icon: CheckCircle2, color: "text-success" },
+  { key: "totalProjects", i18nKey: "dashboard.totalProjects", icon: FolderOpen, color: "text-brand" },
+  { key: "activeAgents", i18nKey: "dashboard.activeAgents", icon: Users, color: "text-purple" },
+  { key: "runningTasks", i18nKey: "dashboard.runningTasks", icon: Zap, color: "text-warning" },
+  { key: "reviewTasks", i18nKey: "taskStatus.review", icon: Activity, color: "text-purple" },
+  { key: "doneTasks", i18nKey: "dashboard.doneTasks", icon: CheckCircle2, color: "text-success" },
 ] as const;
 
 export function Dashboard() {
+  const { t } = useTranslation();
   const { projects, addProject } = useWorkspaceStore();
   const navigate = useNavigate();
   const [workspacePath, setWorkspacePath] = useState("");
@@ -228,7 +231,7 @@ export function Dashboard() {
               type="text"
               value={workspacePath}
               onChange={(e) => setWorkspacePath(e.target.value)}
-              placeholder="Caminho do workspace..."
+              placeholder={t("dashboard.workspacePath")}
               className="w-64 input-fluent text-[13px]"
               onKeyDown={(e) => e.key === "Enter" && handleScan()}
             />
@@ -244,7 +247,7 @@ export function Dashboard() {
         }
       >
         <span className="text-[13px] font-semibold text-neutral-fg1">
-          {projects.length} projeto{projects.length !== 1 ? "s" : ""}
+          {t("dashboard.projectCount", { count: projects.length })}
         </span>
       </CommandBar>
 
@@ -258,13 +261,13 @@ export function Dashboard() {
               <div className="flex items-center gap-2.5">
                 <Sparkles className="h-3.5 w-3.5 text-success-dark" />
                 <span className="text-[12px] font-semibold text-success-dark">
-                  {scannedProjects.length} projeto(s) encontrado(s)
+                  {t("dashboard.projectsFound", { count: scannedProjects.length })}
                 </span>
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-medium text-success-dark">
-                    {scanPage + 1} de {totalPages}
+                    {t("dashboard.pageOf", { current: scanPage + 1, total: totalPages })}
                   </span>
                   <button
                     onClick={() => setScanPage((p) => Math.max(0, p - 1))}
@@ -310,7 +313,7 @@ export function Dashboard() {
                           : "btn-primary text-white",
                       )}
                     >
-                      {alreadyAdded ? <><Check className="h-3 w-3" /> Adicionado</> : <><Plus className="h-3 w-3" /> Adicionar</>}
+                      {alreadyAdded ? <><Check className="h-3 w-3" /> {t("dashboard.added")}</> : <><Plus className="h-3 w-3" /> {t("common.add")}</>}
                     </button>
                   </div>
                 );
@@ -327,9 +330,9 @@ export function Dashboard() {
           <div className="glow-orb glow-orb-brand w-[300px] h-[300px] -top-32 -left-20 opacity-40" />
           <div className="glow-orb glow-orb-purple w-[200px] h-[200px] -top-16 right-10 opacity-30" />
           <div className="relative">
-            <h1 className="text-display text-gradient animate-fade-up">Dashboard</h1>
+            <h1 className="text-display text-gradient animate-fade-up">{t("dashboard.title")}</h1>
             <p className="text-subtitle mt-2 animate-fade-up stagger-1">
-              {projects.length} projeto{projects.length !== 1 ? "s" : ""} no workspace
+              {t("dashboard.projectCount", { count: projects.length })}
             </p>
           </div>
         </div>
@@ -343,7 +346,7 @@ export function Dashboard() {
               return (
                 <div key={item.key} className="stat-card flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-label">{item.label}</span>
+                    <span className="text-label">{t(item.i18nKey)}</span>
                     <Icon className={cn("h-4 w-4", item.color)} />
                   </div>
                   <span className={cn("text-[28px] font-bold tracking-tight", item.color)}>
@@ -358,7 +361,7 @@ export function Dashboard() {
         {/* Projects grid */}
         <div className="mb-12">
           <h3 className="section-heading mb-6">
-            Projetos
+            {t("dashboard.totalProjects")}
           </h3>
           {!stats ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -386,8 +389,8 @@ export function Dashboard() {
             <div className="card-glow p-12">
               <EmptyState
                 icon={FolderOpen}
-                title="Nenhum projeto adicionado"
-                description="Escaneie um workspace para começar"
+                title={t("dashboard.noProjects")}
+                description={t("dashboard.scanToStart")}
               />
             </div>
           )}
@@ -398,7 +401,7 @@ export function Dashboard() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
               <Github className="h-5 w-5 text-neutral-fg2" />
-              <h3 className="section-heading !mb-0">Repositórios GitHub</h3>
+              <h3 className="section-heading !mb-0">{t("dashboard.githubRepos")}</h3>
             </div>
             {githubRepos.length > 0 && (
               <div className="flex items-center gap-2">
@@ -407,7 +410,7 @@ export function Dashboard() {
                   type="text"
                   value={repoSearch}
                   onChange={(e) => { setRepoSearch(e.target.value); setRepoPage(0); }}
-                  placeholder="Buscar repositório..."
+                  placeholder={t("dashboard.searchRepo")}
                   className="w-48 input-fluent text-[12px]"
                 />
               </div>
@@ -485,11 +488,11 @@ export function Dashboard() {
                           )}
                         >
                           {alreadyImported ? (
-                            <><Check className="h-3 w-3" /> Importado</>
+                            <><Check className="h-3 w-3" /> {t("dashboard.imported")}</>
                           ) : importingRepo === repo.id ? (
-                            <><Loader2 className="h-3 w-3 animate-spin" /> Importando...</>
+                            <><Loader2 className="h-3 w-3 animate-spin" /> {t("dashboard.importing")}</>
                           ) : (
-                            <><Plus className="h-3 w-3" /> Importar</>
+                            <><Plus className="h-3 w-3" /> {t("dashboard.import")}</>
                           )}
                         </button>
                       </div>
@@ -499,11 +502,11 @@ export function Dashboard() {
                 {totalRepoPages > 1 && (
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-[11px] text-neutral-fg3">
-                      {filtered.length} repositório{filtered.length !== 1 ? "s" : ""}
+                      {t("dashboard.repoCount", { count: filtered.length })}
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-medium text-neutral-fg2">
-                        {repoPage + 1} de {totalRepoPages}
+                        {t("dashboard.pageOf", { current: repoPage + 1, total: totalRepoPages })}
                       </span>
                       <button
                         onClick={() => setRepoPage((p) => Math.max(0, p - 1))}
@@ -531,10 +534,10 @@ export function Dashboard() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-neutral-fg1">
-                  Conexão com o GitHub expirada
+                  {t("dashboard.githubExpired")}
                 </p>
                 <p className="text-[12px] text-neutral-fg3 mt-0.5">
-                  O token de acesso precisa ser renovado. Clique para reconectar.
+                  {t("dashboard.githubExpiredDesc")}
                 </p>
               </div>
               <a
@@ -542,7 +545,7 @@ export function Dashboard() {
                 className="btn-primary flex shrink-0 items-center gap-1.5 rounded-md px-4 py-2 text-[12px] font-semibold text-white"
               >
                 <Github className="h-3.5 w-3.5" />
-                Reconectar GitHub
+                {t("dashboard.reconnectGithub")}
               </a>
             </div>
           ) : repoError ? (
@@ -552,10 +555,10 @@ export function Dashboard() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-neutral-fg1">
-                  Não foi possível carregar os repositórios
+                  {t("dashboard.githubLoadError")}
                 </p>
                 <p className="text-[12px] text-neutral-fg3 mt-0.5">
-                  Erro ao conectar com o GitHub. Verifique sua conexão e tente novamente.
+                  {t("dashboard.githubLoadErrorDesc")}
                 </p>
               </div>
             </div>
@@ -567,11 +570,11 @@ export function Dashboard() {
           <div className="animate-fade-up stagger-3">
             <div className="flex items-center justify-between mb-6">
               <h3 className="section-heading !mb-0">
-                Atividades Recentes
+                {t("dashboard.recentActivity")}
               </h3>
               {stats.activityTotalCount > 0 && (
                 <span className="text-[11px] text-neutral-fg3">
-                  {stats.activityTotalCount} atividade{stats.activityTotalCount !== 1 ? "s" : ""}
+                  {t("dashboard.activityCount", { count: stats.activityTotalCount })}
                 </span>
               )}
             </div>
@@ -579,13 +582,13 @@ export function Dashboard() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-stroke2 text-left">
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Agente</th>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Projeto</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("dashboard.agent")}</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("dashboard.project")}</th>
                     <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">
                       <ActionLegendHeader />
                     </th>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Task</th>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">Quando</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("dashboard.task")}</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3 text-right">{t("dashboard.when")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stroke2">
@@ -618,7 +621,7 @@ export function Dashboard() {
               {stats.activityTotalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-stroke2 px-5 py-3">
                   <span className="text-[11px] text-neutral-fg3">
-                    Página {activityPage + 1} de {stats.activityTotalPages}
+                    {t("dashboard.pageOf", { current: activityPage + 1, total: stats.activityTotalPages })}
                   </span>
                   <div className="flex items-center gap-2">
                     <button

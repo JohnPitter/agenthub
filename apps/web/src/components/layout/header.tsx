@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useParams, Link } from "react-router-dom";
 import { Search, Bell, MessageSquare, Settings, LogOut, User } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -11,17 +12,18 @@ import { getAgentAvatarUrl } from "../../lib/agent-avatar";
 import { NotificationPanel } from "./notification-panel";
 import { CommandPalette } from "../ui/command-palette";
 
-const ROUTE_LABELS: Record<string, string> = {
-  board: "Board",
-  tasks: "Tasks",
-  agents: "Agentes",
-  files: "Arquivos",
+const ROUTE_LABEL_KEYS: Record<string, string> = {
+  board: "project.board",
+  tasks: "tasks.title",
+  agents: "agents.title",
+  files: "files.title",
   prs: "Pull Requests",
-  preview: "Preview",
-  settings: "Configurações",
+  preview: "project.preview",
+  settings: "settings.title",
 };
 
 export function Header() {
+  const { t } = useTranslation();
   const { id: projectId } = useParams();
   const location = useLocation();
   const { projects, chatPanelOpen, toggleChatPanel } = useWorkspaceStore();
@@ -48,16 +50,18 @@ export function Header() {
   const { activeProjectId } = useWorkspaceStore();
   const project = projects.find((p) => p.id === projectId);
   const segment = location.pathname.split("/").pop();
-  const pageLabel = segment && ROUTE_LABELS[segment] ? ROUTE_LABELS[segment] : null;
+  const routeLabelKey = segment && ROUTE_LABEL_KEYS[segment] ? ROUTE_LABEL_KEYS[segment] : null;
+  const pageLabel = routeLabelKey ? t(routeLabelKey) : null;
 
   const isDashboard = location.pathname === "/dashboard";
 
-  const PAGE_TITLES: Record<string, string> = {
-    "/analytics": "Analytics",
-    "/settings": "Configurações",
-    "/docs": "Documentação",
+  const PAGE_TITLE_KEYS: Record<string, string> = {
+    "/analytics": "analytics.title",
+    "/settings": "settings.title",
+    "/docs": "docs.title",
   };
-  const standalonePageTitle = PAGE_TITLES[location.pathname] ?? null;
+  const standaloneTitleKey = PAGE_TITLE_KEYS[location.pathname] ?? null;
+  const standalonePageTitle = standaloneTitleKey ? t(standaloneTitleKey) : null;
 
   useEffect(() => {
     if (!panelOpen && !profileOpen) return;
@@ -83,7 +87,7 @@ export function Header() {
         {/* Left */}
       <div>
         {isDashboard ? (
-          <h1 className="text-[17px] font-semibold text-neutral-fg1">Dashboard</h1>
+          <h1 className="text-[17px] font-semibold text-neutral-fg1">{t("dashboard.title")}</h1>
         ) : standalonePageTitle ? (
           <h1 className="text-[17px] font-semibold text-neutral-fg1">{standalonePageTitle}</h1>
         ) : project ? (
@@ -130,7 +134,7 @@ export function Header() {
           className="glass-strong flex items-center gap-2 rounded-lg px-4 py-2 text-neutral-fg3 hover:text-neutral-fg2 hover:border-stroke-active transition-all duration-200 focus:ring-2 focus:ring-brand/20"
         >
           <Search className="h-4 w-4" strokeWidth={2} />
-          <span className="text-[13px]">Buscar...</span>
+          <span className="text-[13px]">{t("common.search")}...</span>
           <kbd className="ml-1 rounded-md bg-neutral-bg1 px-2 py-1 text-[10px] font-semibold text-neutral-fg3 border border-stroke">
             ⌘K
           </kbd>
@@ -188,7 +192,7 @@ export function Header() {
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1"
                 >
                   <User className="h-4 w-4 text-neutral-fg3" />
-                  Meu Perfil
+                  {t("settings.myProfile")}
                 </Link>
                 <Link
                   to="/settings"
@@ -196,7 +200,7 @@ export function Header() {
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1"
                 >
                   <Settings className="h-4 w-4 text-neutral-fg3" />
-                  Configurações
+                  {t("settings.title")}
                 </Link>
               </div>
 
@@ -209,7 +213,7 @@ export function Header() {
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-danger transition-colors hover:bg-danger-light"
                 >
                   <LogOut className="h-4 w-4" />
-                  Sair
+                  {t("auth.logout")}
                 </button>
               </div>
             </div>

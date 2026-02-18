@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "react-i18next";
 import { Clock, AlertCircle } from "lucide-react";
 import { cn, formatRelativeTime } from "../../lib/utils";
 import { AgentAvatar } from "../agents/agent-avatar";
@@ -19,14 +20,15 @@ const PRIORITY_COLORS = {
   urgent: "bg-danger-light text-danger",
 } as const;
 
-const PRIORITY_LABELS = {
-  low: "Baixa",
-  medium: "Média",
-  high: "Alta",
-  urgent: "Urgente",
+const PRIORITY_KEYS = {
+  low: "taskPriority.low",
+  medium: "taskPriority.medium",
+  high: "taskPriority.high",
+  urgent: "taskPriority.urgent",
 } as const;
 
 export function KanbanCard({ task, agent, onViewChanges, onTaskClick }: KanbanCardProps) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -62,7 +64,7 @@ export function KanbanCard({ task, agent, onViewChanges, onTaskClick }: KanbanCa
               PRIORITY_COLORS[task.priority]
             )}
           >
-            {PRIORITY_LABELS[task.priority]}
+            {t(PRIORITY_KEYS[task.priority])}
           </span>
         )}
         {task.status === "blocked" && (
@@ -86,7 +88,7 @@ export function KanbanCard({ task, agent, onViewChanges, onTaskClick }: KanbanCa
             <span className="text-[10px] text-neutral-fg2 truncate max-w-[80px]">{agent.name}</span>
           </div>
         ) : (
-          <span className="text-[10px] text-neutral-fg-disabled">Não atribuída</span>
+          <span className="text-[10px] text-neutral-fg-disabled">{t("tasks.noneAssigned")}</span>
         )}
         {task.updatedAt && (
           <div className="flex items-center gap-1 text-[9px] text-neutral-fg-disabled">

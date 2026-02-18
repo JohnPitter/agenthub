@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Cpu, Pause, Square } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useChatStore } from "../../stores/chat-store";
@@ -5,6 +6,7 @@ import { useSocket } from "../../hooks/use-socket";
 import { AgentAvatar } from "../agents/agent-avatar";
 
 export function ActiveAgentBar() {
+  const { t } = useTranslation();
   const { agents, projects, activeProjectId } = useWorkspaceStore();
   const { agentActivity } = useChatStore();
   const { cancelTask } = useSocket(activeProjectId ?? undefined);
@@ -49,7 +51,7 @@ export function ActiveAgentBar() {
       <div className="flex flex-1 flex-col items-center gap-1 px-8">
         <div className="flex items-center gap-2">
           <Cpu className="h-3.5 w-3.5 text-brand" />
-          <span className="text-[11px] font-medium text-success">Executando</span>
+          <span className="text-[11px] font-medium text-success">{t("agentStatus.running")}</span>
         </div>
         <div className="h-1.5 w-full max-w-[400px] overflow-hidden rounded-full bg-stroke">
           <div

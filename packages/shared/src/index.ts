@@ -7,6 +7,9 @@ export type * from "./types/events";
 export type * from "./types/config";
 export type * from "./types/docs";
 
+// Runtime values from types (constants + functions)
+export { OPENAI_MODELS, CLAUDE_MODELS, ALL_MODELS, getModelProvider } from "./types/agent";
+
 // Constants
 export { DEFAULT_AGENTS, type AgentBlueprint } from "./constants/agents";
 export { TASK_STATES, TASK_TRANSITIONS, TRANSITION_ACTORS } from "./constants/task-states";

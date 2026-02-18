@@ -188,7 +188,7 @@ export function TelegramConfig() {
           <Bot className="h-5 w-5 text-success" />
           <div>
             <p className="text-[13px] font-medium text-success">Bot Telegram ativo</p>
-            <p className="text-[11px] text-neutral-fg3">Mensagens estão sendo recebidas pelo Tech Lead</p>
+            <p className="text-[11px] text-neutral-fg3">Mensagens estão sendo recebidas pelo Team Lead</p>
           </div>
         </div>
       )}

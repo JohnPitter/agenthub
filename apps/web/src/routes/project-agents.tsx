@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Users, Loader2, Trash2 } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useAgents } from "../hooks/use-agents";
@@ -9,15 +10,8 @@ import { CommandBar } from "../components/layout/command-bar";
 import { cn } from "../lib/utils";
 import type { Agent } from "@agenthub/shared";
 
-const ROLE_LABELS: Record<string, string> = {
-  architect: "Arquiteto",
-  tech_lead: "Tech Lead",
-  frontend_dev: "Frontend Dev",
-  backend_dev: "Backend Dev",
-  qa: "QA Engineer",
-};
-
 export function ProjectAgents() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { projects } = useWorkspaceStore();
   const project = projects.find((p) => p.id === id);
@@ -33,29 +27,30 @@ export function ProjectAgents() {
   const handleDelete = async (agentId: string) => {
     const agent = agents.find((a) => a.id === agentId);
     if (!agent || agent.isDefault) return;
-    if (!confirm(`Excluir o agente "${agent.name}"? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(t("agents.deleteConfirm", { name: agent.name }))) return;
     await deleteAgent(agentId);
     if (selectedAgentId === agentId) setSelectedAgentId(null);
   };
 
   if (!project) {
-    return <div className="p-6 text-neutral-fg2">Projeto não encontrado.</div>;
+    return <div className="p-6 text-neutral-fg2">{t("project.notFound")}</div>;
   }
 
-  const activeCount = agents.filter((a) => a.isActive).length;
-  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  const projectAgents = agents.filter((a) => a.role !== "receptionist");
+  const activeCount = projectAgents.filter((a) => a.isActive).length;
+  const selectedAgent = projectAgents.find((a) => a.id === selectedAgentId);
 
   return (
     <div className="flex h-full flex-col">
       {/* Command Bar */}
       <CommandBar>
         <span className="text-[13px] font-semibold text-neutral-fg1">
-          {activeCount} de {agents.length} ativos
+          {activeCount} de {projectAgents.length} ativos
         </span>
       </CommandBar>
 
       {/* Master-Detail */}
-      {agents.length === 0 ? (
+      {projectAgents.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-brand" />
         </div>
@@ -64,7 +59,7 @@ export function ProjectAgents() {
           {/* Agent list */}
           <div className="w-80 shrink-0 border-r border-stroke bg-neutral-bg-subtle overflow-y-auto">
             <div className="p-3 space-y-1">
-              {agents.map((agent, i) => (
+              {projectAgents.map((agent, i) => (
                 <button
                   key={agent.id}
                   onClick={() => setSelectedAgentId(agent.id)}
@@ -84,7 +79,7 @@ export function ProjectAgents() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] font-semibold text-neutral-fg1">{agent.name}</p>
-                    <p className="text-[11px] text-neutral-fg3">{ROLE_LABELS[agent.role] ?? agent.role}</p>
+                    <p className="text-[11px] text-neutral-fg3">{t(`roles.${agent.role}`)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {!agent.isDefault && (
@@ -94,7 +89,7 @@ export function ProjectAgents() {
                           handleDelete(agent.id);
                         }}
                         className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-md text-neutral-fg-disabled hover:bg-danger-light hover:text-danger transition-all"
-                        title="Excluir agente"
+                        title={t("common.delete")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -138,8 +133,8 @@ export function ProjectAgents() {
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-bg2 border border-stroke">
                   <Users className="h-8 w-8 text-neutral-fg-disabled" />
                 </div>
-                <p className="text-[14px] font-medium text-neutral-fg3">Selecione um agente</p>
-                <p className="text-[12px] text-neutral-fg-disabled">Clique em um agente à esquerda para ver detalhes</p>
+                <p className="text-[14px] font-medium text-neutral-fg3">{t("agents.noAgentSelected")}</p>
+                <p className="text-[12px] text-neutral-fg-disabled">{t("agents.selectOrCreate")}</p>
               </div>
             )}
           </div>

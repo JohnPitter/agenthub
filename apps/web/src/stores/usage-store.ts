@@ -83,11 +83,18 @@ interface UsageState {
   connectionFetched: boolean;
   limitsFetched: boolean;
   limitsLastFetched: number | null;
+  openaiConnection: { connected: boolean; source?: string; email?: string; masked?: string; planType?: string; subscriptionActiveUntil?: string } | null;
+  openaiConnectionFetched: boolean;
+  openaiUsage: Record<string, unknown> | null;
+  openaiUsageFetched: boolean;
+  openaiUsageLastFetched: number | null;
   fetchSummary: (period?: string) => Promise<void>;
   fetchAccount: () => Promise<void>;
   fetchModels: () => Promise<void>;
   fetchConnection: () => Promise<void>;
   fetchLimits: () => Promise<void>;
+  fetchOpenAIConnection: () => Promise<void>;
+  fetchOpenAIUsage: () => Promise<void>;
 }
 
 export const useUsageStore = create<UsageState>((set, get) => ({
@@ -104,6 +111,11 @@ export const useUsageStore = create<UsageState>((set, get) => ({
   connectionFetched: false,
   limitsFetched: false,
   limitsLastFetched: null,
+  openaiConnection: null,
+  openaiConnectionFetched: false,
+  openaiUsage: null,
+  openaiUsageFetched: false,
+  openaiUsageLastFetched: null,
 
   fetchSummary: async (period = "24h") => {
     const { lastFetched, loading } = get();
@@ -163,6 +175,37 @@ export const useUsageStore = create<UsageState>((set, get) => ({
       set({ limits, limitsFetched: true, limitsLastFetched: Date.now() });
     } catch {
       set({ limitsFetched: true, limitsLastFetched: Date.now() });
+    }
+  },
+
+  fetchOpenAIConnection: async () => {
+    if (get().openaiConnectionFetched) return;
+    try {
+      // Check OAuth first
+      const oauthData = await api<{ connected: boolean; source?: string; email?: string; planType?: string; subscriptionActiveUntil?: string }>("/openai/oauth/connection");
+      if (oauthData.connected) {
+        set({ openaiConnection: oauthData, openaiConnectionFetched: true });
+        return;
+      }
+    } catch { /* fall through */ }
+    try {
+      // Fall back to API key / env
+      const data = await api<{ connected: boolean; masked?: string; source?: string }>("/openai/status");
+      set({ openaiConnection: data, openaiConnectionFetched: true });
+    } catch {
+      set({ openaiConnection: { connected: false }, openaiConnectionFetched: true });
+    }
+  },
+
+  fetchOpenAIUsage: async () => {
+    const { openaiUsageLastFetched } = get();
+    // Cache for 2 minutes
+    if (openaiUsageLastFetched && Date.now() - openaiUsageLastFetched < 120_000) return;
+    try {
+      const data = await api<Record<string, unknown>>("/openai/oauth/usage");
+      set({ openaiUsage: data, openaiUsageFetched: true, openaiUsageLastFetched: Date.now() });
+    } catch {
+      set({ openaiUsageFetched: true, openaiUsageLastFetched: Date.now() });
     }
   },
 }));

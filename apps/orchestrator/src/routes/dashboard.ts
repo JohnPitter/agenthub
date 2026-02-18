@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, desc, count, max, sql } from "drizzle-orm";
+import { eq, desc, count, max, sql, and, ne } from "drizzle-orm";
 
 export const dashboardRouter = Router();
 
@@ -11,7 +11,9 @@ dashboardRouter.get("/stats", async (req, res) => {
 
   const [projectRows, agentRows, taskRows, recentLogs, activityTotal, tasksByProject, agentsByProject] = await Promise.all([
     db.select({ total: count() }).from(schema.projects),
-    db.select({ total: count() }).from(schema.agents).where(eq(schema.agents.isActive, true)),
+    db.select({ total: count() }).from(schema.agents).where(
+      and(eq(schema.agents.isActive, true), ne(schema.agents.role, "receptionist"))
+    ),
     db
       .select({
         total: count(),

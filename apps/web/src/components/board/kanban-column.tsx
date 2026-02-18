@@ -1,5 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { KanbanCard } from "./kanban-card";
 import type { Task, Agent, TaskStatus } from "@agenthub/shared";
@@ -15,6 +16,7 @@ interface KanbanColumnProps {
 }
 
 export function KanbanColumn({ id, title, tasks, agents, color, onViewChanges, onTaskClick }: KanbanColumnProps) {
+  const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -48,7 +50,7 @@ export function KanbanColumn({ id, title, tasks, agents, color, onViewChanges, o
         >
           {tasks.length === 0 ? (
             <div className="flex h-32 items-center justify-center">
-              <p className="text-[12px] text-neutral-fg-disabled">Nenhuma task</p>
+              <p className="text-[12px] text-neutral-fg-disabled">{t("board.emptyColumn")}</p>
             </div>
           ) : (
             tasks.map((task) => {

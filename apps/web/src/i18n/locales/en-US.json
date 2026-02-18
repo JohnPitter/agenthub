@@ -447,6 +447,33 @@
     "agentError": "Agent error",
     "delete": "Delete"
   },
+  "skills": {
+    "title": "Skills",
+    "create": "Create Skill",
+    "edit": "Edit Skill",
+    "delete": "Delete Skill",
+    "name": "Name",
+    "description": "Description",
+    "category": "Category",
+    "instructions": "Instructions",
+    "instructionsHint": "Instructions that will be injected into the agent's system prompt when this skill is assigned",
+    "emptyTitle": "No skills yet",
+    "emptyDesc": "Create your first skill to enhance your agents with specialized capabilities",
+    "noSkillsAvailable": "No skills available. Create skills in Settings to assign them here.",
+    "assignedToAgent": "Assigned to agent",
+    "active": "Active",
+    "inactive": "Inactive",
+    "deleteConfirm": "Are you sure you want to delete this skill?",
+    "categories": {
+      "all": "All",
+      "coding": "Coding",
+      "testing": "Testing",
+      "review": "Review",
+      "docs": "Documentation",
+      "devops": "DevOps",
+      "custom": "Custom"
+    }
+  },
   "workflow": {
     "save": "Save",
     "validate": "Validate",

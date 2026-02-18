@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.26.0] - 2026-02-18
+
+### Fase 26: CI Fix + Agent Skills
+
+#### CI Fix
+
+##### Fixed
+
+- **CI pipeline** — removed explicit `version: 9` from `pnpm/action-setup@v4` in `.github/workflows/ci.yml` (3 steps) and `.github/workflows/security.yml` (1 step) to resolve "Multiple versions of pnpm specified" error. Action now reads version from `package.json` `packageManager` field.
+
+#### Fase 26A: Agent Skills — Backend
+
+##### Added
+
+- **Skills schema** (`packages/database/src/schema/skills.ts`)
+  - `skills` — id, projectId, name, description, category, instructions, isActive, timestamps
+  - `agentSkills` — id, agentId, skillId, createdAt (join table)
+
+- **Skill types** (`packages/shared/src/types/skill.ts`)
+  - `SkillCategory` type: coding, testing, review, docs, devops, custom
+  - `Skill`, `AgentSkill` interfaces
+
+- **Skills routes** (`apps/orchestrator/src/routes/skills.ts`)
+  - `GET /api/skills` — list all skills
+  - `POST /api/skills` — create skill
+  - `PATCH /api/skills/:id` — update skill
+  - `DELETE /api/skills/:id` — delete skill (cascades agent_skills)
+  - `GET /api/agents/:agentId/skills` — list assigned skills
+  - `POST /api/agents/:agentId/skills` — assign skill
+  - `DELETE /api/agents/:agentId/skills/:skillId` — unassign skill
+
+- **Skill injection** — agent-session.ts injects assigned active skills into system prompt after memories block
+
+- **Migration** — CREATE TABLE for skills, agent_skills + 3 indexes
+- **Test helpers** — createTestSkill, createTestAgentSkill + cleanTestDb updated
+
+#### Fase 26B: Agent Skills — Frontend
+
+##### Added
+
+- **Skill list** (`apps/web/src/components/skills/skill-list.tsx`)
+  - Full CRUD with search, category filter pills, active toggle, delete confirmation
+  - Category color badges (blue=coding, green=testing, amber=review, purple=docs, red=devops, gray=custom)
+
+- **Skill dialog** (`apps/web/src/components/skills/skill-dialog.tsx`)
+  - Create/edit form: name, description, category select, instructions (monospace textarea), active toggle
+
+- **Skills tab** in Settings page (`apps/web/src/routes/settings.tsx`)
+  - New "Skills" tab with Zap icon rendering SkillList component
+
+- **Agent skills assignment** (`apps/web/src/components/agents/agent-config-dialog.tsx`)
+  - Skills section with toggleable pills to assign/unassign skills to agents
+
+- **i18n** — 17 new `skills.*` keys in all 5 locales (pt-BR, en-US, es, zh-CN, ja)
+
+##### Stats
+
+- **Build:** 4/4 passing
+- **Testes:** 169 passando (sem regressões)
+- **Arquivos criados:** 5
+- **Arquivos modificados:** 13
+
+---
+
 ## [0.25.0] - 2026-02-18
 
 ### Fase 25: Multi-Tenant

@@ -3,6 +3,7 @@ import { getAgentPrompt } from "./agent-prompts";
 import { eventBus } from "../realtime/event-bus";
 import { logger } from "../lib/logger";
 import { db, schema } from "@agenthub/database";
+import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { Agent, AgentRole } from "@agenthub/shared";
 import { agentMemory } from "./agent-memory.js";
@@ -64,6 +65,32 @@ export class AgentSession {
       }
     } catch (err) {
       logger.warn(`Failed to retrieve memories for agent ${agent.id}: ${err}`, "agent-session");
+    }
+
+    // Inject agent skills into system prompt
+    try {
+      const assignedSkills = await db
+        .select({
+          name: schema.skills.name,
+          instructions: schema.skills.instructions,
+        })
+        .from(schema.agentSkills)
+        .innerJoin(schema.skills, eq(schema.agentSkills.skillId, schema.skills.id))
+        .where(
+          and(
+            eq(schema.agentSkills.agentId, agent.id),
+            eq(schema.skills.isActive, true),
+          ),
+        );
+
+      if (assignedSkills.length > 0) {
+        const skillsBlock =
+          "\n\n# Skills\n\n" +
+          assignedSkills.map((s) => `## ${s.name}\n${s.instructions}`).join("\n\n");
+        fullSystemPrompt += skillsBlock;
+      }
+    } catch (err) {
+      logger.warn(`Failed to retrieve skills for agent ${agent.id}: ${err}`, "agent-session");
     }
 
     logger.info(

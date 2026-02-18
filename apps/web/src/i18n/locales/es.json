@@ -447,6 +447,33 @@
     "agentError": "Error del agente",
     "delete": "Eliminar"
   },
+  "skills": {
+    "title": "Skills",
+    "create": "Crear Skill",
+    "edit": "Editar Skill",
+    "delete": "Eliminar Skill",
+    "name": "Nombre",
+    "description": "Descripci\u00f3n",
+    "category": "Categor\u00eda",
+    "instructions": "Instrucciones",
+    "instructionsHint": "Instrucciones que se inyectar\u00e1n en el prompt del sistema del agente cuando se asigne esta skill",
+    "emptyTitle": "Sin skills a\u00fan",
+    "emptyDesc": "Crea tu primera skill para mejorar tus agentes con capacidades especializadas",
+    "noSkillsAvailable": "No hay skills disponibles. Crea skills en Configuraci\u00f3n para asignarlas aqu\u00ed.",
+    "assignedToAgent": "Asignada al agente",
+    "active": "Activa",
+    "inactive": "Inactiva",
+    "deleteConfirm": "\u00bfEst\u00e1s seguro de que quieres eliminar esta skill?",
+    "categories": {
+      "all": "Todas",
+      "coding": "C\u00f3digo",
+      "testing": "Pruebas",
+      "review": "Revisi\u00f3n",
+      "docs": "Documentaci\u00f3n",
+      "devops": "DevOps",
+      "custom": "Personalizado"
+    }
+  },
   "workflow": {
     "save": "Guardar",
     "validate": "Validar",

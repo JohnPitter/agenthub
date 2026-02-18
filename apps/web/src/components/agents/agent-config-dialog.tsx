@@ -4,8 +4,9 @@ import { X, Brain, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../../lib/agent-avatar";
 import { useUsageStore } from "../../stores/usage-store";
-import type { Agent, AgentModel, AgentRole, PermissionMode } from "@agenthub/shared";
+import type { Agent, AgentModel, AgentRole, PermissionMode, Skill } from "@agenthub/shared";
 import { DEFAULT_SOULS, OPENAI_MODELS } from "@agenthub/shared";
+import { api } from "../../lib/utils";
 
 interface AgentConfigDialogProps {
   agent: Agent;
@@ -92,6 +93,29 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
   const [avatar, setAvatar] = useState(agent.avatar ?? "");
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [soul, setSoul] = useState(agent.soul ?? "");
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
+  const [assignedSkillIds, setAssignedSkillIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    api<{ skills: Skill[] }>("/skills").then((data) => setAvailableSkills(data.skills)).catch(() => {});
+    api<{ skills: { id: string }[] }>(`/agents/${agent.id}/skills`).then((data) => {
+      setAssignedSkillIds(new Set(data.skills.map((s) => s.id)));
+    }).catch(() => {});
+  }, [agent.id]);
+
+  const handleToggleSkill = async (skillId: string) => {
+    try {
+      if (assignedSkillIds.has(skillId)) {
+        await api(`/agents/${agent.id}/skills/${skillId}`, { method: "DELETE" });
+        setAssignedSkillIds((prev) => { const next = new Set(prev); next.delete(skillId); return next; });
+      } else {
+        await api(`/agents/${agent.id}/skills`, { method: "POST", body: JSON.stringify({ skillId }) });
+        setAssignedSkillIds((prev) => new Set(prev).add(skillId));
+      }
+    } catch {
+      // silent
+    }
+  };
 
   const handleToggleTool = (tool: string) => {
     setTools((prev) =>
@@ -386,6 +410,36 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
                 );
               })}
             </div>
+          </div>
+
+          {/* Skills */}
+          <div>
+            <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
+              {t("skills.title")} ({assignedSkillIds.size})
+            </label>
+            {availableSkills.filter((s) => s.isActive).length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {availableSkills.filter((s) => s.isActive).map((skill) => {
+                  const isAssigned = assignedSkillIds.has(skill.id);
+                  return (
+                    <button
+                      key={skill.id}
+                      onClick={() => handleToggleSkill(skill.id)}
+                      className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-all ${
+                        isAssigned
+                          ? "bg-brand text-white"
+                          : "bg-neutral-bg2 text-neutral-fg3 hover:bg-stroke2 hover:text-neutral-fg2"
+                      }`}
+                      title={skill.description ?? undefined}
+                    >
+                      {skill.name}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-[12px] text-neutral-fg3 italic">{t("skills.noSkillsAvailable")}</p>
+            )}
           </div>
 
           {/* Soul (Personality) */}

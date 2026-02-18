@@ -188,6 +188,26 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_team_invites_token ON team_invites(token)`,
   `CREATE INDEX IF NOT EXISTS idx_team_invites_team ON team_invites(team_id)`,
+  `CREATE TABLE IF NOT EXISTS skills (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'custom',
+    instructions TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS agent_skills (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    skill_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_skills_project ON skills(project_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_skills_agent ON agent_skills(agent_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_skills_skill ON agent_skills(skill_id)`,
 ];
 
 // Columns added after initial table creation — safe to re-run

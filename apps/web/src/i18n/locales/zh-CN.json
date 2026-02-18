@@ -447,6 +447,33 @@
     "agentError": "智能体错误",
     "delete": "删除"
   },
+  "skills": {
+    "title": "\u6280\u80fd",
+    "create": "\u521b\u5efa\u6280\u80fd",
+    "edit": "\u7f16\u8f91\u6280\u80fd",
+    "delete": "\u5220\u9664\u6280\u80fd",
+    "name": "\u540d\u79f0",
+    "description": "\u63cf\u8ff0",
+    "category": "\u7c7b\u522b",
+    "instructions": "\u6307\u4ee4",
+    "instructionsHint": "\u5206\u914d\u6b64\u6280\u80fd\u540e\uff0c\u8fd9\u4e9b\u6307\u4ee4\u5c06\u6ce8\u5165\u5230\u4ee3\u7406\u7684\u7cfb\u7edf\u63d0\u793a\u4e2d",
+    "emptyTitle": "\u6682\u65e0\u6280\u80fd",
+    "emptyDesc": "\u521b\u5efa\u60a8\u7684\u7b2c\u4e00\u4e2a\u6280\u80fd\uff0c\u4e3a\u4ee3\u7406\u6dfb\u52a0\u4e13\u4e1a\u80fd\u529b",
+    "noSkillsAvailable": "\u6ca1\u6709\u53ef\u7528\u6280\u80fd\u3002\u5728\u8bbe\u7f6e\u4e2d\u521b\u5efa\u6280\u80fd\u4ee5\u5728\u6b64\u5904\u5206\u914d\u3002",
+    "assignedToAgent": "\u5df2\u5206\u914d\u7ed9\u4ee3\u7406",
+    "active": "\u542f\u7528",
+    "inactive": "\u7981\u7528",
+    "deleteConfirm": "\u786e\u5b9a\u8981\u5220\u9664\u6b64\u6280\u80fd\u5417\uff1f",
+    "categories": {
+      "all": "\u5168\u90e8",
+      "coding": "\u7f16\u7801",
+      "testing": "\u6d4b\u8bd5",
+      "review": "\u5ba1\u67e5",
+      "docs": "\u6587\u6863",
+      "devops": "\u8fd0\u7ef4",
+      "custom": "\u81ea\u5b9a\u4e49"
+    }
+  },
   "workflow": {
     "save": "保存",
     "validate": "验证",

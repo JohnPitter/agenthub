@@ -118,6 +118,26 @@ const CREATE_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_messages_project ON messages(project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_task_logs_task ON task_logs(task_id)`,
   `CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id)`,
+  `CREATE TABLE IF NOT EXISTS skills (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'custom',
+    instructions TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS agent_skills (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    skill_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_skills_project ON skills(project_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_skills_agent ON agent_skills(agent_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_skills_skill ON agent_skills(skill_id)`,
 ];
 
 export interface TestContext {
@@ -275,9 +295,57 @@ export async function createTestTaskLog(
 }
 
 /**
+ * Helper to create a test skill in the database.
+ */
+export async function createTestSkill(
+  db: LibSQLDatabase<typeof schema>,
+  projectId?: string,
+  overrides?: Partial<typeof schema.skills.$inferInsert>,
+) {
+  const skill = {
+    id: nanoid(),
+    projectId: projectId ?? null,
+    name: "Test Skill",
+    description: "A test skill for testing.",
+    category: "custom",
+    instructions: "Follow these test instructions.",
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+
+  await db.insert(schema.skills).values(skill);
+  return skill;
+}
+
+/**
+ * Helper to create a test agent-skill assignment in the database.
+ */
+export async function createTestAgentSkill(
+  db: LibSQLDatabase<typeof schema>,
+  agentId: string,
+  skillId: string,
+  overrides?: Partial<typeof schema.agentSkills.$inferInsert>,
+) {
+  const agentSkill = {
+    id: nanoid(),
+    agentId,
+    skillId,
+    createdAt: new Date(),
+    ...overrides,
+  };
+
+  await db.insert(schema.agentSkills).values(agentSkill);
+  return agentSkill;
+}
+
+/**
  * Helper to clean all tables in the test database.
  */
 export async function cleanTestDb(client: Client) {
+  await client.execute("DELETE FROM agent_skills");
+  await client.execute("DELETE FROM skills");
   await client.execute("DELETE FROM task_logs");
   await client.execute("DELETE FROM messages");
   await client.execute("DELETE FROM tasks");

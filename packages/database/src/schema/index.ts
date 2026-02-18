@@ -11,3 +11,4 @@ export { docs } from "./docs";
 export { workflows } from "./workflows";
 export { notifications } from "./notifications";
 export { teams, teamMembers, teamInvites } from "./teams";
+export { skills, agentSkills } from "./skills";

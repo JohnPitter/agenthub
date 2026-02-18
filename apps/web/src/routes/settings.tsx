@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderOpen, Palette, Info, ExternalLink, Plug, User, ChevronDown, ChevronUp, Check, CheckCircle2, XCircle, RefreshCw, Cpu, Eye, EyeOff, Loader2, Trash2, Globe } from "lucide-react";
+import { FolderOpen, Palette, Info, ExternalLink, Plug, User, ChevronDown, ChevronUp, Check, CheckCircle2, XCircle, RefreshCw, Cpu, Eye, EyeOff, Loader2, Trash2, Globe, Zap } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { cn } from "../lib/utils";
 import { WhatsAppConfig } from "../components/integrations/whatsapp-config";
@@ -12,14 +12,16 @@ import { useUserStore } from "../stores/user-store";
 import { useUsageStore } from "../stores/usage-store";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../lib/agent-avatar";
 import { api } from "../lib/utils";
+import { SkillList } from "../components/skills/skill-list";
 
-type SettingsTab = "perfil" | "providers" | "geral" | "integracoes" | "aparencia" | "sobre";
+type SettingsTab = "perfil" | "providers" | "geral" | "integracoes" | "skills" | "aparencia" | "sobre";
 
 const TABS: { key: SettingsTab; labelKey: string; icon: typeof FolderOpen }[] = [
   { key: "perfil", labelKey: "settings.profile", icon: User },
   { key: "providers", labelKey: "settings.aiProviders", icon: Cpu },
   { key: "geral", labelKey: "settings.general", icon: FolderOpen },
   { key: "integracoes", labelKey: "settings.integrations", icon: Plug },
+  { key: "skills", labelKey: "skills.title", icon: Zap },
   { key: "aparencia", labelKey: "settings.appearance", icon: Palette },
   { key: "sobre", labelKey: "settings.about", icon: Info },
 ];
@@ -1059,6 +1061,8 @@ export function SettingsPage() {
                 )}
               </div>
             )}
+
+            {activeTab === "skills" && <SkillList />}
 
             {activeTab === "aparencia" && <ThemeSection />}
 

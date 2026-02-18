@@ -199,7 +199,7 @@ pnpm db:seed              # Seed database
 
 ## Engineering Principles
 
-AgentHub follows **12 master principles** defined in [CLAUDE.md](CLAUDE.md):
+AgentHub follows **12 master principles**:
 
 | # | Principle | Summary |
 |---|-----------|---------|

@@ -33,7 +33,8 @@ class TaskWatcher {
   }
 
   private async pollForTasks(): Promise<void> {
-    // Find tasks that are "created" with no assigned agent
+    // Find top-level tasks that are "created" with no assigned agent
+    // (subtasks with parentTaskId are handled by workflow executor or agent-manager)
     const unassignedTasks = await db
       .select()
       .from(schema.tasks)
@@ -41,6 +42,7 @@ class TaskWatcher {
         and(
           eq(schema.tasks.status, "created"),
           isNull(schema.tasks.assignedAgentId),
+          isNull(schema.tasks.parentTaskId),
         ),
       )
       .all();
@@ -71,14 +73,19 @@ class TaskWatcher {
         continue;
       }
 
+      // Check if project has a custom workflow
+      const customWorkflowId = await agentManager.getProjectDefaultWorkflow(task.projectId);
+
       eventBus.emit("agent:notification", {
         agentId: techLead.id,
         projectId: task.projectId,
-        message: `Nova task detectada automaticamente: "${task.title}". Iniciando workflow...`,
+        message: customWorkflowId
+          ? `Nova task detectada: "${task.title}". Usando workflow customizado...`
+          : `Nova task detectada automaticamente: "${task.title}". Iniciando workflow...`,
         level: "info",
       });
 
-      // Run workflow
+      // Run workflow (runWorkflow checks for custom workflow internally)
       try {
         await agentManager.runWorkflow(task.id, techLead.id);
       } catch (err) {

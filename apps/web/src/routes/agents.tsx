@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Power, Settings, Users, GitBranch, Trash2 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
@@ -6,6 +6,8 @@ import { useAgents } from "../hooks/use-agents";
 import { AgentConfigDialog } from "../components/agents/agent-config-dialog";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 import { WorkflowEditor } from "../components/agents/workflow-editor";
+import { useWorkflowStore } from "../stores/workflow-store";
+import { useWorkspaceStore } from "../stores/workspace-store";
 import { cn } from "../lib/utils";
 import type { Agent, AgentWorkflow } from "@agenthub/shared";
 
@@ -43,7 +45,7 @@ function loadWorkflow(): AgentWorkflow | null {
   }
 }
 
-function saveWorkflow(wf: AgentWorkflow) {
+function saveWorkflowToStorage(wf: AgentWorkflow) {
   localStorage.setItem(WORKFLOW_STORAGE_KEY, JSON.stringify(wf));
 }
 
@@ -54,6 +56,26 @@ export function AgentsPage() {
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState<AgentsTab>("agentes");
   const [savedWorkflow, setSavedWorkflow] = useState<AgentWorkflow | null>(loadWorkflow);
+
+  // Workflow store for API integration
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
+  const {
+    workflows,
+    activeWorkflow: apiWorkflow,
+    saving,
+    fetchWorkflows,
+    fetchWorkflow,
+    saveWorkflow: saveWorkflowApi,
+    setActiveWorkflow,
+    setDefault: setDefaultWorkflow,
+  } = useWorkflowStore();
+
+  // Fetch workflows from API when project is active
+  useEffect(() => {
+    if (activeProjectId && activeTab === "workflow") {
+      fetchWorkflows(activeProjectId);
+    }
+  }, [activeProjectId, activeTab, fetchWorkflows]);
 
   const activeCount = agents.filter((a) => a.isActive).length;
   const selected = agents.find((a) => a.id === selectedId) ?? agents[0] ?? null;
@@ -82,8 +104,22 @@ export function AgentsPage() {
   };
 
   const handleSaveWorkflow = (wf: AgentWorkflow) => {
-    saveWorkflow(wf);
+    // Always save to localStorage as fallback
+    saveWorkflowToStorage(wf);
     setSavedWorkflow(wf);
+  };
+
+  const handleSelectWorkflow = (id: string) => {
+    const wf = workflows.find((w) => w.id === id);
+    if (wf) {
+      setActiveWorkflow(wf);
+    } else {
+      fetchWorkflow(id);
+    }
+  };
+
+  const handleSetDefault = (id: string) => {
+    setDefaultWorkflow(id);
   };
 
   return (
@@ -342,6 +378,11 @@ export function AgentsPage() {
             agents={agents}
             workflow={savedWorkflow}
             onSave={handleSaveWorkflow}
+            apiWorkflow={apiWorkflow}
+            workflows={workflows}
+            onSelectWorkflow={handleSelectWorkflow}
+            onSetDefault={handleSetDefault}
+            saving={saving}
           />
         </div>
       )}

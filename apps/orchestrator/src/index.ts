@@ -31,6 +31,7 @@ import { taskWatcher } from "./tasks/task-watcher.js";
 import { docsRouter } from "./routes/docs.js";
 import { openaiRouter } from "./routes/openai.js";
 import { codexOAuthRouter, codexCallbackRouter } from "./routes/codex-oauth.js";
+import { workflowsRouter } from "./routes/workflows.js";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 
 const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
@@ -68,6 +69,7 @@ app.use("/api/projects", devServerRouter);
 app.use("/api/docs", docsRouter);
 app.use("/api/openai", openaiRouter);
 app.use("/api/openai", codexOAuthRouter);
+app.use("/api/workflows", workflowsRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

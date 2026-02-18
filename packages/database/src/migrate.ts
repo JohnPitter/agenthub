@@ -134,6 +134,18 @@ const statements = [
     updated_at INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_docs_category ON docs(category)`,
+  `CREATE TABLE IF NOT EXISTS workflows (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    nodes TEXT NOT NULL DEFAULT '[]',
+    edges TEXT NOT NULL DEFAULT '[]',
+    is_default INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id)`,
 ];
 
 // Columns added after initial table creation — safe to re-run

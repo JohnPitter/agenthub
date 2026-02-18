@@ -2,6 +2,123 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.0] - 2026-02-18
+
+### Fase 19: Workflow Editor → Backend
+
+### Fase 19A: Schema + Persistência de Workflows
+
+#### Added
+
+- **Workflow Types** (`packages/shared/src/types/workflow.ts`)
+  - `WorkflowNode` (agent | condition | parallel | merge), `WorkflowEdge`, `Workflow`, `WorkflowExecutionState`
+  - Exportados via barrel `packages/shared/src/index.ts`
+
+- **Workflows Table** (`packages/database/src/schema/workflows.ts`)
+  - Schema Drizzle: id, projectId (FK), name, description, nodes (JSON), edges (JSON), isDefault, timestamps
+  - Migration em `packages/database/src/migrate.ts` com índice por projectId
+
+- **Workflows CRUD API** (`apps/orchestrator/src/routes/workflows.ts`)
+  - `GET /api/workflows?projectId=` — listar workflows do projeto
+  - `GET /api/workflows/:id` — detalhe
+  - `POST /api/workflows` — criar workflow
+  - `PUT /api/workflows/:id` — atualizar
+  - `DELETE /api/workflows/:id` — deletar
+  - `POST /api/workflows/:id/set-default` — marcar como default do projeto
+
+- **Workflow Store** (`apps/web/src/stores/workflow-store.ts`)
+  - Zustand store com fetch/save/delete via API
+  - Substitui localStorage para persistência de workflows
+
+### Fase 19B: Engine de Execução de DAG
+
+#### Added
+
+- **Workflow Engine** (`apps/orchestrator/src/workflows/workflow-engine.ts`)
+  - Topological sort (algoritmo de Kahn) para ordem de execução em camadas
+  - Validação de DAG: detecção de ciclos, alcançabilidade, nós de entrada
+  - `getNextNodes()` com avaliação segura de condições (switch/case, sem code execution)
+  - `getEntryNodes()`, `getNode()`, `getExecutionOrder()` helpers
+
+- **Workflow Executor** (`apps/orchestrator/src/workflows/workflow-executor.ts`)
+  - `executeWorkflow(taskId, workflowId)` — inicia execução do DAG
+  - Cria subtasks (`parentTaskId`) para cada nó "agent"
+  - Resolve agents por role ou ID explícito
+  - Suporte a nós parallel/merge/condition
+  - `onSubtaskCompleted()` avança o DAG automaticamente
+  - `isRunningWorkflow()` / `isWorkflowSubtask()` para consultas de estado
+
+#### Changed
+
+- `apps/orchestrator/src/agents/agent-manager.ts`
+  - `getProjectDefaultWorkflow()` busca workflow custom no DB
+  - `runWorkflow()` tenta workflow custom antes do fluxo hardcoded (fallback automático)
+  - `executeSession()` integra com `workflowExecutor.onSubtaskCompleted()`
+
+- `apps/orchestrator/src/tasks/task-watcher.ts`
+  - Filtro para ignorar subtasks (`parentTaskId IS NULL`) — evita reprocessamento
+  - Log de detecção de workflow custom
+
+### Fase 19C: UI Polish — Editor Visual Completo
+
+#### Added
+
+- **Custom Workflow Node** (`apps/web/src/components/workflows/workflow-node.tsx`)
+  - Nodes coloridos por tipo: agent=verde, condition=amarelo, parallel=azul, merge=roxo
+  - Ícone do agente, role label, handles de conexão
+
+- **Workflow Toolbar** (`apps/web/src/components/workflows/workflow-toolbar.tsx`)
+  - Botões para adicionar node types (Agent, Condition, Parallel, Merge)
+  - Botões Validar e Simular
+  - Save/Load com nome do workflow
+
+- **Condition Editor** (`apps/web/src/components/workflows/workflow-condition-editor.tsx`)
+  - Modal para editar condições de condition nodes
+  - Campos: category, priority, status, assignedAgentId
+  - Operadores: equals, not_equals, contains, in
+
+- **Workflow Editor Rewrite** (`apps/web/src/components/agents/workflow-editor.tsx`)
+  - Integração com novos componentes (custom nodes, toolbar, condition editor)
+  - Suporte a 4 tipos de nó (agent, condition, parallel, merge)
+  - Salva no backend via workflow-store (não mais localStorage)
+
+- **i18n** — 80 novas chaves de workflow em 5 locales (pt-BR, en-US, es, ja, zh-CN)
+
+#### Changed
+
+- `apps/web/src/routes/agents.tsx` — integração com workflow-store, carrega do backend
+- `apps/orchestrator/src/index.ts` — registro do workflowsRouter
+
+#### Arquivos Criados
+
+- `packages/shared/src/types/workflow.ts`
+- `packages/database/src/schema/workflows.ts`
+- `apps/orchestrator/src/routes/workflows.ts`
+- `apps/orchestrator/src/workflows/workflow-engine.ts`
+- `apps/orchestrator/src/workflows/workflow-executor.ts`
+- `apps/web/src/stores/workflow-store.ts`
+- `apps/web/src/components/workflows/workflow-node.tsx`
+- `apps/web/src/components/workflows/workflow-toolbar.tsx`
+- `apps/web/src/components/workflows/workflow-condition-editor.tsx`
+
+#### Arquivos Modificados
+
+- `packages/shared/src/index.ts`
+- `packages/database/src/schema/index.ts`
+- `packages/database/src/migrate.ts`
+- `apps/orchestrator/src/index.ts`
+- `apps/orchestrator/src/agents/agent-manager.ts`
+- `apps/orchestrator/src/tasks/task-watcher.ts`
+- `apps/web/src/components/agents/workflow-editor.tsx`
+- `apps/web/src/routes/agents.tsx`
+- `apps/web/src/i18n/locales/pt-BR.json`
+- `apps/web/src/i18n/locales/en-US.json`
+- `apps/web/src/i18n/locales/es.json`
+- `apps/web/src/i18n/locales/ja.json`
+- `apps/web/src/i18n/locales/zh-CN.json`
+
+---
+
 ## [0.18.0] - 2026-02-18
 
 ### Fase 18A: Subtask UI + Task Hierarchy

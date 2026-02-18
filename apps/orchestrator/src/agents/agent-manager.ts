@@ -10,6 +10,7 @@ import { slugify } from "../lib/utils";
 import type { Agent, TaskStatus, AgentRole, TaskCategory } from "@agenthub/shared";
 import { getModelProvider } from "@agenthub/shared";
 import { agentMemory } from "./agent-memory.js";
+import { workflowExecutor } from "../workflows/workflow-executor.js";
 
 const gitService = new GitService();
 
@@ -69,14 +70,46 @@ class AgentManager {
   private workflowStates = new Map<string, WorkflowState>();
 
   /**
-   * Run the full agent workflow for a task:
-   * Tech Lead (triage) → [simple: plan + pick dev | complex: Architect → plan → pick dev] → Dev → QA
+   * Check if a project has a default custom workflow.
+   * Returns the workflow ID if found, null otherwise.
+   */
+  async getProjectDefaultWorkflow(projectId: string): Promise<string | null> {
+    const workflow = await db
+      .select()
+      .from(schema.workflows)
+      .where(and(eq(schema.workflows.projectId, projectId), eq(schema.workflows.isDefault, true)))
+      .get();
+
+    return workflow?.id ?? null;
+  }
+
+  /**
+   * Run the full agent workflow for a task.
+   * If the project has a custom workflow, uses WorkflowExecutor.
+   * Otherwise falls back to the hardcoded flow:
+   * Tech Lead (triage) -> [simple: plan + pick dev | complex: Architect -> plan -> pick dev] -> Dev -> QA
    */
   async runWorkflow(taskId: string, techLeadId: string): Promise<void> {
     const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
     if (!task) {
       logger.error(`Task ${taskId} not found for workflow`, "agent-manager");
       return;
+    }
+
+    // Check for custom workflow first
+    const customWorkflowId = await this.getProjectDefaultWorkflow(task.projectId);
+    if (customWorkflowId) {
+      logger.info(
+        `Task ${taskId}: using custom workflow ${customWorkflowId}`,
+        "agent-manager",
+      );
+      const started = await workflowExecutor.executeWorkflow(taskId, customWorkflowId);
+      if (started) return;
+      // If custom workflow failed to start, fall through to hardcoded flow
+      logger.warn(
+        `Custom workflow ${customWorkflowId} failed to start for task ${taskId}, falling back to hardcoded flow`,
+        "agent-manager",
+      );
     }
 
     // Store workflow state — start with Tech Lead triage
@@ -1140,10 +1173,20 @@ class AgentManager {
         // Auto-commit agent changes if task has a branch
         await this.autoCommitChanges(taskId, agentId);
 
-        // Check if this is part of a workflow (e.g., architect just finished planning)
+        // Check if this subtask is part of a custom workflow execution
+        if (workflowExecutor.isWorkflowSubtask(taskId)) {
+          await workflowExecutor.onSubtaskCompleted(taskId, result.result ?? undefined);
+          // Also check parent task subtask completion
+          const taskData = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+          if (taskData?.parentTaskId) {
+            await this.checkSubtaskCompletion(taskData.parentTaskId);
+          }
+        }
+
+        // Check if this is part of the hardcoded workflow (e.g., architect just finished planning)
         const workflowHandled = await this.advanceWorkflow(taskId, result.result);
 
-        if (!workflowHandled) {
+        if (!workflowHandled && !workflowExecutor.isWorkflowSubtask(taskId)) {
           // Normal flow: move to review
           await transitionTask(taskId, "review" as TaskStatus, session.agentId, "Agent completed work");
         }

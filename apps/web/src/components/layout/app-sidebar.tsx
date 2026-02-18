@@ -123,7 +123,16 @@ function UsageBar({ label, utilization, resetsAt, color }: {
 }
 
 function UsageWidget({ collapsed }: { collapsed: boolean }) {
-  const { account, connection, limits, openaiConnection, openaiUsage, fetchAccount, fetchConnection, fetchLimits, fetchOpenAIConnection, fetchOpenAIUsage } = useUsageStore();
+  const account = useUsageStore((s) => s.account);
+  const connection = useUsageStore((s) => s.connection);
+  const limits = useUsageStore((s) => s.limits);
+  const openaiConnection = useUsageStore((s) => s.openaiConnection);
+  const openaiUsage = useUsageStore((s) => s.openaiUsage);
+  const fetchAccount = useUsageStore((s) => s.fetchAccount);
+  const fetchConnection = useUsageStore((s) => s.fetchConnection);
+  const fetchLimits = useUsageStore((s) => s.fetchLimits);
+  const fetchOpenAIConnection = useUsageStore((s) => s.fetchOpenAIConnection);
+  const fetchOpenAIUsage = useUsageStore((s) => s.fetchOpenAIUsage);
 
   useEffect(() => {
     fetchAccount();
@@ -295,8 +304,12 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
 
 export function AppSidebar() {
   const { t } = useTranslation();
-  const { projects, setProjects, activeProjectId, setActiveProject, agents } = useWorkspaceStore();
-  const { agentActivity } = useChatStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const setProjects = useWorkspaceStore((s) => s.setProjects);
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
+  const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
+  const agents = useWorkspaceStore((s) => s.agents);
+  const agentActivity = useChatStore((s) => s.agentActivity);
   const { id: routeProjectId } = useParams();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);

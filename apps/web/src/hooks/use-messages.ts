@@ -6,15 +6,13 @@ import type { Message } from "@agenthub/shared";
 const LIMIT = 50;
 
 export function useMessages(projectId: string | undefined) {
-  const {
-    addMessage,
-    addMessages,
-    setLoadingMessages,
-    setHasMoreMessages,
-    clearMessages,
-    isLoadingMessages,
-    hasMoreMessages,
-  } = useChatStore();
+  const addMessage = useChatStore((s) => s.addMessage);
+  const addMessages = useChatStore((s) => s.addMessages);
+  const setLoadingMessages = useChatStore((s) => s.setLoadingMessages);
+  const setHasMoreMessages = useChatStore((s) => s.setHasMoreMessages);
+  const clearMessages = useChatStore((s) => s.clearMessages);
+  const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
+  const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
 
   const offsetRef = useRef(0);
 

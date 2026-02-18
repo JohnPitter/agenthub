@@ -24,8 +24,9 @@ export function ProjectSettings() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { projects, removeProject } = useWorkspaceStore();
-  const { addToast } = useNotificationStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const removeProject = useWorkspaceStore((s) => s.removeProject);
+  const addToast = useNotificationStore((s) => s.addToast);
   const project = projects.find((p) => p.id === id);
   const { agents, toggleAgent } = useAgents();
   const { status, remoteStatus, lastCommit, config, isGitRepo, loading, initRepo, updateConfig } = useGitStatus(id);

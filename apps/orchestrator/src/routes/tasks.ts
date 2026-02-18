@@ -13,9 +13,11 @@ const gitService = new GitService();
 
 export const tasksRouter = Router();
 
-// GET /api/tasks?projectId=...&status=...
+// GET /api/tasks?projectId=...&status=...&limit=50&offset=0
 tasksRouter.get("/", async (req, res) => {
   const { projectId, status } = req.query;
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
   const conditions = [];
 
   if (projectId) conditions.push(eq(schema.tasks.projectId, projectId as string));
@@ -25,7 +27,9 @@ tasksRouter.get("/", async (req, res) => {
     .select()
     .from(schema.tasks)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(schema.tasks.createdAt));
+    .orderBy(desc(schema.tasks.createdAt))
+    .limit(limit)
+    .offset(offset);
 
   res.json({ tasks });
 });
@@ -88,13 +92,18 @@ tasksRouter.delete("/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-// GET /api/tasks/:id/logs
+// GET /api/tasks/:id/logs?limit=50&offset=0
 tasksRouter.get("/:id/logs", async (req, res) => {
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+
   const logs = await db
     .select()
     .from(schema.taskLogs)
     .where(eq(schema.taskLogs.taskId, req.params.id))
-    .orderBy(desc(schema.taskLogs.createdAt));
+    .orderBy(desc(schema.taskLogs.createdAt))
+    .limit(limit)
+    .offset(offset);
 
   res.json({ logs });
 });
@@ -330,9 +339,11 @@ tasksRouter.get("/:id/changes", async (req, res) => {
 
     // Flatten all files for backward compat (legacy `files` field)
     const allFiles: FileChange[] = [];
+    const seenPaths = new Set<string>();
     for (const c of commits) {
       for (const f of c.files) {
-        if (!allFiles.some((af) => af.path === f.path)) {
+        if (!seenPaths.has(f.path)) {
+          seenPaths.add(f.path);
           allFiles.push(f);
         }
       }

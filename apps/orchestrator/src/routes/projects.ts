@@ -9,13 +9,23 @@ import { logger } from "../lib/logger.js";
 
 export const projectsRouter = Router();
 
-// GET /api/projects — list all projects
-projectsRouter.get("/", async (_req, res) => {
-  const projects = await db
-    .select()
-    .from(schema.projects)
-    .orderBy(desc(schema.projects.updatedAt));
-  res.json({ projects });
+// GET /api/projects?limit=50&offset=0 — list projects
+projectsRouter.get("/", async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+
+    const projects = await db
+      .select()
+      .from(schema.projects)
+      .orderBy(desc(schema.projects.updatedAt))
+      .limit(limit)
+      .offset(offset);
+    res.json({ projects });
+  } catch (error) {
+    logger.error(`Failed to list projects: ${error}`, "projects-route");
+    res.status(500).json({ error: "Failed to list projects" });
+  }
 });
 
 // GET /api/projects/github-repos — list user's GitHub repositories
@@ -24,7 +34,7 @@ projectsRouter.get("/github-repos", async (req, res) => {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-    const user = await db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+    const user = await db.select({ id: schema.users.id, accessToken: schema.users.accessToken }).from(schema.users).where(eq(schema.users.id, userId)).get();
     if (!user?.accessToken) return res.status(401).json({ error: "github_reauth", message: "GitHub access token not found. Please re-authenticate." });
 
     let accessToken: string;
@@ -37,8 +47,8 @@ projectsRouter.get("/github-repos", async (req, res) => {
 
     const repos = await fetchUserRepos(accessToken);
     res.json({ repos });
-  } catch (error: any) {
-    const msg = error?.message ?? "";
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "";
     // GitHub returned 401/403 — token revoked or expired
     if (msg.includes("401") || msg.includes("403")) {
       logger.warn(`GitHub token rejected for user ${req.user?.userId}: ${msg}`, "projects");
@@ -51,63 +61,83 @@ projectsRouter.get("/github-repos", async (req, res) => {
 
 // GET /api/projects/:id — get single project
 projectsRouter.get("/:id", async (req, res) => {
-  const project = await db
-    .select()
-    .from(schema.projects)
-    .where(eq(schema.projects.id, req.params.id))
-    .get();
+  try {
+    const project = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.id, req.params.id))
+      .get();
 
-  if (!project) return res.status(404).json({ error: "Project not found" });
-  res.json({ project });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    res.json({ project });
+  } catch (error) {
+    logger.error(`Failed to get project: ${error}`, "projects-route", { projectId: req.params.id });
+    res.status(500).json({ error: "Failed to get project" });
+  }
 });
 
 // POST /api/projects — create project
 projectsRouter.post("/", async (req, res) => {
-  const { name, path, stack, icon, description } = req.body;
+  try {
+    const { name, path, stack, icon, description } = req.body;
 
-  const project = {
-    id: nanoid(),
-    name,
-    path,
-    stack: JSON.stringify(stack ?? []),
-    icon: icon ?? null,
-    description: description ?? null,
-    status: "active" as const,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+    const project = {
+      id: nanoid(),
+      name,
+      path,
+      stack: JSON.stringify(stack ?? []),
+      icon: icon ?? null,
+      description: description ?? null,
+      status: "active" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-  await db.insert(schema.projects).values(project);
-  res.status(201).json({ project });
+    await db.insert(schema.projects).values(project);
+    res.status(201).json({ project });
+  } catch (error) {
+    logger.error(`Failed to create project: ${error}`, "projects-route");
+    res.status(500).json({ error: "Failed to create project" });
+  }
 });
 
 // PATCH /api/projects/:id — update project
 projectsRouter.patch("/:id", async (req, res) => {
-  const { name, description, status } = req.body;
-  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  try {
+    const { name, description, status } = req.body;
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
 
-  if (name !== undefined) updates.name = name;
-  if (description !== undefined) updates.description = description;
-  if (status !== undefined) updates.status = status;
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (status !== undefined) updates.status = status;
 
-  await db
-    .update(schema.projects)
-    .set(updates)
-    .where(eq(schema.projects.id, req.params.id));
+    await db
+      .update(schema.projects)
+      .set(updates)
+      .where(eq(schema.projects.id, req.params.id));
 
-  const project = await db
-    .select()
-    .from(schema.projects)
-    .where(eq(schema.projects.id, req.params.id))
-    .get();
+    const project = await db
+      .select()
+      .from(schema.projects)
+      .where(eq(schema.projects.id, req.params.id))
+      .get();
 
-  res.json({ project });
+    res.json({ project });
+  } catch (error) {
+    logger.error(`Failed to update project: ${error}`, "projects-route", { projectId: req.params.id });
+    res.status(500).json({ error: "Failed to update project" });
+  }
 });
 
 // DELETE /api/projects/:id — delete project
 projectsRouter.delete("/:id", async (req, res) => {
-  await db.delete(schema.projects).where(eq(schema.projects.id, req.params.id));
-  res.json({ success: true });
+  try {
+    await db.delete(schema.projects).where(eq(schema.projects.id, req.params.id));
+    res.json({ success: true });
+  } catch (error) {
+    logger.error(`Failed to delete project: ${error}`, "projects-route", { projectId: req.params.id });
+    res.status(500).json({ error: "Failed to delete project" });
+  }
 });
 
 // POST /api/projects/scan — scan workspace for projects
@@ -122,6 +152,7 @@ projectsRouter.post("/scan", async (req, res) => {
     const scanned = scanWorkspace(workspacePath);
     res.json({ projects: scanned });
   } catch (error) {
+    logger.error(`Failed to scan workspace: ${error}`, "projects-route");
     res.status(400).json({ error: "Failed to scan workspace" });
   }
 });

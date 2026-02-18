@@ -1,10 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { File, Loader2, AlertCircle, Edit3, Save, X, Eye, GitCompare } from "lucide-react";
 import { api, formatRelativeTime, cn } from "../../lib/utils";
-import { CodeEditor, getLanguageFromFilename } from "./code-editor";
-import { DiffViewer } from "./diff-viewer";
+import { getLanguageFromFilename } from "./code-editor";
 import { VersionSelector } from "./version-selector";
 import { useNotificationStore } from "../../stores/notification-store";
+
+const CodeEditor = lazy(() =>
+  import("./code-editor").then((m) => ({ default: m.CodeEditor }))
+);
+const DiffViewer = lazy(() =>
+  import("./diff-viewer").then((m) => ({ default: m.DiffViewer }))
+);
 
 interface FileViewerProps {
   projectId: string;
@@ -34,7 +40,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
   const [modifiedContent, setModifiedContent] = useState<string>("");
   const [loadingDiff, setLoadingDiff] = useState(false);
 
-  const { addToast } = useNotificationStore();
+  const addToast = useNotificationStore((s) => s.addToast);
 
   useEffect(() => {
     if (!filePath) {
@@ -296,29 +302,31 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
 
       {/* File content */}
       <div className="flex-1 overflow-hidden">
-        {mode === "diff" ? (
-          loadingDiff ? (
-            <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-brand" />
-            </div>
+        <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>}>
+          {mode === "diff" ? (
+            loadingDiff ? (
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-brand" />
+              </div>
+            ) : (
+              <DiffViewer
+                original={originalContent}
+                modified={modifiedContent}
+                language={language}
+                originalLabel={originalVersion === "working" ? "Árvore de trabalho" : originalVersion.slice(0, 7)}
+                modifiedLabel={modifiedVersion === "working" ? "Árvore de trabalho" : modifiedVersion.slice(0, 7)}
+              />
+            )
           ) : (
-            <DiffViewer
-              original={originalContent}
-              modified={modifiedContent}
+            <CodeEditor
+              value={mode === "edit" ? editedContent : fileContent.content}
               language={language}
-              originalLabel={originalVersion === "working" ? "Árvore de trabalho" : originalVersion.slice(0, 7)}
-              modifiedLabel={modifiedVersion === "working" ? "Árvore de trabalho" : modifiedVersion.slice(0, 7)}
+              readOnly={mode === "view"}
+              onChange={(value) => setEditedContent(value || "")}
+              onSave={mode === "edit" && hasChanges ? handleSave : undefined}
             />
-          )
-        ) : (
-          <CodeEditor
-            value={mode === "edit" ? editedContent : fileContent.content}
-            language={language}
-            readOnly={mode === "view"}
-            onChange={(value) => setEditedContent(value || "")}
-            onSave={mode === "edit" && hasChanges ? handleSave : undefined}
-          />
-        )}
+          )}
+        </Suspense>
       </div>
     </div>
   );

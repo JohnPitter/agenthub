@@ -10,7 +10,9 @@ const ICON_MAP: Record<NotificationType, { icon: typeof CheckCircle2; color: str
 };
 
 export function NotificationPanel() {
-  const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const notifications = useNotificationStore((s) => s.notifications);
+  const markAsRead = useNotificationStore((s) => s.markAsRead);
+  const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
 
   if (notifications.length === 0) {
     return (

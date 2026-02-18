@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { encrypt, decrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
@@ -48,7 +48,8 @@ openaiRouter.get("/status", async (_req, res) => {
         masked: maskKey(key),
         status: row.status,
       });
-    } catch {
+    } catch (err) {
+      logger.warn(`Failed to decrypt stored OpenAI key: ${err}`, "openai");
       res.json({ connected: false, error: "Failed to decrypt stored key" });
     }
   } else {
@@ -79,6 +80,7 @@ openaiRouter.post("/connect", async (req, res) => {
       return;
     }
   } catch (err) {
+    logger.error(`Failed to validate OpenAI API key: ${err}`, "openai");
     res.status(500).json({ error: "Failed to validate API key with OpenAI" });
     return;
   }

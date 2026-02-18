@@ -26,7 +26,9 @@ const NAVIGATION_ITEMS = [
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const navigate = useNavigate();
-  const { projects, agents, activeProjectId } = useWorkspaceStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const agents = useWorkspaceStore((s) => s.agents);
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const { tasks } = useTasks(activeProjectId ?? undefined);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);

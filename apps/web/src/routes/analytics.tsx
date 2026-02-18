@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { BarChart3, ListTodo, CheckCircle2, XCircle, Zap } from "lucide-react";
-import { PerformanceChart } from "../components/analytics/performance-chart";
+import { BarChart3, ListTodo, CheckCircle2, XCircle, Zap, Loader2 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
+
+const PerformanceChart = lazy(() =>
+  import("../components/analytics/performance-chart").then((m) => ({ default: m.PerformanceChart }))
+);
 import { Tablist } from "../components/ui/tablist";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonStats, SkeletonTable } from "../components/ui/skeleton";
@@ -156,7 +159,9 @@ export function Analytics() {
             /* Chart view */
             <div className="card-glow p-8 animate-fade-up stagger-2">
               <h2 className="text-title text-neutral-fg1 mb-6">{t("analytics.overview")}</h2>
-              <PerformanceChart data={trends} type="area" />
+              <Suspense fallback={<div className="flex h-40 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>}>
+                <PerformanceChart data={trends} type="area" />
+              </Suspense>
             </div>
           ) : (
             /* Agents table view */

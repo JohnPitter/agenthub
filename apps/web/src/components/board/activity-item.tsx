@@ -33,9 +33,9 @@ const ACTION_ICONS: Record<string, typeof Activity> = {
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  git_branch_created: "#9b59b6", // purple
-  git_commit: "#10b981", // green
-  git_push: "#3b82f6", // blue
+  git_branch_created: "var(--rt-purple)",
+  git_commit: "var(--rt-success)",
+  git_push: "var(--rt-info)",
 };
 
 function formatTimeAgo(timestamp: number): string {
@@ -50,7 +50,7 @@ function formatTimeAgo(timestamp: number): string {
 
 export function ActivityItem({ activity, agent }: ActivityItemProps) {
   const Icon = ACTION_ICONS[activity.action] || Activity;
-  const backgroundColor = ACTION_COLORS[activity.action] || agent?.color || "#FF5C35";
+  const backgroundColor = ACTION_COLORS[activity.action] || agent?.color || "#6366F1";
 
   return (
     <div className="flex items-start gap-3 rounded-md border border-stroke p-3 animate-fade-up">

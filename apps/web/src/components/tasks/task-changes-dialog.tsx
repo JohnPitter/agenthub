@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import {
   X, FileDiff, FileCode, Loader2,
   GitCommit, ChevronDown, ChevronRight, Clock, User,
 } from "lucide-react";
 import { cn, api, formatRelativeTime } from "../../lib/utils";
-import { DiffViewer } from "../files/diff-viewer";
+
+const DiffViewer = lazy(() =>
+  import("../files/diff-viewer").then((m) => ({ default: m.DiffViewer }))
+);
 
 interface FileChange {
   path: string;
@@ -218,13 +221,15 @@ export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
                       </span>
                     </div>
                     <div className="flex-1">
-                      <DiffViewer
-                        original={currentFile.original}
-                        modified={currentFile.modified}
-                        language={currentFile.language}
-                        originalLabel={currentCommit.hash === "uncommitted" ? "HEAD" : `${currentCommit.shortHash}^`}
-                        modifiedLabel={currentCommit.hash === "uncommitted" ? "Working Tree" : currentCommit.shortHash}
-                      />
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>}>
+                        <DiffViewer
+                          original={currentFile.original}
+                          modified={currentFile.modified}
+                          language={currentFile.language}
+                          originalLabel={currentCommit.hash === "uncommitted" ? "HEAD" : `${currentCommit.shortHash}^`}
+                          modifiedLabel={currentCommit.hash === "uncommitted" ? "Working Tree" : currentCommit.shortHash}
+                        />
+                      </Suspense>
                     </div>
                   </>
                 ) : (

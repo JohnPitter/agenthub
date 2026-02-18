@@ -9,9 +9,15 @@ import { ChatInput } from "./chat-input";
 import type { Message } from "@agenthub/shared";
 
 export function ChatPanel() {
-  const { chatPanelOpen, toggleChatPanel, agents, activeProjectId } = useWorkspaceStore();
+  const chatPanelOpen = useWorkspaceStore((s) => s.chatPanelOpen);
+  const toggleChatPanel = useWorkspaceStore((s) => s.toggleChatPanel);
+  const agents = useWorkspaceStore((s) => s.agents);
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const projectId = activeProjectId ?? "";
-  const { messages, addMessage, setStreamingAgent, updateAgentActivity } = useChatStore();
+  const messages = useChatStore((s) => s.messages);
+  const addMessage = useChatStore((s) => s.addMessage);
+  const setStreamingAgent = useChatStore((s) => s.setStreamingAgent);
+  const updateAgentActivity = useChatStore((s) => s.updateAgentActivity);
   const { sendMessage: sendHttp, loadMoreMessages } = useMessages(projectId);
 
   // Wire socket events -> chat store

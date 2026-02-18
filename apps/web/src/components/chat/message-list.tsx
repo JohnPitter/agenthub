@@ -16,8 +16,10 @@ export function MessageList({ messages, onLoadMore }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
 
-  const { agents } = useWorkspaceStore();
-  const { streamingAgents, isLoadingMessages, hasMoreMessages } = useChatStore();
+  const agents = useWorkspaceStore((s) => s.agents);
+  const streamingAgents = useChatStore((s) => s.streamingAgents);
+  const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
+  const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
 
   // Auto-scroll when new messages arrive (only if near bottom)
   useEffect(() => {

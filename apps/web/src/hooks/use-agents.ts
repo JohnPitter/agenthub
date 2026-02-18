@@ -4,7 +4,8 @@ import { api } from "../lib/utils";
 import type { Agent } from "@agenthub/shared";
 
 export function useAgents() {
-  const { agents, setAgents } = useWorkspaceStore();
+  const agents = useWorkspaceStore((s) => s.agents);
+  const setAgents = useWorkspaceStore((s) => s.setAgents);
 
   const fetchAgents = useCallback(async () => {
     try {

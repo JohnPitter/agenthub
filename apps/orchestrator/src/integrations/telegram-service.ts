@@ -40,11 +40,12 @@ export class TelegramService {
       // Handle incoming text messages
       this.bot.on(message("text"), async (ctx: Context) => {
         try {
-          const messageText = ctx.message?.text;
+          const messageText = "text" in (ctx.message ?? {}) ? (ctx.message as { text?: string })?.text : undefined;
           if (!messageText) return;
 
           const from = ctx.from;
-          const chatId = ctx.chat.id;
+          const chatId = ctx.chat?.id;
+          if (!chatId) return;
           const username = from?.username || from?.first_name || "Unknown";
           const userId = from?.id || 0;
 
@@ -93,7 +94,7 @@ export class TelegramService {
       });
 
       // Handle bot errors
-      this.bot.catch((err: any, ctx: Context) => {
+      this.bot.catch((err: unknown, _ctx: Context) => {
         logger.error(
           `Telegram bot error: ${err instanceof Error ? err.message : String(err)}`,
           "telegram"
@@ -188,7 +189,7 @@ export class TelegramService {
     status: "disconnected" | "connecting" | "connected" | "error"
   ): Promise<void> {
     try {
-      const updateData: any = { status, updatedAt: new Date() };
+      const updateData: { status: "disconnected" | "connecting" | "connected" | "error"; updatedAt: Date; lastConnectedAt?: Date } = { status, updatedAt: new Date() };
       if (status === "connected") {
         updateData.lastConnectedAt = new Date();
       }

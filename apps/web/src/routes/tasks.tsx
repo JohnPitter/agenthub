@@ -61,8 +61,10 @@ interface ActivityEntry {
 
 export function TasksPage() {
   const { t } = useTranslation();
-  const { projects, agents } = useWorkspaceStore();
-  const { agentActivity, updateAgentActivity } = useChatStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const agents = useWorkspaceStore((s) => s.agents);
+  const agentActivity = useChatStore((s) => s.agentActivity);
+  const updateAgentActivity = useChatStore((s) => s.updateAgentActivity);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);

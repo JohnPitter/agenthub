@@ -40,7 +40,8 @@ const ALL_TOOLS = ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task", "Web
 
 export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogProps) {
   const { t } = useTranslation();
-  const { models: sdkModels, fetchModels } = useUsageStore();
+  const sdkModels = useUsageStore((s) => s.models);
+  const fetchModels = useUsageStore((s) => s.fetchModels);
   const [openaiConnected, setOpenaiConnected] = useState(false);
 
   useEffect(() => {
@@ -130,7 +131,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
             ) : (
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-md text-[14px] font-semibold text-white"
-                style={{ backgroundColor: agent.color ?? "#0866FF" }}
+                style={{ backgroundColor: agent.color ?? "#6366F1" }}
               >
                 {agent.name.charAt(0)}
               </div>

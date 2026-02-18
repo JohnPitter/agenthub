@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   DndContext,
+  DragStartEvent,
   DragEndEvent,
   DragOverlay,
   PointerSensor,
@@ -22,12 +23,12 @@ interface KanbanBoardProps {
 }
 
 const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
-  { id: "created", title: "Backlog", color: "#71717A" },
-  { id: "assigned", title: "Disponível", color: "#F97316" },
-  { id: "in_progress", title: "Em Progresso", color: "#F59E0B" },
-  { id: "review", title: "Review", color: "#8B5CF6" },
-  { id: "done", title: "Concluída", color: "#10B981" },
-  { id: "cancelled", title: "Cancelada", color: "#A1A1AA" },
+  { id: "created", title: "Backlog", color: "var(--rt-neutral-fg3)" },
+  { id: "assigned", title: "Disponível", color: "var(--rt-orange)" },
+  { id: "in_progress", title: "Em Progresso", color: "var(--rt-warning)" },
+  { id: "review", title: "Review", color: "var(--rt-purple)" },
+  { id: "done", title: "Concluída", color: "var(--rt-success)" },
+  { id: "cancelled", title: "Cancelada", color: "var(--rt-neutral-fg3)" },
 ];
 
 export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChanges, onTaskClick }: KanbanBoardProps) {
@@ -40,7 +41,7 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChan
     })
   );
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find(t => t.id === event.active.id);
     if (task) setActiveTask(task);
   };

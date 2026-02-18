@@ -11,7 +11,8 @@ const ICON_MAP: Record<NotificationType, { icon: typeof CheckCircle2; color: str
 };
 
 export function ToastContainer() {
-  const { toasts, removeToast } = useNotificationStore();
+  const toasts = useNotificationStore((s) => s.toasts);
+  const removeToast = useNotificationStore((s) => s.removeToast);
 
   useEffect(() => {
     const timers = toasts.map((toast) =>

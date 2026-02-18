@@ -118,7 +118,8 @@ const STAT_ITEMS = [
 
 export function Dashboard() {
   const { t } = useTranslation();
-  const { projects, addProject } = useWorkspaceStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const addProject = useWorkspaceStore((s) => s.addProject);
   const navigate = useNavigate();
   const [workspacePath, setWorkspacePath] = useState("");
   const [scanning, setScanning] = useState(false);

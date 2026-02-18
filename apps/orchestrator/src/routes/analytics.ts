@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, and, gte, count, sql } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
@@ -73,40 +73,26 @@ router.get("/analytics/agents", async (req, res) => {
         .all();
 
       const totalTasks = tasks.length;
-      const completedTasks = tasks.filter((t) => t.status === "done").length;
-      const failedTasks = tasks.filter((t) => t.status === "failed").length;
-      const inProgressTasks = tasks.filter(
-        (t) => t.status === "in_progress" || t.status === "assigned"
-      ).length;
 
-      const successRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+      // Single pass to count by status and accumulate completion times
+      const tasksByStatus = { pending: 0, assigned: 0, in_progress: 0, review: 0, done: 0, failed: 0 };
+      let totalCompletionTime = 0;
+      let doneWithTimeCount = 0;
 
-      // Calculate average completion time for done tasks
-      const doneTasks = tasks.filter((t) => t.status === "done" && t.completedAt);
-      let avgCompletionTime: number | null = null;
-
-      if (doneTasks.length > 0) {
-        const totalTime = doneTasks.reduce((sum, task) => {
-          if (task.completedAt && task.createdAt) {
-            return (
-              sum +
-              (new Date(task.completedAt).getTime() - new Date(task.createdAt).getTime())
-            );
-          }
-          return sum;
-        }, 0);
-        avgCompletionTime = totalTime / doneTasks.length; // in milliseconds
+      for (const t of tasks) {
+        const status = t.status as keyof typeof tasksByStatus;
+        if (status in tasksByStatus) tasksByStatus[status]++;
+        if (t.status === "done" && t.completedAt && t.createdAt) {
+          totalCompletionTime += new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime();
+          doneWithTimeCount++;
+        }
       }
 
-      // Count tasks by status
-      const tasksByStatus = {
-        pending: tasks.filter((t) => t.status === "pending").length,
-        assigned: tasks.filter((t) => t.status === "assigned").length,
-        in_progress: tasks.filter((t) => t.status === "in_progress").length,
-        review: tasks.filter((t) => t.status === "review").length,
-        done: completedTasks,
-        failed: failedTasks,
-      };
+      const completedTasks = tasksByStatus.done;
+      const failedTasks = tasksByStatus.failed;
+      const inProgressTasks = tasksByStatus.in_progress + tasksByStatus.assigned;
+      const successRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+      const avgCompletionTime = doneWithTimeCount > 0 ? totalCompletionTime / doneWithTimeCount : null;
 
       metrics.push({
         agentId: agent.id,
@@ -126,7 +112,7 @@ router.get("/analytics/agents", async (req, res) => {
 
     res.json({ metrics });
   } catch (error) {
-    logger.error("Failed to get agent metrics", { error });
+    logger.error(`Failed to get agent metrics: ${error}`, "analytics-route");
     res.status(500).json({ error: "Failed to get agent metrics" });
   }
 });
@@ -207,7 +193,7 @@ router.get("/analytics/trends", async (req, res) => {
 
     res.json({ trends });
   } catch (error) {
-    logger.error("Failed to get trends", { error });
+    logger.error(`Failed to get trends: ${error}`, "analytics-route");
     res.status(500).json({ error: "Failed to get trends" });
   }
 });

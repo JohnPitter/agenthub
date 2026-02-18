@@ -180,7 +180,7 @@ export class WhatsAppService {
           agentId: this.config.linkedAgentId || null,
           source: "whatsapp",
           content: textForLog,
-          contentType: msg.type === "chat" ? "text" : msg.type,
+          contentType: "text",
           metadata: JSON.stringify({
             from,
             contactName,

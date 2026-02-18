@@ -66,7 +66,8 @@ codexOAuthRouter.get("/oauth/connection", async (_req, res) => {
       planType,
       subscriptionActiveUntil,
     });
-  } catch {
+  } catch (err) {
+    logger.warn(`Failed to check Codex OAuth connection: ${err}`, "codex-oauth");
     res.json({ connected: false });
   }
 });

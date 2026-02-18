@@ -13,7 +13,7 @@ import type { Agent } from "@agenthub/shared";
 export function ProjectAgents() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { projects } = useWorkspaceStore();
+  const projects = useWorkspaceStore((s) => s.projects);
   const project = projects.find((p) => p.id === id);
   const { agents, toggleAgent, updateAgent, deleteAgent } = useAgents();
 

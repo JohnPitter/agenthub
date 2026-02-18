@@ -7,8 +7,10 @@ import { AgentAvatar } from "../agents/agent-avatar";
 
 export function ActiveAgentBar() {
   const { t } = useTranslation();
-  const { agents, projects, activeProjectId } = useWorkspaceStore();
-  const { agentActivity } = useChatStore();
+  const agents = useWorkspaceStore((s) => s.agents);
+  const projects = useWorkspaceStore((s) => s.projects);
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
+  const agentActivity = useChatStore((s) => s.agentActivity);
   const { cancelTask } = useSocket(activeProjectId ?? undefined);
 
   // Find first agent that is actually running (real-time status)

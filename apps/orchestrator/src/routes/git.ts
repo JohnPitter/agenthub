@@ -3,7 +3,7 @@ import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
 import { GitService } from "../git/git-service.js";
 import { logger } from "../lib/logger.js";
-import { encrypt, decrypt } from "../lib/encryption.js";
+import { encrypt } from "../lib/encryption.js";
 
 const router = Router();
 const gitService = new GitService();
@@ -54,7 +54,7 @@ router.get("/projects/:id/git/status", async (req, res) => {
 
     res.json({ isGitRepo: true, status, remoteStatus, lastCommit });
   } catch (error) {
-    logger.error("Failed to get git status", { error, projectId: req.params.id });
+    logger.error("Failed to get git status", "git-routes", { error: String(error), projectId: req.params.id });
     res.status(500).json({ error: "Failed to get git status" });
   }
 });
@@ -77,15 +77,15 @@ router.post("/projects/:id/git/init", async (req, res) => {
 
     await gitService.initGitRepo(project.path);
 
-    logger.info("Git repository initialized", {
+    logger.info("Git repository initialized", "git-routes", {
       projectId: req.params.id,
       path: project.path,
     });
 
     res.json({ success: true });
   } catch (error) {
-    logger.error("Failed to initialize git repository", {
-      error,
+    logger.error("Failed to initialize git repository", "git-routes", {
+      error: String(error),
       projectId: req.params.id,
     });
     res.status(500).json({ error: "Failed to initialize git repository" });
@@ -116,7 +116,7 @@ router.get("/projects/:id/git/config", async (req, res) => {
     const config = integration.config ? JSON.parse(integration.config) : null;
     res.json(config);
   } catch (error) {
-    logger.error("Failed to get git config", { error, projectId: req.params.id });
+    logger.error("Failed to get git config", "git-routes", { error: String(error), projectId: req.params.id });
     res.status(500).json({ error: "Failed to get git config" });
   }
 });
@@ -173,12 +173,12 @@ router.put("/projects/:id/git/config", async (req, res) => {
       });
     }
 
-    logger.info("Git config updated", { projectId: req.params.id, config });
+    logger.info("Git config updated", "git-routes", { projectId: req.params.id });
 
     res.json({ success: true });
   } catch (error) {
-    logger.error("Failed to update git config", {
-      error,
+    logger.error("Failed to update git config", "git-routes", {
+      error: String(error),
       projectId: req.params.id,
     });
     res.status(500).json({ error: "Failed to update git config" });
@@ -250,15 +250,15 @@ router.put("/projects/:id/git/credentials", async (req, res) => {
       });
     }
 
-    logger.info("Git credentials saved", {
+    logger.info("Git credentials saved", "git-routes", {
       projectId: req.params.id,
       authType: type,
     });
 
     res.json({ success: true });
   } catch (error) {
-    logger.error("Failed to save git credentials", {
-      error,
+    logger.error("Failed to save git credentials", "git-routes", {
+      error: String(error),
       projectId: req.params.id,
     });
     res.status(500).json({ error: "Failed to save git credentials" });
@@ -292,13 +292,13 @@ router.post("/projects/:id/git/remote/add", async (req, res) => {
 
     if (existingRemote) {
       await gitService.setRemoteUrl(project.path, remoteUrl);
-      logger.info("Git remote URL updated", {
+      logger.info("Git remote URL updated", "git-routes", {
         projectId: req.params.id,
         remoteUrl,
       });
     } else {
       await gitService.addRemote(project.path, remoteUrl);
-      logger.info("Git remote added", { projectId: req.params.id, remoteUrl });
+      logger.info("Git remote added", "git-routes", { projectId: req.params.id, remoteUrl });
     }
 
     // Update config with remote URL
@@ -328,8 +328,8 @@ router.post("/projects/:id/git/remote/add", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    logger.error("Failed to add/update git remote", {
-      error,
+    logger.error("Failed to add/update git remote", "git-routes", {
+      error: String(error),
       projectId: req.params.id,
     });
     res.status(500).json({ error: "Failed to add/update git remote" });
@@ -360,8 +360,8 @@ router.get("/projects/:id/git/remote/branches", async (req, res) => {
 
     res.json({ branches });
   } catch (error) {
-    logger.error("Failed to get remote branches", {
-      error,
+    logger.error("Failed to get remote branches", "git-routes", {
+      error: String(error),
       projectId: req.params.id,
     });
     res.status(500).json({ error: "Failed to get remote branches" });
@@ -389,7 +389,7 @@ router.post("/projects/:id/git/sync", async (req, res) => {
 
     if (hasChanges) {
       await gitService.stash(project.path);
-      logger.info("Stashed uncommitted changes before sync", {
+      logger.info("Stashed uncommitted changes before sync", "git-routes", {
         projectId: req.params.id,
       });
     }
@@ -402,16 +402,16 @@ router.post("/projects/:id/git/sync", async (req, res) => {
 
     if (hasChanges && pullResult.success) {
       await gitService.stashPop(project.path);
-      logger.info("Restored stashed changes after sync", {
+      logger.info("Restored stashed changes after sync", "git-routes", {
         projectId: req.params.id,
       });
     }
 
     if (pullResult.conflicts) {
       const conflictedFiles = await gitService.getConflictedFiles(project.path);
-      logger.warn("Merge conflicts detected after sync", {
+      logger.warn("Merge conflicts detected after sync", "git-routes", {
         projectId: req.params.id,
-        conflictedFiles,
+        conflictedFiles: conflictedFiles.join(","),
       });
 
       return res.json({
@@ -421,14 +421,14 @@ router.post("/projects/:id/git/sync", async (req, res) => {
       });
     }
 
-    logger.info("Synced with remote successfully", {
+    logger.info("Synced with remote successfully", "git-routes", {
       projectId: req.params.id,
     });
 
     res.json({ success: true, conflicts: false });
   } catch (error) {
-    logger.error("Failed to sync with remote", {
-      error,
+    logger.error("Failed to sync with remote", "git-routes", {
+      error: String(error),
       projectId: req.params.id,
     });
     res.status(500).json({ error: "Failed to sync with remote" });

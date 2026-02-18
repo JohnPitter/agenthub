@@ -333,7 +333,12 @@ function OpenAIUsageBars({ usage }: { usage: Record<string, unknown> }) {
 
 function ProvidersSection() {
   const { t } = useTranslation();
-  const { connection, account, limits, fetchConnection, fetchAccount, fetchLimits } = useUsageStore();
+  const connection = useUsageStore((s) => s.connection);
+  const account = useUsageStore((s) => s.account);
+  const limits = useUsageStore((s) => s.limits);
+  const fetchConnection = useUsageStore((s) => s.fetchConnection);
+  const fetchAccount = useUsageStore((s) => s.fetchAccount);
+  const fetchLimits = useUsageStore((s) => s.fetchLimits);
   const [claudeChecking, setClaudeChecking] = useState(false);
 
   // OpenAI state
@@ -900,7 +905,9 @@ export function SettingsPage() {
   const [workspacePath, setWorkspacePath] = useState(
     () => localStorage.getItem("agenthub:workspacePath") ?? "",
   );
-  const { projects, activeProjectId, setActiveProject } = useWorkspaceStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
+  const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
 
   // Auto-select first project if none is active (so integrations work)
   useEffect(() => {

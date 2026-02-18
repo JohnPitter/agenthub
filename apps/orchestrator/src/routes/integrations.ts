@@ -4,7 +4,7 @@ import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { getWhatsAppService, resetWhatsAppService } from "../integrations/whatsapp-service.js";
 import { getTelegramService, resetTelegramService } from "../integrations/telegram-service.js";
-import { encrypt, decrypt } from "../lib/encryption.js";
+import { encrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
 const router = Router();

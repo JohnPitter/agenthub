@@ -26,11 +26,16 @@ export function Header() {
   const { t } = useTranslation();
   const { id: projectId } = useParams();
   const location = useLocation();
-  const { projects, chatPanelOpen, toggleChatPanel } = useWorkspaceStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const chatPanelOpen = useWorkspaceStore((s) => s.chatPanelOpen);
+  const toggleChatPanel = useWorkspaceStore((s) => s.toggleChatPanel);
   const unreadCount = useUnreadCount();
-  const { panelOpen, togglePanel } = useNotificationStore();
+  const panelOpen = useNotificationStore((s) => s.panelOpen);
+  const togglePanel = useNotificationStore((s) => s.togglePanel);
   const { open: commandOpen, setOpen: setCommandOpen } = useCommandPalette();
-  const { name: userName, avatar: userAvatar, color: userColor } = useUserStore();
+  const userName = useUserStore((s) => s.name);
+  const userAvatar = useUserStore((s) => s.avatar);
+  const userColor = useUserStore((s) => s.color);
   const authUser = useAuthStore((s) => s.user);
   const bellRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -47,7 +52,7 @@ export function Header() {
     .join("")
     .toUpperCase();
 
-  const { activeProjectId } = useWorkspaceStore();
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const project = projects.find((p) => p.id === projectId);
   const segment = location.pathname.split("/").pop();
   const routeLabelKey = segment && ROUTE_LABEL_KEYS[segment] ? ROUTE_LABEL_KEYS[segment] : null;

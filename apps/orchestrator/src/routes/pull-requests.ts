@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { GitHubService } from "../git/github-service.js";
 import { logger } from "../lib/logger.js";
 
@@ -52,7 +52,7 @@ router.get("/projects/:id/prs/status", async (req, res) => {
       reason: repoSlug ? null : "No GitHub remote found",
     });
   } catch (error) {
-    logger.error("Failed to check PR status", { error, projectId: req.params.id });
+    logger.error("Failed to check PR status", "pr-routes", { error: String(error), projectId: req.params.id });
     res.status(500).json({ error: "Failed to check PR status" });
   }
 });
@@ -80,7 +80,7 @@ router.get("/projects/:id/prs", async (req, res) => {
 
     res.json({ prs });
   } catch (error) {
-    logger.error("Failed to list PRs", { error, projectId: req.params.id });
+    logger.error("Failed to list PRs", "pr-routes", { error: String(error), projectId: req.params.id });
     res.status(500).json({ error: "Failed to list PRs" });
   }
 });
@@ -119,7 +119,7 @@ router.get("/projects/:id/prs/:number", async (req, res) => {
 
     res.json({ pr, reviews, checks });
   } catch (error) {
-    logger.error("Failed to get PR", { error, projectId: req.params.id, prNumber: req.params.number });
+    logger.error("Failed to get PR", "pr-routes", { error: String(error), projectId: req.params.id, prNumber: req.params.number });
     res.status(500).json({ error: "Failed to get PR" });
   }
 });
@@ -173,9 +173,9 @@ router.post("/projects/:id/prs", async (req, res) => {
       });
     }
 
-    logger.info("PR created", {
+    logger.info("PR created", "pr-routes", {
       projectId: req.params.id,
-      prNumber: pr.number,
+      prNumber: String(pr.number),
       prUrl: pr.url,
       taskId,
     });
@@ -183,7 +183,7 @@ router.post("/projects/:id/prs", async (req, res) => {
     res.json({ pr });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create PR";
-    logger.error("Failed to create PR", { error, projectId: req.params.id });
+    logger.error("Failed to create PR", "pr-routes", { error: String(error), projectId: req.params.id });
     res.status(500).json({ error: message });
   }
 });
@@ -216,11 +216,11 @@ router.post("/projects/:id/prs/:number/merge", async (req, res) => {
       return res.status(500).json({ error: "Failed to merge PR" });
     }
 
-    logger.info("PR merged", { projectId: req.params.id, prNumber, method });
+    logger.info("PR merged", "pr-routes", { projectId: req.params.id, prNumber: String(prNumber), method });
 
     res.json({ success: true });
   } catch (error) {
-    logger.error("Failed to merge PR", { error, projectId: req.params.id, prNumber: req.params.number });
+    logger.error("Failed to merge PR", "pr-routes", { error: String(error), projectId: req.params.id, prNumber: req.params.number });
     res.status(500).json({ error: "Failed to merge PR" });
   }
 });
@@ -251,11 +251,11 @@ router.post("/projects/:id/prs/:number/close", async (req, res) => {
       return res.status(500).json({ error: "Failed to close PR" });
     }
 
-    logger.info("PR closed", { projectId: req.params.id, prNumber });
+    logger.info("PR closed", "pr-routes", { projectId: req.params.id, prNumber: String(prNumber) });
 
     res.json({ success: true });
   } catch (error) {
-    logger.error("Failed to close PR", { error, projectId: req.params.id });
+    logger.error("Failed to close PR", "pr-routes", { error: String(error), projectId: req.params.id });
     res.status(500).json({ error: "Failed to close PR" });
   }
 });
@@ -280,7 +280,7 @@ router.get("/projects/:id/prs/branch/:branch", async (req, res) => {
 
     res.json({ pr });
   } catch (error) {
-    logger.error("Failed to find PR for branch", { error, projectId: req.params.id, branch: req.params.branch });
+    logger.error("Failed to find PR for branch", "pr-routes", { error: String(error), projectId: req.params.id, branch: req.params.branch });
     res.status(500).json({ error: "Failed to find PR for branch" });
   }
 });

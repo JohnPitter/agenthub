@@ -6,10 +6,10 @@ import {
   upsertUser,
   signJWT,
   verifyJWTIgnoringExpiry,
+  type JWTPayload,
 } from "../services/auth-service.js";
 import { authMiddleware } from "../middleware/auth.js";
-import { db } from "@agenthub/database";
-import { schema } from "@agenthub/database";
+import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
@@ -78,7 +78,7 @@ authRouter.post("/refresh", async (req, res) => {
   }
 
   // Reject tokens older than 7 days (absolute session limit)
-  const iat = (payload as any).iat as number | undefined;
+  const iat = (payload as JWTPayload & { iat?: number }).iat;
   if (iat && Date.now() / 1000 - iat > 7 * 24 * 60 * 60) {
     res.status(401).json({ error: "Session expired" });
     return;

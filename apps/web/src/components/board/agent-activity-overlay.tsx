@@ -38,8 +38,8 @@ function getActivityIcon(currentTask?: string): typeof Brain {
 
 export function AgentActivityOverlay() {
   const [collapsed, setCollapsed] = useState(false);
-  const { agentActivity } = useChatStore();
-  const { agents } = useWorkspaceStore();
+  const agentActivity = useChatStore((s) => s.agentActivity);
+  const agents = useWorkspaceStore((s) => s.agents);
 
   // Filter agents that have activity data
   const activeAgents = agents.filter((agent) => {

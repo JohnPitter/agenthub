@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import type { editor as monacoEditor } from "monaco-editor";
-import { Plus, BookOpen, Search, Pin, Pencil, Eye, Save, Trash2, ChevronRight, Link2, Check } from "lucide-react";
+import { Plus, BookOpen, Search, Pin, Pencil, Eye, Save, Trash2, ChevronRight, Link2, Check, Loader2 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
-import { CodeEditor } from "../components/files/code-editor";
+
+const CodeEditor = lazy(() =>
+  import("../components/files/code-editor").then((m) => ({ default: m.CodeEditor }))
+);
 import { MarkdownContent } from "../lib/markdown";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { EmptyState } from "../components/ui/empty-state";
@@ -579,13 +582,15 @@ export function DocsPage() {
                       </span>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <CodeEditor
-                        value={editContent}
-                        language="markdown"
-                        onChange={(val) => setEditContent(val ?? "")}
-                        onSave={handleSave}
-                        onEditorMount={handleEditorMount}
-                      />
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>}>
+                        <CodeEditor
+                          value={editContent}
+                          language="markdown"
+                          onChange={(val) => setEditContent(val ?? "")}
+                          onSave={handleSave}
+                          onEditorMount={handleEditorMount}
+                        />
+                      </Suspense>
                     </div>
                   </>
                 ) : (

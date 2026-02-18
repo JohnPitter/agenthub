@@ -152,7 +152,7 @@ PORT=3001                           # Orchestrator port
 | Document | Description |
 |----------|-------------|
 | [CHANGELOG.md](CHANGELOG.md) | Version history and phase details |
-| [CLAUDE.md](CLAUDE.md) | Development guidelines and conventions |
+| [DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) | Roadmap with Phases 18-25 detailed |
 
 ---
 
@@ -197,13 +197,36 @@ pnpm db:seed              # Seed database
 
 ---
 
+## Engineering Principles
+
+AgentHub follows **12 master principles** defined in [CLAUDE.md](CLAUDE.md):
+
+| # | Principle | Summary |
+|---|-----------|---------|
+| 1 | **Clean Architecture** | DRY, single responsibility, no business logic in routes |
+| 2 | **Big O Performance** | O(1) lookups, paginated endpoints, lazy loading, memoization |
+| 3 | **CVE Mitigation** | OWASP Top 10 protection, `execFile` only, parameterized queries |
+| 4 | **Resilience & Cache** | Retry with backoff, timeouts, Error Boundaries, auto-reconnect |
+| 5 | **Modern Design** | Semantic palette, typography hierarchy, 4px grid, accessibility |
+| 6 | **Test Pyramid** | Unit (70%), Integration (20%), E2E (10%) with Vitest |
+| 7 | **Data Security** | AES-256-GCM encryption, no secrets in logs/responses, httpOnly cookies |
+| 8 | **Observability** | Structured logger, context tags, audit trail, full lifecycle tracing |
+| 9 | **Design System** | Lucide icons, CSS variables, reusable components, consistent states |
+| 10 | **Phase-based Dev** | Numbered phases, sub-phases, plans before code |
+| 11 | **CHANGELOG** | Semantic versioning, every change documented |
+| 12 | **Clean Builds** | Zero unused imports, zero `any`, TypeScript strict, `pnpm build` always passes |
+
+---
+
 ## Security
 
 - 🔐 **Credential Storage** — AES-256-GCM encryption (never plain text)
 - 🛡️ **Git Operations** — `execFile` only (no shell injection)
-- ✅ **Input Validation** — Zod schemas
-- 🚫 **Path Traversal** — Normalized and validated paths
+- ✅ **Input Validation** — Zod schemas, parameterized SQL via Drizzle ORM
+- 🚫 **Path Traversal** — `path.resolve()` + directory boundary validation
 - 🔒 **Rate Limiting** — All API routes protected
+- 🍪 **Cookie Security** — httpOnly, secure, sameSite strict
+- 🛡️ **Error Handling** — No stack traces leaked to clients, Error Boundaries per route
 
 ---
 

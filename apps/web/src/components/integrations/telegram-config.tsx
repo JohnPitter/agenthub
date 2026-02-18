@@ -13,7 +13,7 @@ interface IntegrationStatusEvent {
 }
 
 export function TelegramConfig() {
-  const { activeProjectId } = useWorkspaceStore();
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [botToken, setBotToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -55,9 +55,9 @@ export function TelegramConfig() {
       }
     };
 
-    socket.on("integration:status" as any, handleStatus);
+    socket.on("integration:status", handleStatus);
     return () => {
-      socket.off("integration:status" as any, handleStatus);
+      socket.off("integration:status", handleStatus);
     };
   }, []);
 

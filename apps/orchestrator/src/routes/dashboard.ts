@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq, desc, count, max, sql, and, ne } from "drizzle-orm";
+import { logger } from "../lib/logger.js";
 
 export const dashboardRouter = Router();
 
 // GET /api/dashboard/stats
 dashboardRouter.get("/stats", async (req, res) => {
+  try {
   const page = Math.max(0, parseInt(req.query.activityPage as string) || 0);
   const pageSize = Math.min(50, Math.max(1, parseInt(req.query.activityPageSize as string) || 10));
 
@@ -80,8 +82,9 @@ dashboardRouter.get("/stats", async (req, res) => {
   }));
 
   // Include projects that have agents but no tasks
+  const projectsWithTasks = new Set(tasksByProject.map((t) => t.projectId));
   for (const r of agentsByProject) {
-    if (!tasksByProject.some((t) => t.projectId === r.projectId)) {
+    if (!projectsWithTasks.has(r.projectId)) {
       projectStats.push({
         projectId: r.projectId,
         taskCount: 0,
@@ -117,4 +120,8 @@ dashboardRouter.get("/stats", async (req, res) => {
       createdAt: log.createdAt,
     })),
   });
+  } catch (error) {
+    logger.error(`Failed to get dashboard stats: ${error}`, "dashboard-route");
+    res.status(500).json({ error: "Failed to get dashboard stats" });
+  }
 });

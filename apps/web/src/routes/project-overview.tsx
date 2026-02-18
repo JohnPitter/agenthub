@@ -23,7 +23,9 @@ const STATUS_BADGE_CLS: Record<string, string> = {
 export function ProjectOverview() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { projects, agents, setAgents } = useWorkspaceStore();
+  const projects = useWorkspaceStore((s) => s.projects);
+  const agents = useWorkspaceStore((s) => s.agents);
+  const setAgents = useWorkspaceStore((s) => s.setAgents);
   const project = projects.find((p) => p.id === id);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoaded, setTasksLoaded] = useState(false);

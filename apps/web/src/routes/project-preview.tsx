@@ -19,7 +19,7 @@ const MAX_LOG_LINES = 500;
 
 export function ProjectPreview() {
   const { id } = useParams<{ id: string }>();
-  const { projects } = useWorkspaceStore();
+  const projects = useWorkspaceStore((s) => s.projects);
   const project = projects.find((p) => p.id === id);
 
   const [status, setStatus] = useState<ServerStatus>("stopped");
@@ -271,7 +271,7 @@ export function ProjectPreview() {
             </div>
 
             {/* Terminal output */}
-            <div className="shrink-0 border-t border-stroke2 bg-[#0d1117]">
+            <div className="shrink-0 border-t border-stroke2 bg-neutral-bg-subtle">
               <div className="flex items-center gap-2 border-b border-white/5 px-4 py-2">
                 <Terminal className="h-3.5 w-3.5 text-neutral-fg-disabled" />
                 <span className="text-[11px] font-semibold text-neutral-fg-disabled uppercase tracking-wider">

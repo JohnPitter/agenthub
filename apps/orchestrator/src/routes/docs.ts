@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq, desc, asc } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { logger } from "../lib/logger.js";
 
 export const docsRouter = Router();
 
@@ -14,6 +15,7 @@ docsRouter.get("/", async (_req, res) => {
       .orderBy(desc(schema.docs.pinned), desc(schema.docs.updatedAt), asc(schema.docs.order));
     res.json({ docs });
   } catch (error) {
+    logger.error(`Failed to list documents: ${error}`, "docs-route");
     res.status(500).json({ error: "Failed to list documents" });
   }
 });
@@ -30,6 +32,7 @@ docsRouter.get("/:id", async (req, res) => {
     if (!doc) return res.status(404).json({ error: "Document not found" });
     res.json({ doc });
   } catch (error) {
+    logger.error(`Failed to get document: ${error}`, "docs-route");
     res.status(500).json({ error: "Failed to get document" });
   }
 });
@@ -55,6 +58,7 @@ docsRouter.post("/", async (req, res) => {
     await db.insert(schema.docs).values(doc);
     res.status(201).json({ doc });
   } catch (error) {
+    logger.error(`Failed to create document: ${error}`, "docs-route");
     res.status(500).json({ error: "Failed to create document" });
   }
 });
@@ -107,6 +111,7 @@ docsRouter.patch("/:id", async (req, res) => {
 
     res.json({ doc });
   } catch (error) {
+    logger.error(`Failed to update document: ${error}`, "docs-route");
     res.status(500).json({ error: "Failed to update document" });
   }
 });
@@ -127,6 +132,7 @@ docsRouter.delete("/:id", async (req, res) => {
     await db.delete(schema.docs).where(eq(schema.docs.id, id));
     res.json({ success: true });
   } catch (error) {
+    logger.error(`Failed to delete document: ${error}`, "docs-route");
     res.status(500).json({ error: "Failed to delete document" });
   }
 });

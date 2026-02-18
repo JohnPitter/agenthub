@@ -62,6 +62,8 @@ const CATEGORY_TO_ROLE_MAP: Record<TaskCategory, AgentRole[]> = {
 
 class AgentManager {
   private activeSessions = new Map<string, ActiveSession>();
+  /** Reverse index: agentId → taskId for O(1) busy checks */
+  private agentToTask = new Map<string, string>();
   private taskQueue = new Map<string, QueuedTask[]>();
   private taskRetryCount = new Map<string, number>();
   private workflowStates = new Map<string, WorkflowState>();
@@ -741,18 +743,18 @@ class AgentManager {
     const devRole = this.detectDevFromPlan(plan);
     const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
 
-    let selectedDev = agents.find((a: Agent) => a.role === devRole && !this.isAgentBusy(a.id));
+    let selectedDev = agents.find((a) => a.role === devRole && !this.isAgentBusy(a.id));
     if (!selectedDev) {
-      selectedDev = agents.find((a: Agent) => a.role === devRole);
+      selectedDev = agents.find((a) => a.role === devRole);
     }
     if (!selectedDev) {
       // Fallback: any dev that's not tech_lead, architect, or qa
       selectedDev = agents.find(
-        (a: Agent) => !["tech_lead", "architect", "qa", "receptionist"].includes(a.role) && !this.isAgentBusy(a.id),
+        (a) => !["tech_lead", "architect", "qa", "receptionist"].includes(a.role) && !this.isAgentBusy(a.id),
       );
     }
     if (!selectedDev) {
-      selectedDev = agents.find((a: Agent) => !["tech_lead", "architect", "receptionist"].includes(a.role));
+      selectedDev = agents.find((a) => !["tech_lead", "architect", "receptionist"].includes(a.role));
     }
 
     if (selectedDev) {
@@ -886,7 +888,7 @@ class AgentManager {
     if (!task) return;
 
     const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
-    const architect = agents.find((a: Agent) => a.role === "architect");
+    const architect = agents.find((a) => a.role === "architect");
 
     if (!architect) {
       logger.error("No Architect agent found, marking task as failed", "agent-manager");
@@ -1119,6 +1121,7 @@ class AgentManager {
       taskId,
       projectId: task.projectId,
     });
+    this.agentToTask.set(agentId, taskId);
 
     await logTaskAction(taskId, "agent_assigned", agentId, `Agent ${agent.name} started working (${provider})`);
 
@@ -1218,7 +1221,9 @@ class AgentManager {
         }
       }
     } finally {
+      const completed = this.activeSessions.get(taskId);
       this.activeSessions.delete(taskId);
+      if (completed) this.agentToTask.delete(completed.agentId);
       // Process next queued task for this agent (only if not retrying)
       const retryCount = this.taskRetryCount.get(taskId) ?? 0;
       if (retryCount === 0) {
@@ -1322,7 +1327,9 @@ class AgentManager {
       eventBus.emit("task:git_push", {
         taskId,
         projectId,
-        branch,
+        branchName: branch,
+        commitSha: "",
+        remote: "origin",
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -1398,6 +1405,7 @@ class AgentManager {
 
     active.session.cancel();
     this.activeSessions.delete(taskId);
+    this.agentToTask.delete(active.agentId);
 
     await transitionTask(taskId, "created" as TaskStatus, undefined, "Task cancelled by user");
 
@@ -1412,21 +1420,15 @@ class AgentManager {
   }
 
   isAgentBusy(agentId: string): boolean {
-    for (const session of this.activeSessions.values()) {
-      if (session.agentId === agentId) return true;
-    }
-    return false;
+    return this.agentToTask.has(agentId);
   }
 
   getAgentStatus(agentId: string): "idle" | "running" {
-    return this.isAgentBusy(agentId) ? "running" : "idle";
+    return this.agentToTask.has(agentId) ? "running" : "idle";
   }
 
   getActiveTaskForAgent(agentId: string): string | null {
-    for (const session of this.activeSessions.values()) {
-      if (session.agentId === agentId) return session.taskId;
-    }
-    return null;
+    return this.agentToTask.get(agentId) ?? null;
   }
 
   getActiveSessions(): { taskId: string; agentId: string; projectId: string }[] {

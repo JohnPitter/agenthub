@@ -6,7 +6,9 @@ import { useAuthStore } from "../stores/auth-store";
 
 export function LoginPage() {
   const { t } = useTranslation();
-  const { user, loading, fetchUser } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const loading = useAuthStore((s) => s.loading);
+  const fetchUser = useAuthStore((s) => s.fetchUser);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const error = searchParams.get("error");

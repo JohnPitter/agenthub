@@ -268,11 +268,13 @@ export class GitService {
       username?: string;
     }
   ): Promise<void> {
-    const env: Record<string, string> = { ...process.env };
+    const env: Record<string, string> = Object.fromEntries(
+      Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
+    );
 
     // Handle SSH key authentication
     if (credentials?.type === "ssh" && credentials.sshKeyPath) {
-      env.GIT_SSH_COMMAND = `ssh -i ${credentials.sshKeyPath} -o StrictHostKeyChecking=no`;
+      env.GIT_SSH_COMMAND = `ssh -i "${credentials.sshKeyPath}" -o StrictHostKeyChecking=no`;
     }
 
     // Handle HTTPS token authentication

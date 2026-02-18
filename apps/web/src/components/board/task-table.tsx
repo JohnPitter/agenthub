@@ -12,21 +12,21 @@ interface TaskTableProps {
 }
 
 const STATUS_OPTIONS: Array<{ value: string; label: string; color: string }> = [
-  { value: "created", label: "Backlog", color: "#71717A" },
-  { value: "assigned", label: "Disponível", color: "#F97316" },
-  { value: "in_progress", label: "Em Progresso", color: "#F59E0B" },
-  { value: "review", label: "Review", color: "#8B5CF6" },
-  { value: "done", label: "Concluída", color: "#10B981" },
-  { value: "cancelled", label: "Cancelada", color: "#A1A1AA" },
-  { value: "blocked", label: "Blocked", color: "#EF4444" },
-  { value: "failed", label: "Failed", color: "#EF4444" },
+  { value: "created", label: "Backlog", color: "var(--rt-neutral-fg3)" },
+  { value: "assigned", label: "Disponível", color: "var(--rt-orange)" },
+  { value: "in_progress", label: "Em Progresso", color: "var(--rt-warning)" },
+  { value: "review", label: "Review", color: "var(--rt-purple)" },
+  { value: "done", label: "Concluída", color: "var(--rt-success)" },
+  { value: "cancelled", label: "Cancelada", color: "var(--rt-neutral-fg3)" },
+  { value: "blocked", label: "Blocked", color: "var(--rt-danger)" },
+  { value: "failed", label: "Failed", color: "var(--rt-danger)" },
 ];
 
 const PRIORITY_OPTIONS: Array<{ value: string; label: string; color: string }> = [
-  { value: "low", label: "Low", color: "#71717A" },
-  { value: "medium", label: "Medium", color: "#3B82F6" },
-  { value: "high", label: "High", color: "#F59E0B" },
-  { value: "urgent", label: "Urgent", color: "#EF4444" },
+  { value: "low", label: "Low", color: "var(--rt-neutral-fg3)" },
+  { value: "medium", label: "Medium", color: "var(--rt-info)" },
+  { value: "high", label: "High", color: "var(--rt-warning)" },
+  { value: "urgent", label: "Urgent", color: "var(--rt-danger)" },
 ];
 
 const STATUS_ICONS: Record<TaskStatus, React.ComponentType<any>> = {
@@ -44,7 +44,7 @@ const STATUS_ICONS: Record<TaskStatus, React.ComponentType<any>> = {
 export function TaskTable({ projectId, tasks, agents, onTaskUpdate }: TaskTableProps) {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
-  const handleTaskUpdate = async (taskId: string, field: string, value: any) => {
+  const handleTaskUpdate = async (taskId: string, field: string, value: string | null) => {
     // Optimistic update
     onTaskUpdate?.(taskId, { [field]: value });
 
@@ -158,7 +158,7 @@ export function TaskTable({ projectId, tasks, agents, onTaskUpdate }: TaskTableP
               const agent = agents.find(a => a.id === task.assignedAgentId);
 
               const agentOptions = [
-                { value: "", label: "Unassigned", color: "#71717A" },
+                { value: "", label: "Unassigned", color: "var(--rt-neutral-fg3)" },
                 ...agents.map(a => ({
                   value: a.id,
                   label: a.name,

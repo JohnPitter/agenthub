@@ -134,7 +134,7 @@ function CreatePRDialog({
 
 export function ProjectPRs() {
   const { id } = useParams<{ id: string }>();
-  const { addToast } = useNotificationStore();
+  const addToast = useNotificationStore((s) => s.addToast);
   const {
     prs,
     loading,

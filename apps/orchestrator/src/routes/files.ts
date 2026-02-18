@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { readdir, stat, readFile, writeFile } from "fs/promises";
-import { join, relative, sep } from "path";
+import { join, resolve, relative, sep } from "path";
 import { logger } from "../lib/logger.js";
 import { GitService } from "../git/git-service.js";
 
@@ -36,7 +36,7 @@ router.get("/projects/:id/files", async (req, res) => {
     const fileTree = await buildFileTree(project.path);
     res.json({ files: fileTree });
   } catch (error) {
-    logger.error("Failed to get file tree", { error, projectId: req.params.id });
+    logger.error(`Failed to get file tree: ${error}`, "files-route", { projectId: req.params.id });
     res.status(500).json({ error: "Failed to get file tree" });
   }
 });
@@ -64,11 +64,11 @@ router.get("/projects/:id/files/content", async (req, res) => {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    // Security: Prevent path traversal
-    const absolutePath = join(project.path, filePath);
-    const normalizedProjectPath = join(project.path);
+    // Security: Prevent path traversal — resolve() normalizes ".." segments
+    const absolutePath = resolve(project.path, filePath);
+    const normalizedProjectPath = resolve(project.path);
 
-    if (!absolutePath.startsWith(normalizedProjectPath)) {
+    if (!absolutePath.startsWith(normalizedProjectPath + sep)) {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -81,7 +81,7 @@ router.get("/projects/:id/files/content", async (req, res) => {
       modified: stats.mtime,
     });
   } catch (error) {
-    logger.error("Failed to read file", { error, projectId: req.params.id });
+    logger.error(`Failed to read file: ${error}`, "files-route", { projectId: req.params.id });
     res.status(500).json({ error: "Failed to read file" });
   }
 });
@@ -115,18 +115,18 @@ router.put("/projects/:id/files/content", async (req, res) => {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    // Security: Prevent path traversal
-    const absolutePath = join(project.path, filePath);
-    const normalizedProjectPath = join(project.path);
+    // Security: Prevent path traversal — resolve() normalizes ".." segments
+    const absolutePath = resolve(project.path, filePath);
+    const normalizedProjectPath = resolve(project.path);
 
-    if (!absolutePath.startsWith(normalizedProjectPath)) {
+    if (!absolutePath.startsWith(normalizedProjectPath + sep)) {
       return res.status(403).json({ error: "Access denied" });
     }
 
     await writeFile(absolutePath, content, "utf-8");
     const stats = await stat(absolutePath);
 
-    logger.info(`File saved: ${filePath}`, { projectId: req.params.id });
+    logger.info(`File saved: ${filePath}`, "files-route", { projectId: req.params.id });
 
     res.json({
       success: true,
@@ -134,7 +134,7 @@ router.put("/projects/:id/files/content", async (req, res) => {
       modified: stats.mtime,
     });
   } catch (error) {
-    logger.error("Failed to save file", { error, projectId: req.params.id });
+    logger.error(`Failed to save file: ${error}`, "files-route", { projectId: req.params.id });
     res.status(500).json({ error: "Failed to save file" });
   }
 });
@@ -167,11 +167,11 @@ router.get("/projects/:id/files/history", async (req, res) => {
       return res.status(400).json({ error: "Project is not a git repository" });
     }
 
-    // Security: Prevent path traversal
-    const absolutePath = join(project.path, filePath);
-    const normalizedProjectPath = join(project.path);
+    // Security: Prevent path traversal — resolve() normalizes ".." segments
+    const absolutePath = resolve(project.path, filePath);
+    const normalizedProjectPath = resolve(project.path);
 
-    if (!absolutePath.startsWith(normalizedProjectPath)) {
+    if (!absolutePath.startsWith(normalizedProjectPath + sep)) {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -183,7 +183,7 @@ router.get("/projects/:id/files/history", async (req, res) => {
 
     res.json({ history });
   } catch (error) {
-    logger.error("Failed to get file history", { error, projectId: req.params.id });
+    logger.error(`Failed to get file history: ${error}`, "files-route", { projectId: req.params.id });
     res.status(500).json({ error: "Failed to get file history" });
   }
 });
@@ -205,6 +205,11 @@ router.get("/projects/:id/files/at-commit", async (req, res) => {
       return res.status(400).json({ error: "Commit SHA is required" });
     }
 
+    // Security: Validate commit SHA format (hex only, 4-40 chars)
+    if (!/^[0-9a-fA-F]{4,40}$/.test(commit)) {
+      return res.status(400).json({ error: "Invalid commit SHA format" });
+    }
+
     const project = await db
       .select()
       .from(schema.projects)
@@ -220,11 +225,11 @@ router.get("/projects/:id/files/at-commit", async (req, res) => {
       return res.status(400).json({ error: "Project is not a git repository" });
     }
 
-    // Security: Prevent path traversal
-    const absolutePath = join(project.path, filePath);
-    const normalizedProjectPath = join(project.path);
+    // Security: Prevent path traversal — resolve() normalizes ".." segments
+    const absolutePath = resolve(project.path, filePath);
+    const normalizedProjectPath = resolve(project.path);
 
-    if (!absolutePath.startsWith(normalizedProjectPath)) {
+    if (!absolutePath.startsWith(normalizedProjectPath + sep)) {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -232,7 +237,7 @@ router.get("/projects/:id/files/at-commit", async (req, res) => {
 
     res.json({ content });
   } catch (error) {
-    logger.error("Failed to get file at commit", { error, projectId: req.params.id });
+    logger.error(`Failed to get file at commit: ${error}`, "files-route", { projectId: req.params.id });
     res.status(500).json({ error: "Failed to get file at commit" });
   }
 });
@@ -297,7 +302,7 @@ async function buildFileTree(
       return a.name.localeCompare(b.name);
     });
   } catch (error) {
-    logger.warn(`Failed to read directory: ${dirPath}`, { error });
+    logger.warn(`Failed to read directory: ${dirPath}`, "files-route", { error: String(error) });
     return [];
   }
 }

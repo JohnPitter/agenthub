@@ -106,8 +106,8 @@ export class AgentSession {
 
         if (message.type === "assistant") {
           const textContent = message.message?.content
-            ?.filter((block: { type: string }) => block.type === "text")
-            .map((block: { text: string }) => block.text)
+            ?.filter((block): block is { type: "text"; text: string } => block.type === "text")
+            .map((block) => block.text)
             .join("\n");
 
           if (textContent) {

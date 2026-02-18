@@ -12,6 +12,14 @@ interface PerformanceChartProps {
   type?: "line" | "area";
 }
 
+const CHART_COLORS = {
+  success: "var(--rt-success)",
+  danger: "var(--rt-danger)",
+  info: "var(--rt-info)",
+  grid: "var(--rt-stroke)",
+  tick: "var(--rt-neutral-fg3)",
+};
+
 export function PerformanceChart({ data, type = "area" }: PerformanceChartProps) {
   const formattedData = data.map((point) => ({
     ...point,
@@ -21,7 +29,7 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
     }),
   }));
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: TrendDataPoint }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-neutral-bg1 border border-stroke2 rounded-md shadow-4 p-3">
@@ -59,17 +67,17 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
     return (
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={formattedData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
           <XAxis
             dataKey="displayDate"
-            tick={{ fontSize: 10, fill: "#9E9E9E" }}
+            tick={{ fontSize: 10, fill: CHART_COLORS.tick }}
             tickLine={false}
-            axisLine={{ stroke: "#E0E0E0" }}
+            axisLine={{ stroke: CHART_COLORS.grid }}
           />
           <YAxis
-            tick={{ fontSize: 10, fill: "#9E9E9E" }}
+            tick={{ fontSize: 10, fill: CHART_COLORS.tick }}
             tickLine={false}
-            axisLine={{ stroke: "#E0E0E0" }}
+            axisLine={{ stroke: CHART_COLORS.grid }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
@@ -81,8 +89,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             type="monotone"
             dataKey="completed"
             name="Completed"
-            stroke="#107C10"
-            fill="#107C10"
+            stroke={CHART_COLORS.success}
+            fill={CHART_COLORS.success}
             fillOpacity={0.15}
             strokeWidth={2}
           />
@@ -90,8 +98,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             type="monotone"
             dataKey="failed"
             name="Failed"
-            stroke="#B10E1C"
-            fill="#B10E1C"
+            stroke={CHART_COLORS.danger}
+            fill={CHART_COLORS.danger}
             fillOpacity={0.15}
             strokeWidth={2}
           />
@@ -99,8 +107,8 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             type="monotone"
             dataKey="total"
             name="Total"
-            stroke="#0F6CBD"
-            fill="#0F6CBD"
+            stroke={CHART_COLORS.info}
+            fill={CHART_COLORS.info}
             fillOpacity={0.08}
             strokeWidth={2}
           />
@@ -112,17 +120,17 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={formattedData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
         <XAxis
           dataKey="displayDate"
-          tick={{ fontSize: 10, fill: "#9E9E9E" }}
+          tick={{ fontSize: 10, fill: CHART_COLORS.tick }}
           tickLine={false}
-          axisLine={{ stroke: "#E0E0E0" }}
+          axisLine={{ stroke: CHART_COLORS.grid }}
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#9E9E9E" }}
+          tick={{ fontSize: 10, fill: CHART_COLORS.tick }}
           tickLine={false}
-          axisLine={{ stroke: "#E0E0E0" }}
+          axisLine={{ stroke: CHART_COLORS.grid }}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
@@ -134,27 +142,27 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
           type="monotone"
           dataKey="completed"
           name="Completed"
-          stroke="#107C10"
+          stroke={CHART_COLORS.success}
           strokeWidth={2}
-          dot={{ fill: "#107C10", r: 3 }}
+          dot={{ fill: CHART_COLORS.success, r: 3 }}
           activeDot={{ r: 5 }}
         />
         <Line
           type="monotone"
           dataKey="failed"
           name="Failed"
-          stroke="#B10E1C"
+          stroke={CHART_COLORS.danger}
           strokeWidth={2}
-          dot={{ fill: "#B10E1C", r: 3 }}
+          dot={{ fill: CHART_COLORS.danger, r: 3 }}
           activeDot={{ r: 5 }}
         />
         <Line
           type="monotone"
           dataKey="total"
           name="Total"
-          stroke="#0F6CBD"
+          stroke={CHART_COLORS.info}
           strokeWidth={2}
-          dot={{ fill: "#0F6CBD", r: 3 }}
+          dot={{ fill: CHART_COLORS.info, r: 3 }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

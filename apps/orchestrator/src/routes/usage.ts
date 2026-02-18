@@ -213,7 +213,7 @@ router.get("/usage/summary", async (req, res) => {
       modelCosts,
     });
   } catch (error) {
-    logger.error("Failed to get usage summary", { error });
+    logger.error("Failed to get usage summary", "usage", { error: String(error) });
     res.status(500).json({ error: "Failed to get usage summary" });
   }
 });
@@ -256,7 +256,7 @@ router.get("/usage/account", async (_req, res) => {
     accountCache = { data, fetchedAt: Date.now() };
     res.json(data);
   } catch (error) {
-    logger.error("Failed to get account info", { error });
+    logger.error("Failed to get account info", "usage", { error: String(error) });
 
     // If cache exists but expired, still return stale data as fallback
     if (accountCache) {
@@ -302,7 +302,7 @@ router.get("/usage/models", async (_req, res) => {
     modelsCache = { data, fetchedAt: Date.now() };
     res.json({ models: data });
   } catch (error) {
-    logger.error("Failed to get supported models", { error });
+    logger.error("Failed to get supported models", "usage", { error: String(error) });
 
     if (modelsCache) {
       return res.json({ models: modelsCache.data });
@@ -367,7 +367,7 @@ router.get("/usage/connection", async (_req, res) => {
       apiKeySource: data.apiKeySource,
     });
   } catch (error) {
-    logger.error("Failed to check connection", { error });
+    logger.error("Failed to check connection", "usage", { error: String(error) });
     res.json({
       connected: false,
       email: null,
@@ -446,7 +446,7 @@ router.get("/usage/limits", async (_req, res) => {
     }
 
     if (!response.ok) {
-      logger.warn("Anthropic usage API returned non-OK", { status: response.status });
+      logger.warn("Anthropic usage API returned non-OK", "usage", { status: String(response.status) });
       return res.status(response.status).json({ error: "Falha ao buscar limites de uso" });
     }
 
@@ -456,7 +456,7 @@ router.get("/usage/limits", async (_req, res) => {
     usageLimitsCache = { data, fetchedAt: Date.now() };
     res.json(data);
   } catch (error) {
-    logger.error("Failed to fetch usage limits", { error });
+    logger.error("Failed to fetch usage limits", "usage", { error: String(error) });
 
     // Return stale cache as fallback
     if (usageLimitsCache) {

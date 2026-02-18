@@ -9,7 +9,7 @@ import { useWorkspaceStore } from "../../stores/workspace-store";
 
 export function AppLayout() {
   const { id: projectId } = useParams();
-  const { setActiveProject } = useWorkspaceStore();
+  const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
 
   // Update active project when route changes
   useEffect(() => {

@@ -3,7 +3,11 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth-store";
 
 export function ProtectedRoute() {
-  const { user, loading, fetchUser, startTokenRefresh, stopTokenRefresh } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const loading = useAuthStore((s) => s.loading);
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+  const startTokenRefresh = useAuthStore((s) => s.startTokenRefresh);
+  const stopTokenRefresh = useAuthStore((s) => s.stopTokenRefresh);
 
   useEffect(() => {
     if (!user && loading) {

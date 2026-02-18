@@ -34,7 +34,7 @@ export function ToolTimeline({ toolUses, agents }: ToolTimelineProps) {
               >
                 <div
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                  style={{ backgroundColor: agent?.color ?? "#0866FF" }}
+                  style={{ backgroundColor: agent?.color ?? "#6366F1" }}
                 >
                   {agent?.name.charAt(0) ?? "A"}
                 </div>

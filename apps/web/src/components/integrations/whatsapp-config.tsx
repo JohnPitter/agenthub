@@ -14,7 +14,7 @@ interface IntegrationStatusEvent {
 }
 
 export function WhatsAppConfig() {
-  const { activeProjectId } = useWorkspaceStore();
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [integrationId, setIntegrationId] = useState<string | null>(null);
@@ -78,9 +78,9 @@ export function WhatsAppConfig() {
       }
     };
 
-    socket.on("integration:status" as any, handleStatus);
+    socket.on("integration:status", handleStatus);
     return () => {
-      socket.off("integration:status" as any, handleStatus);
+      socket.off("integration:status", handleStatus);
     };
   }, []);
 

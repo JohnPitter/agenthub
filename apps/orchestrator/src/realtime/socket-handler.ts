@@ -10,6 +10,7 @@ import { logger } from "../lib/logger";
 import { GitService } from "../git/git-service";
 import { GitHubService } from "../git/github-service";
 import { safeDecrypt } from "../lib/encryption";
+import { notificationService } from "../services/notification-service.js";
 
 const gitService = new GitService();
 const githubService = new GitHubService();
@@ -559,6 +560,55 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
 
   eventBus.on("devserver:status", (data) => {
     io.to(`project:${data.projectId}`).emit("devserver:status", data);
+  });
+
+  // Notification hooks — create notifications on key lifecycle events
+  eventBus.on("task:status", async (data) => {
+    try {
+      if (data.status !== "review" && data.status !== "done") return;
+
+      // Look up projectId from task
+      const task = await db.select({ projectId: schema.tasks.projectId, title: schema.tasks.title })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.id, data.taskId))
+        .get();
+
+      const projectId = task?.projectId ?? undefined;
+      const taskTitle = task?.title ?? data.taskId;
+
+      if (data.status === "review") {
+        await notificationService.create({
+          projectId,
+          type: "review_needed",
+          title: "Task ready for review",
+          body: `"${taskTitle}" is waiting for your review.`,
+          link: `/tasks`,
+        });
+      } else if (data.status === "done") {
+        await notificationService.create({
+          projectId,
+          type: "task_completed",
+          title: "Task completed",
+          body: `"${taskTitle}" has been completed.`,
+          link: `/tasks`,
+        });
+      }
+    } catch (error) {
+      logger.error(`Failed to create task notification: ${error}`, "notification");
+    }
+  });
+
+  eventBus.on("agent:error", async (data) => {
+    try {
+      await notificationService.create({
+        projectId: data.projectId,
+        type: "agent_error",
+        title: "Agent error",
+        body: `Agent ${data.agentId}: ${data.error}`,
+      });
+    } catch (error) {
+      logger.error(`Failed to create agent error notification: ${error}`, "notification");
+    }
   });
 
   logger.info("EventBus → Socket.io bridge established", "socket");

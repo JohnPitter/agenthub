@@ -146,6 +146,19 @@ const statements = [
     updated_at INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id)`,
+  `CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT,
+    link TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_notifications_project ON notifications(project_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read)`,
+  `CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at)`,
 ];
 
 // Columns added after initial table creation — safe to re-run

@@ -418,6 +418,15 @@
     "emptyTitle": "暂无 API 文档",
     "emptyDesc": "生成 API 文档以查看所有可用接口。"
   },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "全部标为已读",
+    "empty": "暂无通知",
+    "taskCompleted": "任务已完成",
+    "reviewNeeded": "需要审查",
+    "agentError": "智能体错误",
+    "delete": "删除"
+  },
   "workflow": {
     "save": "保存",
     "validate": "验证",

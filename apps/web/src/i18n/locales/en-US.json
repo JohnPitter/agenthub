@@ -418,6 +418,15 @@
     "emptyTitle": "No API Documentation",
     "emptyDesc": "Generate your API documentation to see all available endpoints."
   },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications",
+    "taskCompleted": "Task completed",
+    "reviewNeeded": "Review needed",
+    "agentError": "Agent error",
+    "delete": "Delete"
+  },
   "workflow": {
     "save": "Save",
     "validate": "Validate",

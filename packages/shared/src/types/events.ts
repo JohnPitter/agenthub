@@ -28,6 +28,7 @@ export interface ServerToClientEvents {
   "agent:updated": (data: AgentUpdatedEvent) => void;
   "devserver:output": (data: DevServerOutputEvent) => void;
   "devserver:status": (data: DevServerStatusEvent) => void;
+  "notification:new": (data: NotificationEvent) => void;
 }
 
 // Client → Server events
@@ -231,4 +232,14 @@ export interface DevServerStatusEvent {
   status: "stopped" | "starting" | "running" | "error";
   port?: number;
   error?: string;
+}
+
+export interface NotificationEvent {
+  id: string;
+  projectId?: string;
+  type: string;
+  title: string;
+  body?: string;
+  link?: string;
+  createdAt: string;
 }

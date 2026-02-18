@@ -418,6 +418,15 @@
     "emptyTitle": "Nenhuma Documentação de API",
     "emptyDesc": "Gere sua documentação de API para ver todos os endpoints disponíveis."
   },
+  "notifications": {
+    "title": "Notificações",
+    "markAllRead": "Marcar todas como lidas",
+    "empty": "Nenhuma notificação",
+    "taskCompleted": "Task concluída",
+    "reviewNeeded": "Review necessária",
+    "agentError": "Erro do agente",
+    "delete": "Excluir"
+  },
   "workflow": {
     "save": "Salvar",
     "validate": "Validar",

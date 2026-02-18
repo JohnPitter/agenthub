@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { getSocket, type AppSocket } from "../lib/socket";
+import { useNotificationStore } from "../stores/notification-store";
+import type { NotificationType } from "../stores/notification-store";
 import type {
   AgentStatusEvent,
   AgentMessageEvent,
@@ -8,6 +10,7 @@ import type {
   AgentResultEvent,
   AgentErrorEvent,
   AgentNotificationEvent,
+  NotificationEvent,
   TaskStatusEvent,
   TaskCreatedEvent,
   TaskUpdatedEvent,
@@ -104,6 +107,25 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     socket.on("devserver:output", onDevServerOutput);
     socket.on("devserver:status", onDevServerStatus);
 
+    const onNotificationNew = (data: NotificationEvent) => {
+      const store = useNotificationStore.getState();
+      store.addNotificationFromSocket({
+        id: data.id,
+        projectId: data.projectId,
+        type: data.type as NotificationType,
+        title: data.title,
+        message: data.body,
+        link: data.link,
+        timestamp: new Date(data.createdAt).getTime(),
+        read: false,
+      });
+      // Show toast for critical types
+      if (data.type === "agent_error") {
+        store.addToast("error", data.title, data.body);
+      }
+    };
+    socket.on("notification:new", onNotificationNew);
+
     return () => {
       socket.emit("board:unsubscribe", { projectId });
       socket.off("agent:status", onAgentStatus);
@@ -126,6 +148,7 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
       socket.off("board:agent_cursor", onBoardAgentCursor);
       socket.off("devserver:output", onDevServerOutput);
       socket.off("devserver:status", onDevServerStatus);
+      socket.off("notification:new", onNotificationNew);
     };
   }, [projectId]);
 

@@ -418,6 +418,15 @@
     "emptyTitle": "APIドキュメントなし",
     "emptyDesc": "APIドキュメントを生成して、利用可能なすべてのエンドポイントを表示します。"
   },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "すべて既読にする",
+    "empty": "通知はありません",
+    "taskCompleted": "タスク完了",
+    "reviewNeeded": "レビューが必要",
+    "agentError": "エージェントエラー",
+    "delete": "削除"
+  },
   "workflow": {
     "save": "保存",
     "validate": "検証",

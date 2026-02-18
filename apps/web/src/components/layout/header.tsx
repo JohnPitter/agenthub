@@ -68,6 +68,19 @@ export function Header() {
   const standaloneTitleKey = PAGE_TITLE_KEYS[location.pathname] ?? null;
   const standalonePageTitle = standaloneTitleKey ? t(standaloneTitleKey) : null;
 
+  // Fetch notifications on mount and periodically (every 60s)
+  const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
+  const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount);
+
+  useEffect(() => {
+    fetchNotifications();
+    fetchUnreadCount();
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications, fetchUnreadCount]);
+
   useEffect(() => {
     if (!panelOpen && !profileOpen) return;
     const handleClickOutside = (e: MouseEvent) => {

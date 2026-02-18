@@ -8,6 +8,9 @@ const ICON_MAP: Record<NotificationType, { icon: typeof CheckCircle2; color: str
   error: { icon: AlertCircle, color: "text-danger", bg: "bg-danger-light" },
   info: { icon: Info, color: "text-info", bg: "bg-info-light" },
   warning: { icon: AlertTriangle, color: "text-warning", bg: "bg-warning-light" },
+  task_completed: { icon: CheckCircle2, color: "text-success", bg: "bg-success-light" },
+  review_needed: { icon: AlertCircle, color: "text-warning", bg: "bg-warning-light" },
+  agent_error: { icon: AlertTriangle, color: "text-danger", bg: "bg-danger-light" },
 };
 
 export function ToastContainer() {

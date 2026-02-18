@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import type { AgentStatus } from "@agenthub/shared";
+import type { AgentStatus, NotificationEvent } from "@agenthub/shared";
 
 export interface EventMap {
   "agent:status": { agentId: string; projectId: string; status: AgentStatus; taskId?: string; progress?: number };
@@ -28,6 +28,7 @@ export interface EventMap {
   "integration:message": { type: "whatsapp" | "telegram"; from: string; content: string };
   "devserver:output": { projectId: string; line: string; stream: "stdout" | "stderr"; timestamp: number };
   "devserver:status": { projectId: string; status: "stopped" | "starting" | "running" | "error"; port?: number; error?: string };
+  "notification:new": NotificationEvent;
 }
 
 class TypedEventBus {

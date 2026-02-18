@@ -2,6 +2,74 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.0] - 2026-02-18
+
+### Fase 24: Notification Inbox
+
+#### Fase 24A: Schema + Backend Notifications
+
+##### Added
+
+- **Notifications table** (`packages/database/src/schema/notifications.ts`)
+  - Campos: id, projectId, type, title, body, link, read, createdAt
+  - Types: `task_completed`, `review_needed`, `agent_error`, `info`
+
+- **Notification Service** (`apps/orchestrator/src/services/notification-service.ts`)
+  - `create()` — insere no DB + emite via Socket.io
+  - `getAll()` — lista paginada com filtro read/unread e projectId
+  - `getUnreadCount()` — contagem de não lidas
+  - `markAsRead()`, `markAllAsRead()`, `deleteNotification()`
+
+- **Notifications routes** (`apps/orchestrator/src/routes/notifications.ts`)
+  - `GET /api/notifications` — lista paginada (projectId, read, limit, offset)
+  - `GET /api/notifications/unread-count` — contagem unread
+  - `PUT /api/notifications/:id/read` — marcar como lida
+  - `PUT /api/notifications/read-all` — marcar todas como lidas
+  - `DELETE /api/notifications/:id` — deletar
+
+- **Event hooks** em `socket-handler.ts`
+  - `task:status → "review"` cria notificação `review_needed`
+  - `task:status → "done"` cria notificação `task_completed`
+  - `agent:error` cria notificação `agent_error`
+
+- **NotificationEvent** type em `packages/shared/src/types/events.ts`
+- **`notification:new`** socket event em ServerToClientEvents e EventMap
+- **Auto-migration** para criar tabela notifications no startup
+
+#### Fase 24B: Frontend Inbox UI
+
+##### Changed
+
+- **Notification Store** (`apps/web/src/stores/notification-store.ts`)
+  - Reescrito para usar API backend (persistência)
+  - `fetchNotifications()`, `fetchUnreadCount()` via API
+  - `markAsRead()`, `markAllAsRead()`, `deleteNotification()` via API
+  - `addNotificationFromSocket()` para real-time
+  - Toast system mantido como antes (efêmero)
+
+- **Notification Panel** (`apps/web/src/components/layout/notification-panel.tsx`)
+  - Deep link navigation — click navega para link da notificação
+  - Botão delete (trash icon) no hover
+  - Novos type badges: task_completed (green), review_needed (amber), agent_error (red)
+  - i18n em todas as strings
+
+- **Header** (`apps/web/src/components/layout/header.tsx`)
+  - Fetch notifications e unread count no mount
+  - Polling a cada 60s como fallback
+
+- **Socket hook** (`apps/web/src/hooks/use-socket.ts`)
+  - Listener `notification:new` → addNotificationFromSocket + toast para errors
+
+- **i18n**: 9 novas chaves `notifications.*` em 5 locales
+
+##### Stats
+
+- **Testes:** 169 passando (sem regressões)
+- **Arquivos criados:** 3 (notifications.ts schema, notification-service.ts, notifications.ts routes)
+- **Arquivos modificados:** 14
+
+---
+
 ## [0.23.0] - 2026-02-18
 
 ### Fase 23: Message Threading

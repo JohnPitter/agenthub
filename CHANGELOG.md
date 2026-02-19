@@ -2,6 +2,65 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0] - 2026-02-19
+
+### Fase 27: Landing Page Redesign + CI Pipeline Fix
+
+#### Fase 27A: Landing Page Redesign
+
+##### Added
+
+- **Landing page** (`apps/web/src/routes/landing.tsx`) — complete rewrite with sophisticated design
+  - **Hero section** — gradient headline with Sora display font, terminal preview mockup showing agent workflow
+  - **Stats bar** — animated counters (requestAnimationFrame + cubic ease-out) for key metrics
+  - **Bento grid features** — 6 features in responsive md:grid-cols-3 layout with alternating col-span-2
+  - **How It Works** — 3-step workflow with numbered cards and gradient borders
+  - **CTA section** — call-to-action with gradient button
+  - **Glass morphism nav** — backdrop-blur on scroll, transparent → solid transition
+  - **Mouse-following glow** — radial-gradient 600px circle follows cursor across hero
+  - **Scroll reveal animations** — `Reveal` component using IntersectionObserver for fade-up entrance
+  - **Terminal preview** — `TerminalPreview` component with blinking cursor, step-by-step agent output
+
+- **Typography** — Google Fonts Sora for display headings (`apps/web/index.html`)
+- **Blink animation** — `@keyframes blink` in `apps/web/src/globals.css`
+- **i18n keys** — 18 new landing page keys in `pt-BR.json` and `en-US.json` (featuresSectionLabel, howItWorksTitle, step1Title, statsRoles, etc.)
+
+#### Fase 27B: CI Pipeline Fix
+
+##### Fixed
+
+- **TypeScript TS2742 errors** — Added `ReturnType<typeof Router>` explicit type annotation to all 22 Express router declarations across the orchestrator:
+  - `agents.ts`, `analytics.ts`, `auth.ts`, `codex-oauth.ts` (2 routers), `dashboard.ts`, `dev-server.ts`, `docs-generator.ts`, `docs.ts`, `files.ts`, `git.ts`, `integrations.ts`, `memories.ts`, `messages.ts`, `notifications.ts`, `openai.ts`, `projects.ts`, `pull-requests.ts`, `skills.ts` (2 routers), `tasks.ts`, `teams.ts`, `usage.ts`, `workflows.ts`
+
+- **Missing agent role** — Added `doc_writer` prompt in `agent-prompts.ts` to match `AgentRole` union type
+
+- **Claude SDK type compatibility** — Fixed `BetaContentBlock` type predicate in `agent-session.ts` (SDK now requires `citations` property on `BetaTextBlock`)
+
+- **Stop reason comparison** — Fixed `receptionist-service.ts` to check `!== "success"` instead of `=== "error"` (SDK removed `"error"` from union)
+
+- **Null safety** — Added optional chaining for `ctx.message` in `telegram-service.ts`
+
+- **Rate limiter** — Restructured to apply single `apiLimiter` once before all routes (was compounding across routers), increased limit to 300 req/min (`apps/orchestrator/src/middleware/rate-limiter.ts`, `apps/orchestrator/src/index.ts`)
+
+- **GitHub repos 502** — Added 10s timeout + 5min in-memory cache to `github-service.ts`
+
+- **Lockfile sync** — Updated `pnpm-lock.yaml` to match installed dependencies
+
+##### Changed
+
+- **Dependabot PRs merged:**
+  - PR #1 — `docker/build-push-action` bump
+  - PR #2 — `actions/setup-node` v4 → v6
+  - PR #3 — `actions/checkout` v4 → v6
+
+##### Stats
+
+- **CI:** 4/4 jobs green (Test Node 20, Test Node 22, Lint & Typecheck, Build)
+- **Arquivos criados:** 0
+- **Arquivos modificados:** 30+
+
+---
+
 ## [0.26.0] - 2026-02-18
 
 ### Fase 26: CI Fix + Agent Skills

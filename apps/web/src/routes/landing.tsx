@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import {
   Zap, GitBranch, MessageSquare, Activity, BarChart3, Code2,
   ArrowRight, Github, Shield, Bot, Layers, Workflow, Eye,
+  Smartphone, Brain, Terminal, Sparkles, Users, FileCode,
+  Search, Wrench, BookOpen,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -84,9 +86,9 @@ function Counter({ end, suffix = "" }: { end: number; suffix?: string }) {
   return <span ref={ref}>{value}{suffix}</span>;
 }
 
-/* ── Terminal Preview ──────────────────────────────── */
+/* ── Dashboard Preview (replaces terminal) ─────────── */
 
-function TerminalPreview() {
+function DashboardPreview() {
   return (
     <div className="relative mx-auto max-w-3xl mt-14 md:mt-20">
       {/* Ambient glow */}
@@ -103,78 +105,87 @@ function TerminalPreview() {
               <div className="w-3 h-3 rounded-full bg-success/50" />
             </div>
             <span className="text-[11px] text-neutral-fg3 ml-2 font-mono tracking-wide">
-              AgentHub Terminal
+              AgentHub — Dashboard
             </span>
           </div>
 
-          {/* Terminal content */}
-          <div className="p-5 md:p-6 font-mono text-[12px] md:text-[13px] leading-[1.8] space-y-2.5">
-            <div className="text-neutral-fg2">
-              <span className="text-brand font-semibold">$</span>{" "}
-              agenthub task:run{" "}
-              <span className="text-success">&quot;Implementar autenticação OAuth&quot;</span>
+          {/* Dashboard content — agent activity feed */}
+          <div className="p-5 md:p-6 space-y-3.5">
+            {/* Task header */}
+            <div className="flex items-center gap-2.5 pb-3 border-b border-stroke2/50">
+              <div className="h-6 w-6 rounded-md bg-brand/10 flex items-center justify-center">
+                <Zap className="h-3.5 w-3.5 text-brand" />
+              </div>
+              <span className="text-[13px] font-semibold text-neutral-fg1">Implementar autenticação OAuth</span>
+              <span className="ml-auto text-[11px] px-2 py-0.5 rounded-full bg-warning/10 text-warning font-medium">Em Progresso</span>
             </div>
 
-            <div className="space-y-1 pl-2 border-l-2 border-brand/15 ml-1">
-              <div>
-                <span className="text-brand">▸</span>{" "}
-                <span className="text-neutral-fg2">Arquiteto analisando requisitos...</span>
+            {/* Agent activity lines */}
+            <div className="space-y-2.5 text-[12px] md:text-[13px]">
+              <div className="flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-purple/10 flex items-center justify-center mt-0.5 shrink-0">
+                  <Search className="h-3 w-3 text-purple" />
+                </div>
+                <div>
+                  <span className="text-neutral-fg2 font-medium">Arquiteto</span>
+                  <span className="text-neutral-fg3"> analisou requisitos → </span>
+                  <span className="text-neutral-fg1 font-medium">3 subtasks criadas</span>
+                </div>
+                <span className="text-[10px] text-neutral-fg-disabled ml-auto shrink-0">2m atrás</span>
               </div>
-              <div>
-                <span className="text-success">✓</span>{" "}
-                <span className="text-neutral-fg1">Plano criado</span>{" "}
-                <span className="text-neutral-fg3">— 3 subtasks</span>
+
+              <div className="flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-brand/10 flex items-center justify-center mt-0.5 shrink-0">
+                  <FileCode className="h-3 w-3 text-brand" />
+                </div>
+                <div>
+                  <span className="text-neutral-fg2 font-medium">Backend Dev</span>
+                  <span className="text-neutral-fg3"> codando → </span>
+                  <span className="text-success text-[11px]">+auth-service.ts</span>
+                  <span className="text-neutral-fg-disabled mx-1">·</span>
+                  <span className="text-warning text-[11px]">~middleware/auth.ts</span>
+                </div>
+                <span className="text-[10px] text-neutral-fg-disabled ml-auto shrink-0">1m atrás</span>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-success/10 flex items-center justify-center mt-0.5 shrink-0">
+                  <Eye className="h-3 w-3 text-success" />
+                </div>
+                <div>
+                  <span className="text-neutral-fg2 font-medium">Code Reviewer</span>
+                  <span className="text-neutral-fg3"> revisou → </span>
+                  <span className="text-success font-medium">Aprovado</span>
+                  <span className="text-neutral-fg3"> — 0 issues</span>
+                </div>
+                <span className="text-[10px] text-neutral-fg-disabled ml-auto shrink-0">30s atrás</span>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-purple/10 flex items-center justify-center mt-0.5 shrink-0">
+                  <GitBranch className="h-3 w-3 text-purple" />
+                </div>
+                <div>
+                  <span className="text-neutral-fg2 font-medium">DevOps</span>
+                  <span className="text-neutral-fg3"> push → </span>
+                  <span className="text-purple font-mono text-[11px]">feature/oauth</span>
+                  <span className="text-neutral-fg3"> → </span>
+                  <span className="text-info font-medium">PR #47 criada</span>
+                </div>
+                <span className="text-[10px] text-neutral-fg-disabled ml-auto shrink-0">agora</span>
               </div>
             </div>
 
-            <div className="space-y-1 pl-2 border-l-2 border-purple/15 ml-1">
-              <div>
-                <span className="text-purple">▸</span>{" "}
-                <span className="text-neutral-fg2">Backend Dev codando...</span>
+            {/* WhatsApp notification teaser */}
+            <div className="mt-3 pt-3 border-t border-stroke2/50 flex items-center gap-2.5">
+              <div className="h-5 w-5 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                <Smartphone className="h-3 w-3 text-success" />
               </div>
-              <div className="text-neutral-fg3 pl-3">
-                → src/services/auth-service.ts{" "}
-                <span className="text-success">(criado)</span>
-              </div>
-              <div className="text-neutral-fg3 pl-3">
-                → src/middleware/auth.ts{" "}
-                <span className="text-warning">(modificado)</span>
-              </div>
-              <div>
-                <span className="text-success">✓</span>{" "}
-                <span className="text-neutral-fg1">3 arquivos modificados</span>
-              </div>
-            </div>
-
-            <div className="space-y-1 pl-2 border-l-2 border-info/15 ml-1">
-              <div>
-                <span className="text-info">▸</span>{" "}
-                <span className="text-neutral-fg2">QA revisando código...</span>
-              </div>
-              <div>
-                <span className="text-success">✓</span>{" "}
-                <span className="text-neutral-fg1">Code review aprovado</span>{" "}
-                <span className="text-neutral-fg3">— 0 issues</span>
-              </div>
-            </div>
-
-            <div className="space-y-1 pl-2 border-l-2 border-success/15 ml-1">
-              <div>
-                <span className="text-brand">▸</span>{" "}
-                Git push →{" "}
-                <span className="text-purple">feature/oauth-auth</span>
-              </div>
-              <div>
-                <span className="text-success">✓</span>{" "}
-                <span className="text-neutral-fg1">PR #47 criada</span>
-              </div>
-            </div>
-
-            <div className="pt-1.5 flex items-center gap-1.5">
-              <span className="text-success font-semibold">✓ Task concluída</span>{" "}
-              <span className="text-neutral-fg3">em 4m 32s</span>
+              <span className="text-[11px] text-neutral-fg3">
+                📱 WhatsApp: <span className="text-neutral-fg2">"Task #47 concluída — PR pronta para review"</span>
+              </span>
               <span
-                className="inline-block w-[7px] h-[15px] bg-brand/70 ml-0.5 rounded-[1px]"
+                className="inline-block w-[7px] h-[15px] bg-brand/70 ml-auto rounded-[1px]"
                 style={{ animation: "blink 1.2s step-end infinite" }}
               />
             </div>
@@ -185,14 +196,48 @@ function TerminalPreview() {
   );
 }
 
+/* ── Agent Role Card ───────────────────────────────── */
+
+function AgentRoleCard({
+  icon: Icon,
+  name,
+  desc,
+  color,
+  bg,
+  delay,
+}: {
+  icon: typeof Bot;
+  name: string;
+  desc: string;
+  color: string;
+  bg: string;
+  delay: number;
+}) {
+  return (
+    <Reveal delay={delay}>
+      <div className="group flex items-center gap-4 p-4 rounded-xl border border-stroke/50 bg-neutral-bg2/30 hover:border-brand/20 hover:bg-neutral-bg2/60 transition-all duration-300">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${bg} transition-transform duration-300 group-hover:scale-110 shrink-0`}>
+          <Icon className={`h-5 w-5 ${color}`} strokeWidth={1.8} />
+        </div>
+        <div className="min-w-0">
+          <div className="text-[14px] font-semibold text-neutral-fg1" style={{ fontFamily: SORA }}>{name}</div>
+          <div className="text-[12px] text-neutral-fg3 leading-snug">{desc}</div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
 /* ── Feature data ──────────────────────────────────── */
 
 const FEATURES = [
   { icon: Bot, titleKey: "landing.featureAgentsTitle", descKey: "landing.featureAgentsDesc", color: "text-brand", bg: "bg-brand-light", span: "md:col-span-2" },
+  { icon: Smartphone, titleKey: "landing.featureWhatsappTitle", descKey: "landing.featureWhatsappDesc", color: "text-success", bg: "bg-success-light", span: "" },
   { icon: GitBranch, titleKey: "landing.featureGitTitle", descKey: "landing.featureGitDesc", color: "text-purple", bg: "bg-purple-light", span: "" },
-  { icon: MessageSquare, titleKey: "landing.featureReviewTitle", descKey: "landing.featureReviewDesc", color: "text-success", bg: "bg-success-light", span: "" },
-  { icon: Activity, titleKey: "landing.featureRealtimeTitle", descKey: "landing.featureRealtimeDesc", color: "text-warning", bg: "bg-warning-light", span: "md:col-span-2" },
-  { icon: Code2, titleKey: "landing.featureEditorTitle", descKey: "landing.featureEditorDesc", color: "text-orange", bg: "bg-orange/10", span: "" },
+  { icon: Brain, titleKey: "landing.featureMultiModelTitle", descKey: "landing.featureMultiModelDesc", color: "text-info", bg: "bg-info-light", span: "md:col-span-2" },
+  { icon: MessageSquare, titleKey: "landing.featureReviewTitle", descKey: "landing.featureReviewDesc", color: "text-warning", bg: "bg-warning-light", span: "" },
+  { icon: Activity, titleKey: "landing.featureRealtimeTitle", descKey: "landing.featureRealtimeDesc", color: "text-orange", bg: "bg-orange/10", span: "md:col-span-2" },
+  { icon: Code2, titleKey: "landing.featureEditorTitle", descKey: "landing.featureEditorDesc", color: "text-purple", bg: "bg-purple-light", span: "" },
   { icon: BarChart3, titleKey: "landing.featureAnalyticsTitle", descKey: "landing.featureAnalyticsDesc", color: "text-info", bg: "bg-info-light", span: "md:col-span-2" },
 ];
 
@@ -200,6 +245,16 @@ const STEPS = [
   { num: "01", titleKey: "landing.step1Title", descKey: "landing.step1Desc", icon: Layers },
   { num: "02", titleKey: "landing.step2Title", descKey: "landing.step2Desc", icon: Workflow },
   { num: "03", titleKey: "landing.step3Title", descKey: "landing.step3Desc", icon: Eye },
+];
+
+const AGENT_ROLES = [
+  { icon: Search, nameKey: "landing.agentArchitect", descKey: "landing.agentArchitectDesc", color: "text-purple", bg: "bg-purple-light" },
+  { icon: FileCode, nameKey: "landing.agentBackend", descKey: "landing.agentBackendDesc", color: "text-brand", bg: "bg-brand-light" },
+  { icon: Layers, nameKey: "landing.agentFrontend", descKey: "landing.agentFrontendDesc", color: "text-info", bg: "bg-info-light" },
+  { icon: Shield, nameKey: "landing.agentQA", descKey: "landing.agentQADesc", color: "text-success", bg: "bg-success-light" },
+  { icon: Eye, nameKey: "landing.agentReviewer", descKey: "landing.agentReviewerDesc", color: "text-warning", bg: "bg-warning-light" },
+  { icon: Wrench, nameKey: "landing.agentDevOps", descKey: "landing.agentDevOpsDesc", color: "text-orange", bg: "bg-orange/10" },
+  { icon: BookOpen, nameKey: "landing.agentDocWriter", descKey: "landing.agentDocWriterDesc", color: "text-neutral-fg2", bg: "bg-neutral-bg3" },
 ];
 
 /* ── Main Landing Page ─────────────────────────────── */
@@ -277,8 +332,8 @@ export function LandingPage() {
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           <Reveal>
             <div className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-light px-4 py-1.5 text-[12px] font-semibold text-brand mb-8">
-              <Zap className="h-3.5 w-3.5" />
-              Powered by Claude Agent SDK
+              <Sparkles className="h-3.5 w-3.5" />
+              {t("landing.badge")}
             </div>
           </Reveal>
 
@@ -329,7 +384,7 @@ export function LandingPage() {
         </div>
 
         <Reveal delay={0.5}>
-          <TerminalPreview />
+          <DashboardPreview />
         </Reveal>
       </section>
 
@@ -338,10 +393,10 @@ export function LandingPage() {
         <section className="relative z-10 border-y border-stroke/50 bg-neutral-bg2/30 backdrop-blur-sm mt-16 md:mt-24">
           <div className="max-w-7xl mx-auto px-6 md:px-8 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-0 md:divide-x md:divide-stroke/50">
             {[
-              { value: 6, suffix: "+", label: t("landing.statsRoles") },
+              { value: 7, suffix: "", label: t("landing.statsAgents") },
+              { value: 5, suffix: "+", label: t("landing.statsModels") },
+              { value: 4, suffix: "", label: t("landing.statsIntegrations") },
               { value: 100, suffix: "%", label: t("landing.statsRealtime") },
-              { value: 5, suffix: "+", label: t("landing.statsGit") },
-              { value: 24, suffix: "/7", label: t("landing.statsAnalytics") },
             ].map((stat, i) => (
               <div key={i} className="text-center md:px-8">
                 <div
@@ -361,6 +416,46 @@ export function LandingPage() {
           </div>
         </section>
       </Reveal>
+
+      {/* ── Agent Roles ── */}
+      <section className="max-w-7xl mx-auto px-6 md:px-8 py-24 md:py-32">
+        <Reveal>
+          <div className="text-center mb-14">
+            <div className="text-[12px] font-semibold text-purple uppercase tracking-[0.15em] mb-4">
+              {t("landing.agentsSectionLabel")}
+            </div>
+            <h2
+              className="font-bold tracking-tight"
+              style={{
+                fontFamily: SORA,
+                fontSize: "clamp(28px, 4vw, 44px)",
+              }}
+            >
+              {t("landing.agentsTitle")}
+            </h2>
+            <p className="mt-4 text-[16px] text-neutral-fg2 max-w-lg mx-auto leading-relaxed">
+              {t("landing.agentsSubtitle")}
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-w-4xl mx-auto">
+          {AGENT_ROLES.map((role, i) => (
+            <AgentRoleCard
+              key={role.nameKey}
+              icon={role.icon}
+              name={t(role.nameKey)}
+              desc={t(role.descKey)}
+              color={role.color}
+              bg={role.bg}
+              delay={0.05 * i}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Section divider ── */}
+      <div className="section-divider max-w-3xl mx-auto" />
 
       {/* ── Features (Bento grid) ── */}
       <section className="max-w-7xl mx-auto px-6 md:px-8 py-24 md:py-32">
@@ -481,7 +576,7 @@ export function LandingPage() {
             <div className="glow-orb glow-orb-brand absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 opacity-60" />
 
             <div className="relative z-10">
-              <Shield className="h-10 w-10 text-brand mx-auto mb-6" strokeWidth={1.5} />
+              <Users className="h-10 w-10 text-brand mx-auto mb-6" strokeWidth={1.5} />
               <h2
                 className="font-bold tracking-tight mb-4"
                 style={{
@@ -491,7 +586,7 @@ export function LandingPage() {
               >
                 {t("landing.ctaTitle")}
               </h2>
-              <p className="text-[16px] text-neutral-fg2 mb-10 max-w-lg mx-auto leading-relaxed">
+              <p className="text-[16px] text-neutral-fg2 mb-8 max-w-lg mx-auto leading-relaxed">
                 {t("landing.ctaSubtitle")}
               </p>
               <Link
@@ -501,6 +596,12 @@ export function LandingPage() {
                 {t("landing.ctaButton")}
                 <ArrowRight className="h-4.5 w-4.5" />
               </Link>
+
+              {/* CLI note */}
+              <div className="mt-6 flex items-center justify-center gap-2 text-[13px] text-neutral-fg3">
+                <Terminal className="h-4 w-4" />
+                {t("landing.cliNote")}
+              </div>
             </div>
           </div>
         </Reveal>
@@ -521,7 +622,7 @@ export function LandingPage() {
             </span>
           </div>
           <p className="text-[12px] text-neutral-fg-disabled">
-            &copy; {new Date().getFullYear()} AgentHub. Built with Claude Agent SDK.
+            &copy; {new Date().getFullYear()} AgentHub. Multi-Agent Orchestration Platform.
           </p>
           <a
             href="https://github.com/JohnPitter/agenthub"

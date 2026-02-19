@@ -476,6 +476,155 @@
       "custom": "Personalizado"
     }
   },
+  "help": {
+    "contextualHelp": "Ayuda contextual",
+    "footer": "Alternar ayuda con",
+    "sections": {
+      "features": "Funcionalidades",
+      "shortcuts": "Atajos de Teclado",
+      "tips": "Consejos"
+    },
+    "shortcuts": {
+      "search": "Buscar",
+      "toggleHelp": "Alternar Ayuda",
+      "saveFile": "Guardar Archivo"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "purpose": "Vista general de tu workspace con proyectos, agentes activos, actividad reciente y métricas de tareas en tiempo real.",
+      "feature_0": "Escanear directorios o importar desde GitHub",
+      "feature_1": "Monitorear agentes y tareas en ejecución",
+      "feature_2": "Tabla de actividad reciente con logs",
+      "feature_3": "Tarjetas de estadísticas con contadores en tiempo real",
+      "tip_0": "Usa el escáner de workspace para encontrar proyectos automáticamente",
+      "tip_1": "Haz clic en cualquier proyecto para acceder al panel completo"
+    },
+    "agents": {
+      "title": "Agentes",
+      "purpose": "Gestiona tu equipo de agentes de IA — configura modelos, permisos, skills y system prompts para cada agente.",
+      "feature_0": "Crear y configurar agentes con diferentes roles",
+      "feature_1": "Elegir modelo de IA (Claude, GPT) por agente",
+      "feature_2": "Definir nivel, permisos y herramientas permitidas",
+      "feature_3": "Asignar skills especializadas a cada agente",
+      "tip_0": "Usa diferentes roles para simular un equipo real de desarrollo",
+      "tip_1": "Los agentes Senior tienen system prompts más detallados"
+    },
+    "tasks": {
+      "title": "Tareas",
+      "purpose": "Lista global de todas las tareas del workspace con filtros, estado y asignación de agentes.",
+      "feature_0": "Crear tareas con título, descripción y prioridad",
+      "feature_1": "Filtrar por estado, prioridad o agente",
+      "feature_2": "Ver detalles con línea de tiempo de ejecución",
+      "feature_3": "Aprobar, rechazar o reejecutar tareas",
+      "tip_0": "Las tareas en 'Revisión' esperan tu aprobación",
+      "tip_1": "Usa el panel lateral para ver detalles sin salir de la lista"
+    },
+    "docs": {
+      "title": "Documentación",
+      "purpose": "Accede a la documentación del proyecto y la referencia automática de API con todos los endpoints disponibles.",
+      "feature_0": "Documentos del proyecto en Markdown",
+      "feature_1": "API Docs generados automáticamente",
+      "feature_2": "Buscar endpoints por ruta o descripción",
+      "tip_0": "Regenera la API Docs después de agregar nuevos endpoints",
+      "tip_1": "Usa la tabla de contenidos lateral para navegar rápidamente"
+    },
+    "analytics": {
+      "title": "Analíticas",
+      "purpose": "Dashboard de métricas con vista general de tareas, tasa de éxito, tiempo promedio y rendimiento por agente.",
+      "feature_0": "Gráficos de tareas por período (7d, 30d, todo)",
+      "feature_1": "Tasa de éxito y tiempo promedio de ejecución",
+      "feature_2": "Desglose por agente con métricas individuales",
+      "feature_3": "Seguimiento de costos y tokens consumidos",
+      "tip_0": "Alterna entre períodos para identificar tendencias",
+      "tip_1": "La pestaña 'Por Agente' muestra quién es más productivo"
+    },
+    "settings": {
+      "title": "Configuración",
+      "purpose": "Personaliza tu perfil, apariencia, idioma, workspace predeterminado y conexiones con proveedores de IA.",
+      "feature_0": "Perfil con nombre, avatar y color",
+      "feature_1": "Tema claro, oscuro o del sistema",
+      "feature_2": "Conectar Claude y OpenAI como proveedores",
+      "feature_3": "Gestionar skills e integraciones",
+      "tip_0": "Conecta al menos un proveedor de IA para ejecutar agentes",
+      "tip_1": "El tema del sistema se adapta a la preferencia de tu SO"
+    },
+    "projectOverview": {
+      "title": "Vista General del Proyecto",
+      "purpose": "Resumen del proyecto con estadísticas de tareas, agentes activos, equipo configurado y tareas recientes.",
+      "feature_0": "Tarjetas con contadores de tareas y progreso",
+      "feature_1": "Lista de agentes activos en el proyecto",
+      "feature_2": "Actividad reciente del proyecto",
+      "feature_3": "Acceso rápido a tablero, tareas y archivos",
+      "tip_0": "Usa el chat lateral para interactuar con agentes en el contexto del proyecto",
+      "tip_1": "La vista general se actualiza en tiempo real vía WebSocket"
+    },
+    "projectBoard": {
+      "title": "Tablero",
+      "purpose": "Kanban visual con columnas de estado para organizar y mover tareas entre Backlog, En Progreso, Revisión y Completado.",
+      "feature_0": "Arrastrar y soltar tareas entre columnas",
+      "feature_1": "Crear tareas directamente en el tablero",
+      "feature_2": "Asignar agentes a tareas desde el tablero",
+      "feature_3": "Vista rápida de prioridad y agente asignado",
+      "tip_0": "Arrastra tareas a 'Revisión' cuando quieras revisión",
+      "tip_1": "Las tarjetas muestran agente, prioridad y branch"
+    },
+    "projectTasks": {
+      "title": "Tareas del Proyecto",
+      "purpose": "Lista detallada de todas las tareas del proyecto con filtros avanzados, panel de detalles y acciones rápidas.",
+      "feature_0": "Filtrar tareas por estado o agente asignado",
+      "feature_1": "Panel lateral con detalles completos de la tarea",
+      "feature_2": "Ejecutar, aprobar o rechazar tareas",
+      "feature_3": "Ver cambios de código y resultado de cada tarea",
+      "tip_0": "Haz clic en una tarea para abrir el panel de detalles",
+      "tip_1": "Usa 'Ver Cambios' para revisar el diff de código"
+    },
+    "projectAgents": {
+      "title": "Agentes del Proyecto",
+      "purpose": "Configura el equipo de agentes específico del proyecto — asigna agentes, workflows y configuraciones personalizadas.",
+      "feature_0": "Asignar agentes al proyecto con configuraciones específicas",
+      "feature_1": "Definir workflows personalizados por proyecto",
+      "feature_2": "Monitorear estado de los agentes en tiempo real",
+      "tip_0": "Cada proyecto puede tener un equipo diferente de agentes",
+      "tip_1": "Los workflows definen el orden de ejecución de los agentes"
+    },
+    "projectFiles": {
+      "title": "Archivos",
+      "purpose": "Navega la estructura de archivos del proyecto con el editor Monaco integrado — visualiza y edita código sin salir de la plataforma.",
+      "feature_0": "Árbol de directorios con navegación completa",
+      "feature_1": "Editor Monaco con resaltado de sintaxis",
+      "feature_2": "Vista diff para cambios de tareas",
+      "tip_0": "Usa Ctrl+S para guardar cambios en el editor",
+      "tip_1": "El editor soporta más de 50 lenguajes de programación"
+    },
+    "projectPrs": {
+      "title": "Pull Requests",
+      "purpose": "Visualiza y gestiona pull requests creados por los agentes — revisa estado, diffs y acciones disponibles.",
+      "feature_0": "Lista de PRs con estado y resumen",
+      "feature_1": "Ver diff de cambios de cada PR",
+      "feature_2": "Acciones rápidas: merge, cerrar o comentar",
+      "tip_0": "Los agentes crean PRs automáticamente al completar tareas",
+      "tip_1": "Revisa el diff antes de aprobar un PR"
+    },
+    "projectPreview": {
+      "title": "Preview",
+      "purpose": "Visualiza el proyecto en ejecución directamente en la plataforma — preview integrado para proyectos web.",
+      "feature_0": "Preview embebido del proyecto",
+      "feature_1": "Recargar preview después de cambios",
+      "feature_2": "Abrir en nueva pestaña para pantalla completa",
+      "tip_0": "El preview funciona mejor con proyectos web (React, Vue, etc.)",
+      "tip_1": "Usa recarga después de que los agentes hagan cambios"
+    },
+    "projectSettings": {
+      "title": "Configuración del Proyecto",
+      "purpose": "Configura integraciones (Git, WhatsApp, Telegram), ruta del proyecto, descripción y preferencias específicas.",
+      "feature_0": "Configurar repositorio Git y credenciales",
+      "feature_1": "Conectar WhatsApp para notificaciones",
+      "feature_2": "Conectar Telegram como canal alternativo",
+      "feature_3": "Editar nombre, descripción y ruta del proyecto",
+      "tip_0": "Conecta Git para habilitar commits y PRs automáticos",
+      "tip_1": "WhatsApp permite crear tareas por mensaje"
+    }
+  },
   "workflow": {
     "save": "Guardar",
     "validate": "Validar",

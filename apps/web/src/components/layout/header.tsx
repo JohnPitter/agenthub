@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useParams, Link } from "react-router-dom";
-import { Search, Bell, MessageSquare, Settings, LogOut, User } from "lucide-react";
+import { Search, Bell, MessageSquare, Settings, LogOut, User, HelpCircle } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useNotificationStore, useUnreadCount } from "../../stores/notification-store";
@@ -11,6 +11,8 @@ import { useAuthStore } from "../../stores/auth-store";
 import { getAgentAvatarUrl } from "../../lib/agent-avatar";
 import { NotificationPanel } from "./notification-panel";
 import { CommandPalette } from "../ui/command-palette";
+import { useHelpDrawer } from "../../hooks/use-help-drawer";
+import { HelpDrawer } from "../help/help-drawer";
 
 const ROUTE_LABEL_KEYS: Record<string, string> = {
   board: "project.board",
@@ -33,6 +35,7 @@ export function Header() {
   const panelOpen = useNotificationStore((s) => s.panelOpen);
   const togglePanel = useNotificationStore((s) => s.togglePanel);
   const { open: commandOpen, setOpen: setCommandOpen } = useCommandPalette();
+  const { open: helpOpen, setOpen: setHelpOpen, close: closeHelp } = useHelpDrawer();
   const userName = useUserStore((s) => s.name);
   const userAvatar = useUserStore((s) => s.avatar);
   const userColor = useUserStore((s) => s.color);
@@ -178,6 +181,18 @@ export function Header() {
           {panelOpen && <NotificationPanel />}
         </div>
 
+        <button
+          onClick={() => setHelpOpen(!helpOpen)}
+          className={cn(
+            "relative flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200",
+            helpOpen
+              ? "bg-brand-light text-brand"
+              : "text-neutral-fg3 hover:bg-neutral-bg-hover",
+          )}
+        >
+          <HelpCircle className="h-4.5 w-4.5" strokeWidth={2} />
+        </button>
+
         <div ref={profileRef} className="relative">
           <button
             onClick={() => setProfileOpen(!profileOpen)}
@@ -240,6 +255,7 @@ export function Header() {
       </div>
       </div>
       <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
+      <HelpDrawer open={helpOpen} onClose={closeHelp} />
     </header>
   );
 }

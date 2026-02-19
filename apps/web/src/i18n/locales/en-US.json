@@ -514,6 +514,155 @@
       "custom": "Custom"
     }
   },
+  "help": {
+    "contextualHelp": "Contextual help",
+    "footer": "Toggle help with",
+    "sections": {
+      "features": "Features",
+      "shortcuts": "Keyboard Shortcuts",
+      "tips": "Tips"
+    },
+    "shortcuts": {
+      "search": "Search",
+      "toggleHelp": "Toggle Help",
+      "saveFile": "Save File"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "purpose": "Overview of your workspace with projects, active agents, recent activity, and real-time task metrics.",
+      "feature_0": "Scan directories or import from GitHub",
+      "feature_1": "Monitor running agents and tasks",
+      "feature_2": "Recent activity table with logs",
+      "feature_3": "Stats cards with real-time counters",
+      "tip_0": "Use the workspace scanner to find projects automatically",
+      "tip_1": "Click any project to access the full dashboard"
+    },
+    "agents": {
+      "title": "Agents",
+      "purpose": "Manage your AI agent team — configure models, permissions, skills, and system prompts for each agent.",
+      "feature_0": "Create and configure agents with different roles",
+      "feature_1": "Choose AI model (Claude, GPT) per agent",
+      "feature_2": "Set level, permissions, and allowed tools",
+      "feature_3": "Assign specialized skills to each agent",
+      "tip_0": "Use different roles to simulate a real dev team",
+      "tip_1": "Senior agents have more detailed system prompts"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "purpose": "Global task list across your workspace with filters, status tracking, and agent assignment.",
+      "feature_0": "Create tasks with title, description, and priority",
+      "feature_1": "Filter by status, priority, or agent",
+      "feature_2": "View details with execution timeline",
+      "feature_3": "Approve, reject, or re-run tasks",
+      "tip_0": "Tasks in 'Review' are waiting for your approval",
+      "tip_1": "Use the side drawer to view details without leaving the list"
+    },
+    "docs": {
+      "title": "Documentation",
+      "purpose": "Access project documentation and auto-generated API reference with all available endpoints.",
+      "feature_0": "Project documents in Markdown",
+      "feature_1": "Auto-generated API Docs",
+      "feature_2": "Search endpoints by path or description",
+      "tip_0": "Regenerate API Docs after adding new endpoints",
+      "tip_1": "Use the sidebar table of contents for quick navigation"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "purpose": "Metrics dashboard with task overview, success rate, average time, and per-agent performance breakdown.",
+      "feature_0": "Task charts by period (7d, 30d, all time)",
+      "feature_1": "Success rate and average execution time",
+      "feature_2": "Per-agent breakdown with individual metrics",
+      "feature_3": "Cost tracking and token consumption",
+      "tip_0": "Switch between periods to identify trends",
+      "tip_1": "The 'By Agent' tab shows who is most productive"
+    },
+    "settings": {
+      "title": "Settings",
+      "purpose": "Customize your profile, appearance, language, default workspace, and AI provider connections.",
+      "feature_0": "Profile with name, avatar, and color",
+      "feature_1": "Light, dark, or system theme",
+      "feature_2": "Connect Claude and OpenAI as providers",
+      "feature_3": "Manage skills and integrations",
+      "tip_0": "Connect at least one AI provider to run agents",
+      "tip_1": "System theme adapts to your OS preference"
+    },
+    "projectOverview": {
+      "title": "Project Overview",
+      "purpose": "Project summary with task stats, active agents, configured team, and recent tasks.",
+      "feature_0": "Cards with task counters and progress",
+      "feature_1": "List of active agents in the project",
+      "feature_2": "Recent project activity",
+      "feature_3": "Quick access to board, tasks, and files",
+      "tip_0": "Use the side chat to interact with agents in project context",
+      "tip_1": "The overview updates in real-time via WebSocket"
+    },
+    "projectBoard": {
+      "title": "Board",
+      "purpose": "Visual Kanban with status columns to organize and move tasks between Backlog, In Progress, Review, and Done.",
+      "feature_0": "Drag & drop tasks between columns",
+      "feature_1": "Create tasks directly on the board",
+      "feature_2": "Assign agents to tasks from the board",
+      "feature_3": "Quick view of priority and assigned agent",
+      "tip_0": "Drag tasks to 'Review' when you want a review",
+      "tip_1": "Cards show agent, priority, and branch"
+    },
+    "projectTasks": {
+      "title": "Project Tasks",
+      "purpose": "Detailed task list for the project with advanced filters, detail drawer, and quick actions.",
+      "feature_0": "Filter tasks by status or assigned agent",
+      "feature_1": "Side drawer with full task details",
+      "feature_2": "Run, approve, or reject tasks",
+      "feature_3": "View code changes and task results",
+      "tip_0": "Click a task to open the detail drawer",
+      "tip_1": "Use 'View Changes' to review the code diff"
+    },
+    "projectAgents": {
+      "title": "Project Agents",
+      "purpose": "Configure the project-specific agent team — assign agents, workflows, and custom configurations.",
+      "feature_0": "Assign agents to the project with specific configs",
+      "feature_1": "Define custom workflows per project",
+      "feature_2": "Monitor agent status in real-time",
+      "tip_0": "Each project can have a different agent team",
+      "tip_1": "Workflows define the agent execution order"
+    },
+    "projectFiles": {
+      "title": "Files",
+      "purpose": "Browse the project file tree with the integrated Monaco editor — view and edit code without leaving the platform.",
+      "feature_0": "Directory tree with full navigation",
+      "feature_1": "Monaco Editor with syntax highlighting",
+      "feature_2": "Diff view for task changes",
+      "tip_0": "Use Ctrl+S to save changes in the editor",
+      "tip_1": "The editor supports 50+ programming languages"
+    },
+    "projectPrs": {
+      "title": "Pull Requests",
+      "purpose": "View and manage pull requests created by agents — check status, diffs, and available actions.",
+      "feature_0": "PR list with status and summary",
+      "feature_1": "View change diffs for each PR",
+      "feature_2": "Quick actions: merge, close, or comment",
+      "tip_0": "Agents create PRs automatically after completing tasks",
+      "tip_1": "Review the diff before approving a PR"
+    },
+    "projectPreview": {
+      "title": "Preview",
+      "purpose": "View the running project directly in the platform — integrated preview for web projects.",
+      "feature_0": "Embedded project preview",
+      "feature_1": "Reload preview after changes",
+      "feature_2": "Open in new tab for full screen",
+      "tip_0": "Preview works best with web projects (React, Vue, etc.)",
+      "tip_1": "Use reload after agents make changes"
+    },
+    "projectSettings": {
+      "title": "Project Settings",
+      "purpose": "Configure integrations (Git, WhatsApp, Telegram), project path, description, and specific preferences.",
+      "feature_0": "Configure Git repository and credentials",
+      "feature_1": "Connect WhatsApp for notifications",
+      "feature_2": "Connect Telegram as an alternative channel",
+      "feature_3": "Edit project name, description, and path",
+      "tip_0": "Connect Git to enable automatic commits and PRs",
+      "tip_1": "WhatsApp lets you create tasks via message"
+    }
+  },
   "workflow": {
     "save": "Save",
     "validate": "Validate",

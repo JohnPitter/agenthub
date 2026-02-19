@@ -476,6 +476,155 @@
       "custom": "\u81ea\u5b9a\u4e49"
     }
   },
+  "help": {
+    "contextualHelp": "上下文帮助",
+    "footer": "切换帮助",
+    "sections": {
+      "features": "功能",
+      "shortcuts": "键盘快捷键",
+      "tips": "提示"
+    },
+    "shortcuts": {
+      "search": "搜索",
+      "toggleHelp": "切换帮助",
+      "saveFile": "保存文件"
+    },
+    "dashboard": {
+      "title": "仪表盘",
+      "purpose": "工作区概览，包含项目、活跃智能体、最近活动和实时任务指标。",
+      "feature_0": "扫描目录或从GitHub导入",
+      "feature_1": "监控运行中的智能体和任务",
+      "feature_2": "带日志的最近活动表格",
+      "feature_3": "带实时计数器的统计卡片",
+      "tip_0": "使用工作区扫描器自动发现项目",
+      "tip_1": "点击任何项目进入完整仪表盘"
+    },
+    "agents": {
+      "title": "智能体",
+      "purpose": "管理AI智能体团队 — 为每个智能体配置模型、权限、技能和系统提示词。",
+      "feature_0": "创建和配置不同角色的智能体",
+      "feature_1": "为每个智能体选择AI模型（Claude、GPT）",
+      "feature_2": "设置等级、权限和允许的工具",
+      "feature_3": "为每个智能体分配专业技能",
+      "tip_0": "使用不同角色模拟真实开发团队",
+      "tip_1": "高级智能体拥有更详细的系统提示词"
+    },
+    "tasks": {
+      "title": "任务",
+      "purpose": "工作区全局任务列表，支持筛选、状态跟踪和智能体分配。",
+      "feature_0": "创建带标题、描述和优先级的任务",
+      "feature_1": "按状态、优先级或智能体筛选",
+      "feature_2": "查看执行时间线详情",
+      "feature_3": "批准、拒绝或重新执行任务",
+      "tip_0": "'审查中'的任务正在等待您的批准",
+      "tip_1": "使用侧边抽屉查看详情，无需离开列表"
+    },
+    "docs": {
+      "title": "文档",
+      "purpose": "访问项目文档和自动生成的API参考，包含所有可用端点。",
+      "feature_0": "Markdown格式的项目文档",
+      "feature_1": "自动生成的API文档",
+      "feature_2": "按路径或描述搜索端点",
+      "tip_0": "添加新端点后重新生成API文档",
+      "tip_1": "使用侧边目录快速导航"
+    },
+    "analytics": {
+      "title": "数据分析",
+      "purpose": "指标仪表盘，包含任务概览、成功率、平均时间和每个智能体的性能分析。",
+      "feature_0": "按时间段的任务图表（7天、30天、全部）",
+      "feature_1": "成功率和平均执行时间",
+      "feature_2": "按智能体细分的个人指标",
+      "feature_3": "成本跟踪和Token消耗",
+      "tip_0": "切换时间段以识别趋势",
+      "tip_1": "'按智能体'标签显示最高效的智能体"
+    },
+    "settings": {
+      "title": "设置",
+      "purpose": "自定义个人资料、外观、语言、默认工作区和AI提供商连接。",
+      "feature_0": "带名称、头像和颜色的个人资料",
+      "feature_1": "浅色、深色或跟随系统主题",
+      "feature_2": "连接Claude和OpenAI作为提供商",
+      "feature_3": "管理技能和集成",
+      "tip_0": "至少连接一个AI提供商才能运行智能体",
+      "tip_1": "系统主题自动适应操作系统偏好"
+    },
+    "projectOverview": {
+      "title": "项目概览",
+      "purpose": "项目摘要，包含任务统计、活跃智能体、已配置团队和最近任务。",
+      "feature_0": "带任务计数和进度的卡片",
+      "feature_1": "项目中活跃智能体列表",
+      "feature_2": "最近项目活动",
+      "feature_3": "快速访问看板、任务和文件",
+      "tip_0": "使用侧边聊天在项目上下文中与智能体互动",
+      "tip_1": "概览通过WebSocket实时更新"
+    },
+    "projectBoard": {
+      "title": "看板",
+      "purpose": "可视化看板，带状态列，在待办、进行中、审查和已完成之间组织和移动任务。",
+      "feature_0": "在列之间拖放任务",
+      "feature_1": "直接在看板上创建任务",
+      "feature_2": "从看板为任务分配智能体",
+      "feature_3": "快速查看优先级和分配的智能体",
+      "tip_0": "需要审查时将任务拖到'审查中'",
+      "tip_1": "卡片显示智能体、优先级和分支"
+    },
+    "projectTasks": {
+      "title": "项目任务",
+      "purpose": "项目详细任务列表，支持高级筛选、详情抽屉和快速操作。",
+      "feature_0": "按状态或分配的智能体筛选任务",
+      "feature_1": "带完整任务详情的侧边抽屉",
+      "feature_2": "执行、批准或拒绝任务",
+      "feature_3": "查看代码变更和任务结果",
+      "tip_0": "点击任务打开详情抽屉",
+      "tip_1": "使用'查看变更'审查代码diff"
+    },
+    "projectAgents": {
+      "title": "项目智能体",
+      "purpose": "配置项目专属的智能体团队 — 分配智能体、工作流和自定义配置。",
+      "feature_0": "使用特定配置将智能体分配到项目",
+      "feature_1": "为每个项目定义自定义工作流",
+      "feature_2": "实时监控智能体状态",
+      "tip_0": "每个项目可以有不同的智能体团队",
+      "tip_1": "工作流定义智能体的执行顺序"
+    },
+    "projectFiles": {
+      "title": "文件",
+      "purpose": "使用集成Monaco编辑器浏览项目文件树 — 无需离开平台即可查看和编辑代码。",
+      "feature_0": "完整导航的目录树",
+      "feature_1": "带语法高亮的Monaco编辑器",
+      "feature_2": "任务变更的Diff视图",
+      "tip_0": "在编辑器中使用Ctrl+S保存更改",
+      "tip_1": "编辑器支持50多种编程语言"
+    },
+    "projectPrs": {
+      "title": "Pull Requests",
+      "purpose": "查看和管理智能体创建的Pull Request — 检查状态、diff和可用操作。",
+      "feature_0": "带状态和摘要的PR列表",
+      "feature_1": "查看每个PR的变更diff",
+      "feature_2": "快速操作：合并、关闭或评论",
+      "tip_0": "智能体在完成任务后自动创建PR",
+      "tip_1": "批准PR前先审查diff"
+    },
+    "projectPreview": {
+      "title": "预览",
+      "purpose": "直接在平台中查看运行中的项目 — Web项目的集成预览。",
+      "feature_0": "嵌入式项目预览",
+      "feature_1": "更改后重新加载预览",
+      "feature_2": "在新标签页中全屏打开",
+      "tip_0": "预览最适合Web项目（React、Vue等）",
+      "tip_1": "智能体做出更改后使用重新加载"
+    },
+    "projectSettings": {
+      "title": "项目设置",
+      "purpose": "配置集成（Git、WhatsApp、Telegram）、项目路径、描述和特定偏好。",
+      "feature_0": "配置Git仓库和凭据",
+      "feature_1": "连接WhatsApp接收通知",
+      "feature_2": "连接Telegram作为备选渠道",
+      "feature_3": "编辑项目名称、描述和路径",
+      "tip_0": "连接Git以启用自动提交和PR",
+      "tip_1": "WhatsApp允许通过消息创建任务"
+    }
+  },
   "workflow": {
     "save": "保存",
     "validate": "验证",

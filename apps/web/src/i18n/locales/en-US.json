@@ -275,7 +275,22 @@
     "featureEditorDesc": "View and edit code directly in the platform with full syntax highlighting",
     "ctaTitle": "Ready to automate your development?",
     "ctaSubtitle": "Get started for free and see your AI agents working in minutes",
-    "ctaButton": "Get Started"
+    "ctaButton": "Get Started",
+    "featuresSectionLabel": "Features",
+    "howItWorksSectionLabel": "Workflow",
+    "howItWorksTitle": "How it works",
+    "howItWorksSubtitle": "Three steps to automate your development workflow",
+    "stepLabel": "Step",
+    "step1Title": "Create your Project",
+    "step1Desc": "Import directly from GitHub or scan a local directory from your workspace",
+    "step2Title": "Configure your Agents",
+    "step2Desc": "Define roles, AI models, skills, and custom workflows for each agent",
+    "step3Title": "Watch the Magic",
+    "step3Desc": "Your agents work together in real-time — from commits to automated code reviews",
+    "statsRoles": "Agent Roles",
+    "statsRealtime": "Real-time",
+    "statsGit": "Git Operations",
+    "statsAnalytics": "Monitoring"
   },
   "project": {
     "overview": "Overview",

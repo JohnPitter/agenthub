@@ -275,7 +275,22 @@
     "featureEditorDesc": "Visualize e edite código diretamente na plataforma com syntax highlighting completo",
     "ctaTitle": "Pronto para automatizar seu desenvolvimento?",
     "ctaSubtitle": "Comece gratuitamente e veja seus agentes de IA trabalhando em minutos",
-    "ctaButton": "Começar Agora"
+    "ctaButton": "Começar Agora",
+    "featuresSectionLabel": "Funcionalidades",
+    "howItWorksSectionLabel": "Workflow",
+    "howItWorksTitle": "Como funciona",
+    "howItWorksSubtitle": "Três passos para automatizar seu fluxo de desenvolvimento",
+    "stepLabel": "Passo",
+    "step1Title": "Crie seu Projeto",
+    "step1Desc": "Importe direto do GitHub ou escaneie um diretório local do seu workspace",
+    "step2Title": "Configure seus Agentes",
+    "step2Desc": "Defina papéis, modelos de IA, skills e workflows personalizados para cada agente",
+    "step3Title": "Observe a Mágica",
+    "step3Desc": "Seus agentes trabalham juntos em tempo real — de commits a code reviews automatizados",
+    "statsRoles": "Papéis de Agentes",
+    "statsRealtime": "Tempo Real",
+    "statsGit": "Operações Git",
+    "statsAnalytics": "Monitoramento"
   },
   "project": {
     "overview": "Visão Geral",

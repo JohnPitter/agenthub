@@ -365,6 +365,11 @@ body {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
 .animate-fade-up {
   animation: fade-up 0.3s ease-out both;
 }

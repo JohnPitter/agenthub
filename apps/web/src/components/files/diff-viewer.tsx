@@ -18,8 +18,8 @@ export function DiffViewer({
   originalLabel = "Original",
   modifiedLabel = "Modified",
 }: DiffViewerProps) {
-  const { theme } = useThemeStore();
-  const monacoTheme = theme === "light" ? "vs" : "vs-dark";
+  const { resolved } = useThemeStore();
+  const monacoTheme = resolved === "light" ? "vs" : "vs-dark";
   const editorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
 
   const handleMount: DiffOnMount = (editor) => {

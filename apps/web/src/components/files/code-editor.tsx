@@ -16,8 +16,8 @@ interface CodeEditorProps {
 export function CodeEditor({ value, language, readOnly = false, onChange, onSave, onEditorMount }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const { theme } = useThemeStore();
-  const monacoTheme = theme === "light" ? "vs" : "vs-dark";
+  const { resolved } = useThemeStore();
+  const monacoTheme = resolved === "light" ? "vs" : "vs-dark";
 
   const handleEditorDidMount: OnMount = (editorInstance, monacoInstance) => {
     editorRef.current = editorInstance;

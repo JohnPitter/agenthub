@@ -9,7 +9,11 @@
     <script>
       // FOUC prevention — apply theme before any CSS/JS loads
       (function() {
-        var theme = localStorage.getItem('agenthub:theme') || 'dark';
+        var stored = localStorage.getItem('agenthub:theme');
+        var theme = stored;
+        if (!stored || stored === 'system') {
+          theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
         if (theme === 'light') {
           document.documentElement.setAttribute('data-theme', 'light');
         }

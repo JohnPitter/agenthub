@@ -858,6 +858,7 @@ function ThemeSection() {
   const { theme, setTheme } = useThemeStore();
 
   const options = [
+    { value: "system" as const, labelKey: "settings.system", descKey: "settings.systemDesc", preview: "bg-gradient-to-r from-neutral-bg1 to-white" },
     { value: "dark" as const, labelKey: "settings.dark", descKey: "settings.darkDesc", preview: "bg-neutral-bg1" },
     { value: "light" as const, labelKey: "settings.light", descKey: "settings.lightDesc", preview: "bg-white" },
   ];

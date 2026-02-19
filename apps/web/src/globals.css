@@ -764,6 +764,14 @@ body {
   background: rgba(139,92,246,0.10);
 }
 
+[data-theme="light"] .glow-orb-brand {
+  background: rgba(79,70,229,0.08);
+}
+
+[data-theme="light"] .glow-orb-purple {
+  background: rgba(124,58,237,0.06);
+}
+
 /* ═══ Stat card — individual metrics ═══ */
 
 .stat-card {

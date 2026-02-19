@@ -178,6 +178,8 @@
     "lessAvatars": "Menos avatares",
     "theme": "Tema",
     "themeDesc": "Personaliza la apariencia de AgentHub",
+    "system": "Sistema",
+    "systemDesc": "Sigue la preferencia de tu sistema operativo",
     "dark": "Oscuro",
     "darkDesc": "Tema premium oscuro predeterminado",
     "light": "Claro",

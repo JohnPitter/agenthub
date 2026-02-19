@@ -178,6 +178,8 @@
     "lessAvatars": "收起",
     "theme": "主题",
     "themeDesc": "自定义 AgentHub 的外观",
+    "system": "系统",
+    "systemDesc": "跟随操作系统偏好设置",
     "dark": "深色",
     "darkDesc": "高级深色默认主题",
     "light": "浅色",

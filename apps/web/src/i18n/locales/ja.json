@@ -178,6 +178,8 @@
     "lessAvatars": "閉じる",
     "theme": "テーマ",
     "themeDesc": "AgentHub の外観をカスタマイズ",
+    "system": "システム",
+    "systemDesc": "OSの設定に従います",
     "dark": "ダーク",
     "darkDesc": "プレミアムダークテーマ",
     "light": "ライト",

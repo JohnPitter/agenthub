@@ -370,6 +370,11 @@ body {
   51%, 100% { opacity: 0; }
 }
 
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+
 .animate-fade-up {
   animation: fade-up 0.3s ease-out both;
 }

@@ -3,7 +3,7 @@ import { db, schema } from "@agenthub/database";
 import { eq, desc, count, max, sql, and, ne } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
-export const dashboardRouter = Router();
+export const dashboardRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/dashboard/stats
 dashboardRouter.get("/stats", async (req, res) => {

@@ -7,7 +7,7 @@ import { getTelegramService, resetTelegramService } from "../integrations/telegr
 import { encrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 
 /**
  * POST /api/integrations/whatsapp/connect

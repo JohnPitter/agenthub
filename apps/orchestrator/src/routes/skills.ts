@@ -4,8 +4,8 @@ import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logger } from "../lib/logger.js";
 
-export const skillsRouter = Router();
-export const agentSkillsRouter = Router();
+export const skillsRouter: ReturnType<typeof Router> = Router();
+export const agentSkillsRouter: ReturnType<typeof Router> = Router();
 
 // ---------------------------------------------------------------------------
 // Skills CRUD — mounted at /api/skills

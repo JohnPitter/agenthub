@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { GitHubService } from "../git/github-service.js";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 const githubService = new GitHubService();
 
 /**

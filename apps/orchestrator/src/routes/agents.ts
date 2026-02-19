@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { eventBus } from "../realtime/event-bus.js";
 import { logger } from "../lib/logger.js";
 
-export const agentsRouter = Router();
+export const agentsRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/agents — list all agents
 agentsRouter.get("/", async (_req, res) => {

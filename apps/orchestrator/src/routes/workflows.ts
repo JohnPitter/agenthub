@@ -4,7 +4,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logger } from "../lib/logger.js";
 
-export const workflowsRouter = Router();
+export const workflowsRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/workflows?projectId=...
 workflowsRouter.get("/", async (req, res) => {

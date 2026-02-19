@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { devServerManager } from "../processes/dev-server-manager.js";
 import { logger } from "../lib/logger.js";
 
-export const devServerRouter = Router();
+export const devServerRouter: ReturnType<typeof Router> = Router();
 
 // POST /api/projects/:id/dev-server/start
 devServerRouter.post("/:id/dev-server/start", async (req, res) => {

@@ -7,7 +7,7 @@ import { db, schema } from "@agenthub/database";
 import { gte, and, eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 
 // Cache account info for 10 minutes to avoid repeated SDK calls
 let accountCache: { data: Record<string, unknown>; fetchedAt: number } | null = null;

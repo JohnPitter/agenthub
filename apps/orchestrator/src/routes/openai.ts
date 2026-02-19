@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { encrypt, safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
-export const openaiRouter = Router();
+export const openaiRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/openai/status — check if OpenAI is connected
 openaiRouter.get("/status", async (_req, res) => {

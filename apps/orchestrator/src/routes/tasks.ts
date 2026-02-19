@@ -12,7 +12,7 @@ import { docGenerator } from "../agents/doc-generator.js";
 
 const gitService = new GitService();
 
-export const tasksRouter = Router();
+export const tasksRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/tasks?projectId=...&status=...&includeSubtasks=true&limit=50&offset=0
 tasksRouter.get("/", async (req, res) => {

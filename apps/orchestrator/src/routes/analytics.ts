@@ -3,7 +3,7 @@ import { db, schema } from "@agenthub/database";
 import { eq, and, gte } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 
 interface AgentMetrics {
   agentId: string;

@@ -3,7 +3,7 @@ import { agentMemory } from "../agents/agent-memory.js";
 import { logger } from "../lib/logger.js";
 import type { AgentMemoryType } from "@agenthub/shared";
 
-export const memoriesRouter = Router();
+export const memoriesRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/agents/:agentId/memories
 memoriesRouter.get("/:agentId/memories", async (req, res) => {

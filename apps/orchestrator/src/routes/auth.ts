@@ -13,7 +13,7 @@ import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
-export const authRouter = Router();
+export const authRouter: ReturnType<typeof Router> = Router();
 
 // Redirect to GitHub OAuth
 authRouter.get("/github", (_req, res) => {

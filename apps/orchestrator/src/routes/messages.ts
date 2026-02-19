@@ -4,7 +4,7 @@ import { eq, desc, asc, isNull, and, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logger } from "../lib/logger.js";
 
-export const messagesRouter = Router();
+export const messagesRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/messages?projectId=...&taskId=...&parentId=...&limit=50&offset=0
 messagesRouter.get("/", async (req, res) => {

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { notificationService } from "../services/notification-service.js";
 import { logger } from "../lib/logger.js";
 
-export const notificationsRouter = Router();
+export const notificationsRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/notifications?projectId=...&read=true|false&limit=50&offset=0
 notificationsRouter.get("/", async (req, res) => {

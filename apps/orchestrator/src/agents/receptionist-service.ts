@@ -164,8 +164,8 @@ export async function handleReceptionistMessage(
       if (message.type === "result") {
         if (message.subtype === "success" && message.result) {
           resultText = message.result;
-        } else if (message.subtype === "error" && "errors" in message && Array.isArray(message.errors) && message.errors.length) {
-          throw new Error(message.errors.join("; "));
+        } else if (message.subtype !== "success" && "errors" in message && Array.isArray((message as Record<string, unknown>).errors)) {
+          throw new Error(((message as Record<string, unknown>).errors as string[]).join("; "));
         }
       }
     }

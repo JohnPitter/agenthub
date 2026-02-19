@@ -5,7 +5,7 @@ import { GitService } from "../git/git-service.js";
 import { logger } from "../lib/logger.js";
 import { encrypt } from "../lib/encryption.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 const gitService = new GitService();
 
 /**

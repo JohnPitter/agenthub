@@ -7,7 +7,7 @@ import { fetchUserRepos } from "../services/github-service.js";
 import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
-export const projectsRouter = Router();
+export const projectsRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/projects?limit=50&offset=0&teamId=xxx — list projects
 projectsRouter.get("/", async (req, res) => {

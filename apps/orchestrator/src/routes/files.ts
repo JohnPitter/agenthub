@@ -6,7 +6,7 @@ import { join, resolve, relative, sep } from "path";
 import { logger } from "../lib/logger.js";
 import { GitService } from "../git/git-service.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 const gitService = new GitService();
 
 interface FileNode {

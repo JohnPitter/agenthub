@@ -4,7 +4,7 @@ import { eq, desc, asc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { logger } from "../lib/logger.js";
 
-export const docsRouter = Router();
+export const docsRouter: ReturnType<typeof Router> = Router();
 
 // GET /api/docs — list all docs (pinned first, then by updatedAt desc)
 docsRouter.get("/", async (_req, res) => {

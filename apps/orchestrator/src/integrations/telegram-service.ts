@@ -67,8 +67,8 @@ export class TelegramService {
               chatId,
               userId,
               username,
-              messageId: ctx.message.message_id,
-              timestamp: ctx.message.date,
+              messageId: ctx.message?.message_id,
+              timestamp: ctx.message?.date,
             }),
           });
 

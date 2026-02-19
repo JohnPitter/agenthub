@@ -13,10 +13,10 @@ import {
 import { logger } from "../lib/logger.js";
 
 // Protected routes (behind authMiddleware)
-export const codexOAuthRouter = Router();
+export const codexOAuthRouter: ReturnType<typeof Router> = Router();
 
 // Public callback handler (no authMiddleware)
-export const codexCallbackRouter = Router();
+export const codexCallbackRouter: ReturnType<typeof Router> = Router();
 
 // In-memory pending OAuth state (single-user desktop app)
 let pendingOAuth: { codeVerifier: string; state: string; redirectUri: string } | null = null;

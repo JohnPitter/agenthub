@@ -6,7 +6,7 @@ import { nanoid } from "nanoid";
 import { getUserRoleInTeam } from "../middleware/authorization.js";
 import { logger } from "../lib/logger.js";
 
-export const teamsRouter = Router();
+export const teamsRouter: ReturnType<typeof Router> = Router();
 
 function slugify(name: string): string {
   return name

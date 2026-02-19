@@ -3,7 +3,7 @@ import { docGenerator } from "../agents/doc-generator.js";
 import { logger } from "../lib/logger.js";
 import type { ApiEndpoint } from "@agenthub/shared";
 
-export const docsGeneratorRouter = Router();
+export const docsGeneratorRouter: ReturnType<typeof Router> = Router();
 
 // In-memory cache for generated API docs
 let cachedApiDocs: ApiEndpoint[] | null = null;

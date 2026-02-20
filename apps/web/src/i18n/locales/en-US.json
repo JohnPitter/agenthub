@@ -53,7 +53,7 @@
   "taskStatus": {
     "created": "Created",
     "backlog": "Backlog",
-    "assigned": "Assigned",
+    "assigned": "Ready for Dev",
     "in_progress": "In Progress",
     "review": "Review",
     "done": "Done",
@@ -120,7 +120,22 @@
     "completedTask": "Task",
     "completedAgent": "Agent",
     "completedWhen": "Completed",
-    "viewAllProjects": "View all"
+    "viewAllProjects": "View all",
+    "greetingMorning": "Good morning!",
+    "greetingAfternoon": "Good afternoon!",
+    "greetingEvening": "Good evening!",
+    "quote1": "Talk is cheap. Show me the code.",
+    "quote2": "Design is not just what it looks like and feels like. Design is how it works.",
+    "quote3": "Any fool can write code that a computer can understand. Good programmers write code that humans can understand.",
+    "quote4": "Make it work, make it right, make it fast.",
+    "quote5": "The only way to go fast is to go well.",
+    "quote6": "The most dangerous phrase in the language is: We've always done it this way.",
+    "quote7": "If you double the number of experiments you do per year, you're going to double your inventiveness.",
+    "quote8": "Our industry does not respect tradition — it only respects innovation.",
+    "quote9": "If you are not embarrassed by the first version of your product, you've launched too late.",
+    "quote10": "Software is eating the world.",
+    "quote11": "Measuring programming progress by lines of code is like measuring aircraft building progress by weight.",
+    "quote12": "When something is important enough, you do it even if the odds are not in your favor."
   },
   "projects": {
     "title": "Projects",
@@ -154,7 +169,8 @@
     "advances": "Advance",
     "recentTasks": "Recent Tasks",
     "filterAll": "All",
-    "noneAssigned": "Unassigned"
+    "noneAssigned": "Unassigned",
+    "errorNoTechLead": "No Tech Lead agent available. Configure a Tech Lead agent before starting workflows."
   },
   "agents": {
     "title": "Agents",
@@ -206,6 +222,8 @@
     "lightDesc": "Light theme for bright environments",
     "workspace": "Default Workspace",
     "workspaceDesc": "Default directory to automatically scan for projects",
+    "initializingRepo": "Initializing repository...",
+    "initializingRepoDesc": "This may take a few seconds. Cloning and configuring the repository.",
     "language": "Language",
     "languageDesc": "Interface language",
     "connected": "Connected",
@@ -379,6 +397,8 @@
     "queued": "Added to queue",
     "agent_error": "Execution error",
     "status_change": "Status change",
+    "tool_use": "Tool used",
+    "workflow_phase": "Workflow phase",
     "git_commit": "Commit made",
     "git_push": "Push made",
     "git_branch": "Branch created",
@@ -783,6 +803,7 @@
     "errorPathRequired": "Local path is required",
     "errorDuplicate": "A project with this path already exists",
     "errorRepoExists": "A repository with this name already exists on GitHub",
+    "errorCloneFailed": "Failed to clone repository. Check your connection and try again.",
     "errorTokenExpired": "GitHub token expired. Please re-authenticate in Settings."
   },
   "pixelOffice": {

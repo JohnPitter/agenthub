@@ -19,13 +19,14 @@ export interface ExecResult {
 export async function execFileNoThrow(
   command: string,
   args: string[],
-  options?: { cwd?: string; timeout?: number }
+  options?: { cwd?: string; timeout?: number; env?: Record<string, string> }
 ): Promise<ExecResult> {
   try {
     const { stdout, stderr } = await execFileAsync(command, args, {
       cwd: options?.cwd,
       timeout: options?.timeout ?? 5000,
       maxBuffer: 1024 * 1024, // 1MB
+      env: options?.env,
     });
     return { stdout, stderr };
   } catch (error) {

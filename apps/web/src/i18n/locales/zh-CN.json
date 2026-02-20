@@ -53,7 +53,7 @@
   "taskStatus": {
     "created": "已创建",
     "backlog": "待办",
-    "assigned": "已分配",
+    "assigned": "待开发",
     "in_progress": "进行中",
     "review": "审查中",
     "done": "已完成",
@@ -120,7 +120,22 @@
     "completedTask": "任务",
     "completedAgent": "智能体",
     "completedWhen": "完成时间",
-    "viewAllProjects": "查看全部"
+    "viewAllProjects": "查看全部",
+    "greetingMorning": "早上好！",
+    "greetingAfternoon": "下午好！",
+    "greetingEvening": "晚上好！",
+    "quote1": "空谈廉价，给我看代码。",
+    "quote2": "设计不仅是外观和感觉，设计是它如何运作。",
+    "quote3": "任何傻瓜都能写出计算机能理解的代码。优秀的程序员写出人类能理解的代码。",
+    "quote4": "先让它能用，再让它正确，最后让它快速。",
+    "quote5": "快速前进的唯一方法就是做好每一步。",
+    "quote6": "语言中最危险的一句话是：我们一直都是这样做的。",
+    "quote7": "如果你将每年的实验次数翻倍，你的创造力也会翻倍。",
+    "quote8": "我们的行业不尊重传统——只尊重创新。",
+    "quote9": "如果你对产品的第一个版本不感到尴尬，那你发布得太晚了。",
+    "quote10": "软件正在吞噬世界。",
+    "quote11": "用代码行数衡量编程进度，就像用重量衡量飞机建造进度一样。",
+    "quote12": "当一件事足够重要时，即使胜算不大也要去做。"
   },
   "projects": {
     "title": "项目",
@@ -154,7 +169,8 @@
     "advances": "推进",
     "recentTasks": "最近任务",
     "filterAll": "全部",
-    "noneAssigned": "未分配"
+    "noneAssigned": "未分配",
+    "errorNoTechLead": "没有可用的技术负责人。请先配置技术负责人再启动工作流。"
   },
   "agents": {
     "title": "智能体",
@@ -206,6 +222,8 @@
     "lightDesc": "适用于明亮环境的浅色主题",
     "workspace": "默认工作区",
     "workspaceDesc": "自动扫描项目的默认目录",
+    "initializingRepo": "正在初始化仓库...",
+    "initializingRepoDesc": "这可能需要几秒钟。正在克隆和配置仓库。",
     "language": "语言",
     "languageDesc": "界面语言",
     "connected": "已连接",
@@ -341,6 +359,8 @@
     "queued": "已加入队列",
     "agent_error": "执行错误",
     "status_change": "状态变更",
+    "tool_use": "工具使用",
+    "workflow_phase": "工作流阶段",
     "git_commit": "提交完成",
     "git_push": "推送完成",
     "git_branch": "分支已创建",
@@ -745,6 +765,7 @@
     "errorPathRequired": "\u672c\u5730\u8def\u5f84\u4e3a\u5fc5\u586b\u9879",
     "errorDuplicate": "\u5df2\u5b58\u5728\u4f7f\u7528\u6b64\u8def\u5f84\u7684\u9879\u76ee",
     "errorRepoExists": "GitHub \u4e0a\u5df2\u5b58\u5728\u540c\u540d\u4ed3\u5e93",
+    "errorCloneFailed": "\u514b\u9686\u4ed3\u5e93\u5931\u8d25\u3002\u8bf7\u68c0\u67e5\u7f51\u7edc\u8fde\u63a5\u540e\u91cd\u8bd5\u3002",
     "errorTokenExpired": "GitHub \u4ee4\u724c\u5df2\u8fc7\u671f\u3002\u8bf7\u5728\u8bbe\u7f6e\u4e2d\u91cd\u65b0\u8fde\u63a5\u3002"
   },
   "pixelOffice": {

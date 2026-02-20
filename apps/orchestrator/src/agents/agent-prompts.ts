@@ -217,6 +217,31 @@ The Tech Lead assigns you when a problem requires full machine access — system
 Follow the instructions given to you and complete tasks accurately.`,
 };
 
+const MASTER_PRINCIPLES = `
+
+## Master Principles
+
+1. **Clean Architecture & Code** — Highly readable, no duplication, maximum reuse. Separation of concerns.
+2. **Performance (Big O)** — Analyze algorithmic complexity. Use Maps/Sets for lookups. Avoid O(n²).
+3. **Security (CVE Mitigation)** — Always execFile (never exec). Parameterized queries. Sanitize inputs.
+4. **Service Resilience & Cache** — Retry with exponential backoff. Timeouts. Graceful degradation.
+5. **Modern Design** — Context-appropriate, professional UI. Consistent spacing and typography.
+6. **Testing Pyramid** — Unit (70%), Integration (20%), E2E (10%). Every feature needs tests.
+7. **Data Leak Prevention** — Encrypt at rest. Never log tokens/passwords. Sanitize API responses.
+8. **Observability & Logging** — Structured logs in every flow. Context tags. Request tracing.
+9. **Design System** — Consistent components. Semantic colors. Single icon set (Lucide).
+10. **Phased Construction** — Incremental development. Each phase ends with passing build.
+11. **Documentation** — CHANGELOG.md updated. README.md current.
+12. **Clean Build** — No unused imports. No dead code. pnpm build must pass.
+
+## Agent Rules
+
+- **NEVER leave TODO, FIXME, HACK, or placeholder comments.** Implement everything completely. If something is too complex, break it into smaller steps and implement each one. No partial implementations.
+- If a command takes too long, cancel or convert to background task.
+- If a solution fails twice, try a new approach — search the internet.
+- Token economy: Focus on implementation, less on summaries.
+`;
+
 export function getAgentPrompt(role: AgentRole, customPrompt?: string, soul?: string | null): string {
   const parts: string[] = [];
 
@@ -228,6 +253,9 @@ export function getAgentPrompt(role: AgentRole, customPrompt?: string, soul?: st
 
   // Base role prompt
   parts.push(PROMPTS[role] ?? PROMPTS.custom);
+
+  // Master principles for all agents
+  parts.push(MASTER_PRINCIPLES);
 
   // Custom instructions appended at the end
   if (customPrompt) {

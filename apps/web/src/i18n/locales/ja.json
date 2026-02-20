@@ -53,7 +53,7 @@
   "taskStatus": {
     "created": "作成済み",
     "backlog": "バックログ",
-    "assigned": "割り当て済み",
+    "assigned": "開発準備完了",
     "in_progress": "進行中",
     "review": "レビュー",
     "done": "完了",
@@ -120,7 +120,22 @@
     "completedTask": "タスク",
     "completedAgent": "エージェント",
     "completedWhen": "完了日",
-    "viewAllProjects": "すべて見る"
+    "viewAllProjects": "すべて見る",
+    "greetingMorning": "おはようございます！",
+    "greetingAfternoon": "こんにちは！",
+    "greetingEvening": "こんばんは！",
+    "quote1": "口先だけなら簡単だ。コードを見せてくれ。",
+    "quote2": "デザインとは見た目や感触だけではない。どう機能するかだ。",
+    "quote3": "コンピュータが理解できるコードは誰でも書ける。優れたプログラマーは人間が理解できるコードを書く。",
+    "quote4": "まず動かせ、次に正しくしろ、それから速くしろ。",
+    "quote5": "速く進む唯一の方法は、正しく進むことだ。",
+    "quote6": "最も危険な言葉は「今までずっとこうしてきた」だ。",
+    "quote7": "年間の実験回数を2倍にすれば、発明力も2倍になる。",
+    "quote8": "私たちの業界は伝統を尊重しない — イノベーションだけを尊重する。",
+    "quote9": "最初のバージョンに恥ずかしさを感じないなら、リリースが遅すぎた。",
+    "quote10": "ソフトウェアが世界を飲み込んでいる。",
+    "quote11": "コード行数でプログラミングの進捗を測るのは、重さで飛行機の建造進捗を測るようなものだ。",
+    "quote12": "何かが十分に重要なら、たとえ不利でもやるべきだ。"
   },
   "projects": {
     "title": "プロジェクト",
@@ -154,7 +169,8 @@
     "advances": "進める",
     "recentTasks": "最近のタスク",
     "filterAll": "すべて",
-    "noneAssigned": "未割り当て"
+    "noneAssigned": "未割り当て",
+    "errorNoTechLead": "テックリードエージェントが利用できません。ワークフローを開始する前にテックリードエージェントを設定してください。"
   },
   "agents": {
     "title": "エージェント",
@@ -206,6 +222,8 @@
     "lightDesc": "明るい環境向けのライトテーマ",
     "workspace": "デフォルトワークスペース",
     "workspaceDesc": "プロジェクトを自動スキャンするデフォルトディレクトリ",
+    "initializingRepo": "リポジトリを初期化中...",
+    "initializingRepoDesc": "数秒かかる場合があります。リポジトリをクローンして設定しています。",
     "language": "言語",
     "languageDesc": "インターフェース言語",
     "connected": "接続済み",
@@ -341,6 +359,8 @@
     "queued": "キューに追加",
     "agent_error": "実行エラー",
     "status_change": "ステータス変更",
+    "tool_use": "ツール使用",
+    "workflow_phase": "ワークフローフェーズ",
     "git_commit": "コミット完了",
     "git_push": "プッシュ完了",
     "git_branch": "ブランチ作成",
@@ -745,6 +765,7 @@
     "errorPathRequired": "\u30ed\u30fc\u30ab\u30eb\u30d1\u30b9\u306f\u5fc5\u9808\u3067\u3059",
     "errorDuplicate": "\u3053\u306e\u30d1\u30b9\u306e\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u306f\u65e2\u306b\u5b58\u5728\u3057\u307e\u3059",
     "errorRepoExists": "GitHub \u306b\u540c\u540d\u306e\u30ea\u30dd\u30b8\u30c8\u30ea\u304c\u65e2\u306b\u5b58\u5728\u3057\u307e\u3059",
+    "errorCloneFailed": "\u30ea\u30dd\u30b8\u30c8\u30ea\u306e\u30af\u30ed\u30fc\u30f3\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u63a5\u7d9a\u3092\u78ba\u8a8d\u3057\u3066\u518d\u8a66\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "errorTokenExpired": "GitHub \u30c8\u30fc\u30af\u30f3\u304c\u671f\u9650\u5207\u308c\u3067\u3059\u3002\u8a2d\u5b9a\u3067\u518d\u63a5\u7d9a\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
   },
   "pixelOffice": {

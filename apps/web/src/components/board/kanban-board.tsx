@@ -21,6 +21,7 @@ interface KanbanBoardProps {
   onTaskUpdate?: (taskId: string, status: TaskStatus) => void;
   onViewChanges?: (taskId: string) => void;
   onTaskClick?: (task: Task) => void;
+  onError?: (error: string) => void;
 }
 
 const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
@@ -29,10 +30,11 @@ const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
   { id: "in_progress", title: "Em Progresso", color: "var(--rt-warning)" },
   { id: "review", title: "Review", color: "var(--rt-purple)" },
   { id: "done", title: "Concluída", color: "var(--rt-success)" },
+  { id: "failed", title: "Falhou", color: "var(--rt-danger)" },
   { id: "cancelled", title: "Cancelada", color: "var(--rt-neutral-fg3)" },
 ];
 
-export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpdate, onViewChanges, onTaskClick }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpdate, onViewChanges, onTaskClick, onError }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -70,6 +72,11 @@ export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpd
       });
     } catch (error) {
       console.error("Failed to update task status:", error);
+      // Rollback: re-set to original status
+      onTaskUpdate?.(taskId, task.status as TaskStatus);
+      if (error instanceof Error) {
+        onError?.(error.message);
+      }
     }
   };
 

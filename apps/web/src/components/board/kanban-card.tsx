@@ -94,7 +94,7 @@ export function KanbanCard({ task, agent, recentlyMoved, onViewChanges, onTaskCl
         </div>
       )}
 
-      {/* Bottom row: agent + time */}
+      {/* Bottom row: agent + time + execute */}
       <div className="flex items-center justify-between gap-2">
         {agent ? (
           <div className="flex items-center gap-1.5">
@@ -104,12 +104,14 @@ export function KanbanCard({ task, agent, recentlyMoved, onViewChanges, onTaskCl
         ) : (
           <span className="text-[10px] text-neutral-fg-disabled">{t("tasks.noneAssigned")}</span>
         )}
-        {task.updatedAt && (
-          <div className="flex items-center gap-1 text-[9px] text-neutral-fg-disabled">
-            <Clock className="h-2.5 w-2.5" />
-            <span>{formatRelativeTime(task.updatedAt)}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          {task.updatedAt && (
+            <div className="flex items-center gap-1 text-[9px] text-neutral-fg-disabled">
+              <Clock className="h-2.5 w-2.5" />
+              <span>{formatRelativeTime(task.updatedAt)}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

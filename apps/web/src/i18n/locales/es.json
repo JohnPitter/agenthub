@@ -53,7 +53,7 @@
   "taskStatus": {
     "created": "Creada",
     "backlog": "Backlog",
-    "assigned": "Asignada",
+    "assigned": "Disponible",
     "in_progress": "En Progreso",
     "review": "Revisión",
     "done": "Completada",
@@ -120,7 +120,22 @@
     "completedTask": "Tarea",
     "completedAgent": "Agente",
     "completedWhen": "Completada",
-    "viewAllProjects": "Ver todos"
+    "viewAllProjects": "Ver todos",
+    "greetingMorning": "Buenos días!",
+    "greetingAfternoon": "Buenas tardes!",
+    "greetingEvening": "Buenas noches!",
+    "quote1": "Hablar es barato. Muéstrame el código.",
+    "quote2": "El diseño no es solo cómo se ve y se siente. El diseño es cómo funciona.",
+    "quote3": "Cualquier tonto puede escribir código que una computadora entienda. Los buenos programadores escriben código que los humanos entienden.",
+    "quote4": "Hazlo funcionar, hazlo bien, hazlo rápido.",
+    "quote5": "La única forma de ir rápido es ir bien.",
+    "quote6": "La frase más peligrosa del idioma es: Siempre lo hemos hecho así.",
+    "quote7": "Si duplicas el número de experimentos al año, duplicarás tu inventiva.",
+    "quote8": "Nuestra industria no respeta la tradición — solo respeta la innovación.",
+    "quote9": "Si no te avergüenza la primera versión de tu producto, lo lanzaste demasiado tarde.",
+    "quote10": "El software se está comiendo el mundo.",
+    "quote11": "Medir el progreso de programación por líneas de código es como medir el progreso de construcción de aviones por peso.",
+    "quote12": "Cuando algo es lo suficientemente importante, lo haces aunque las probabilidades no estén a tu favor."
   },
   "projects": {
     "title": "Proyectos",
@@ -154,7 +169,8 @@
     "advances": "Avanzar",
     "recentTasks": "Tareas Recientes",
     "filterAll": "Todas",
-    "noneAssigned": "Sin asignar"
+    "noneAssigned": "Sin asignar",
+    "errorNoTechLead": "No hay agente Tech Lead disponible. Configure un agente Tech Lead antes de iniciar workflows."
   },
   "agents": {
     "title": "Agentes",
@@ -206,6 +222,8 @@
     "lightDesc": "Tema claro para ambientes iluminados",
     "workspace": "Workspace Predeterminado",
     "workspaceDesc": "Directorio predeterminado para escanear proyectos automáticamente",
+    "initializingRepo": "Inicializando repositorio...",
+    "initializingRepoDesc": "Esto puede tardar unos segundos. Clonando y configurando el repositorio.",
     "language": "Idioma",
     "languageDesc": "Idioma de la interfaz",
     "connected": "Conectado",
@@ -341,6 +359,8 @@
     "queued": "Agregada a la cola",
     "agent_error": "Error en la ejecución",
     "status_change": "Cambio de estado",
+    "tool_use": "Herramienta utilizada",
+    "workflow_phase": "Fase del workflow",
     "git_commit": "Commit realizado",
     "git_push": "Push realizado",
     "git_branch": "Branch creada",
@@ -745,6 +765,7 @@
     "errorPathRequired": "La ruta local es obligatoria",
     "errorDuplicate": "Ya existe un proyecto con esta ruta",
     "errorRepoExists": "Ya existe un repositorio con este nombre en GitHub",
+    "errorCloneFailed": "Error al clonar el repositorio. Verifica tu conexi\u00f3n e intenta de nuevo.",
     "errorTokenExpired": "Token de GitHub expirado. Reconecta en Configuraci\u00f3n."
   },
   "pixelOffice": {

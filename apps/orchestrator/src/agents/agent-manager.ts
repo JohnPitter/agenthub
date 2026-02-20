@@ -1,3 +1,7 @@
+import { existsSync } from "fs";
+import { mkdir } from "fs/promises";
+import { join } from "path";
+import { homedir } from "os";
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
 import { AgentSession } from "./agent-session";
@@ -5,6 +9,7 @@ import { OpenAISession } from "./openai-session";
 import { transitionTask, logTaskAction } from "../tasks/task-lifecycle";
 import { eventBus } from "../realtime/event-bus";
 import { logger } from "../lib/logger";
+import { safeDecrypt } from "../lib/encryption.js";
 import { GitService } from "../git/git-service";
 import { slugify } from "../lib/utils";
 import type { Agent, TaskStatus, AgentRole, TaskCategory } from "@agenthub/shared";
@@ -133,6 +138,8 @@ class AgentManager {
       detail: "Tech Lead analyzing task scope",
     });
 
+    await logTaskAction(taskId, "workflow_phase", techLeadId, "Phase: tech_lead_triage — Tech Lead analyzing task scope");
+
     logger.info(
       `Workflow started for task ${taskId}: sending to Tech Lead for triage`,
       "agent-manager",
@@ -185,6 +192,8 @@ class AgentManager {
             detail: "Architect creating execution plan",
           });
 
+          await logTaskAction(taskId, "workflow_phase", architect.id, "Phase: architect_planning — Architect creating execution plan");
+
           logger.info(
             `Workflow: Tech Lead decided task ${taskId} is COMPLEX, sending to Architect (${architect.name})`,
             "agent-manager",
@@ -211,7 +220,7 @@ class AgentManager {
             }).where(eq(schema.tasks.id, taskId));
           }
 
-          await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead triage: complex task, sending to Architect");
+          await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Tech Lead triage: complex task, sending to Architect");
           await this.assignTask(taskId, architect.id);
           return true;
         }
@@ -241,7 +250,7 @@ class AgentManager {
         updatedAt: new Date(),
       }).where(eq(schema.tasks.id, taskId));
 
-      await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead triage: simple task, planned directly");
+      await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Tech Lead triage: simple task, planned directly");
 
       // Pick the best dev
       await this.selectAndAssignDev(taskId, task.projectId, workflow, plan);
@@ -276,7 +285,7 @@ class AgentManager {
         updatedAt: new Date(),
       }).where(eq(schema.tasks.id, taskId));
 
-      await transitionTask(taskId, "created" as TaskStatus, undefined, "Architect plan complete, selecting dev");
+      await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Architect plan complete, selecting dev");
 
       // Pick the best dev
       await this.selectAndAssignDev(taskId, task.projectId, workflow, workflow.architectPlan);
@@ -302,6 +311,8 @@ class AgentManager {
           detail: `${qaAgent.name} reviewing the implementation`,
         });
 
+        await logTaskAction(taskId, "workflow_phase", qaAgent.id, `Phase: qa_review — ${qaAgent.name} reviewing the implementation`);
+
         logger.info(`Workflow: Dev finished task ${taskId}, sending to QA (${qaAgent.name}) for review`, "agent-manager");
 
         eventBus.emit("agent:notification", {
@@ -312,7 +323,7 @@ class AgentManager {
         });
 
         // Reset task for QA assignment
-        await transitionTask(taskId, "created" as TaskStatus, undefined, "Dev complete, sending to QA review");
+        await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Dev complete, sending to QA review");
         await this.assignTask(taskId, qaAgent.id);
         return true;
       }
@@ -414,7 +425,7 @@ class AgentManager {
       }).where(eq(schema.tasks.id, taskId));
 
       // Reset and re-assign to dev
-      await transitionTask(taskId, "created" as TaskStatus, undefined, `QA rejected, returning to dev (attempt ${workflow.qaRetryCount})`);
+      await transitionTask(taskId, "assigned" as TaskStatus, undefined, `QA rejected, returning to dev (attempt ${workflow.qaRetryCount})`);
       await this.assignTask(taskId, devId);
       return true;
     }
@@ -457,7 +468,7 @@ class AgentManager {
           level: "info",
         });
 
-        await transitionTask(taskId, "created" as TaskStatus, undefined, "Dev fix complete, sending back to QA");
+        await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Dev fix complete, sending back to QA");
         await this.assignTask(taskId, qaAgent.id);
         return true;
       }
@@ -526,7 +537,7 @@ class AgentManager {
         detail: `${devName} implementing Tech Lead's improvement plan`,
       });
 
-      await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead plan ready, sending to dev");
+      await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Tech Lead plan ready, sending to dev");
       await this.assignTask(taskId, devId);
       return true;
     }
@@ -559,7 +570,7 @@ class AgentManager {
           level: "info",
         });
 
-        await transitionTask(taskId, "created" as TaskStatus, undefined, "Dev implemented improvement plan, sending to QA");
+        await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Dev implemented improvement plan, sending to QA");
         await this.assignTask(taskId, qaAgent.id);
         return true;
       }
@@ -614,7 +625,7 @@ class AgentManager {
         detail: `${techLead.name} reviewing Architect's fix plan`,
       });
 
-      await transitionTask(taskId, "created" as TaskStatus, undefined, "Architect fix plan ready, sending to Tech Lead");
+      await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Architect fix plan ready, sending to Tech Lead");
       await this.assignTask(taskId, techLead.id);
       return true;
     }
@@ -667,7 +678,7 @@ class AgentManager {
         detail: `${devName} implementing Architect's fix plan via Tech Lead`,
       });
 
-      await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead relayed Architect plan, sending to dev");
+      await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Tech Lead relayed Architect plan, sending to dev");
       await this.assignTask(taskId, devId);
       return true;
     }
@@ -815,6 +826,8 @@ class AgentManager {
         detail: `${selectedDev.name} implementing the task`,
       });
 
+      await logTaskAction(taskId, "workflow_phase", selectedDev.id, `Phase: dev_execution — ${selectedDev.name} implementing the task`);
+
       await this.assignTask(taskId, selectedDev.id);
     } else {
       logger.warn(`Workflow: No dev available for task ${taskId}, falling back to auto-assign`, "agent-manager");
@@ -908,7 +921,7 @@ class AgentManager {
     }).where(eq(schema.tasks.id, taskId));
 
     // Reset and assign to Tech Lead
-    await transitionTask(taskId, "created" as TaskStatus, undefined, "Dev fix failed, escalating to Tech Lead");
+    await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Dev fix failed, escalating to Tech Lead");
     await this.assignTask(taskId, techLead.id);
   }
 
@@ -971,7 +984,7 @@ class AgentManager {
       updatedAt: new Date(),
     }).where(eq(schema.tasks.id, taskId));
 
-    await transitionTask(taskId, "created" as TaskStatus, undefined, "Tech Lead plan failed, escalating to Architect");
+    await transitionTask(taskId, "assigned" as TaskStatus, undefined, "Tech Lead plan failed, escalating to Architect");
     await this.assignTask(taskId, architect.id);
   }
 
@@ -1065,6 +1078,34 @@ class AgentManager {
     const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
     if (!project) {
       logger.error(`Project ${task.projectId} not found`, "agent-manager");
+      return;
+    }
+
+    // Validate project path is a local directory (not a URL)
+    // If the path is a URL, auto-clone the repo before proceeding
+    const isUrl = /^https?:\/\//.test(project.path);
+    if (isUrl) {
+      logger.info(`Project path is a URL, auto-cloning: ${project.path}`, "agent-manager");
+      try {
+        const localPath = await this.autoCloneProject(project.path, project.name);
+        // Update project path in DB so future tasks don't need to re-clone
+        await db.update(schema.projects).set({ path: localPath, updatedAt: new Date() }).where(eq(schema.projects.id, project.id));
+        project.path = localPath;
+        logger.info(`Auto-cloned to ${localPath}`, "agent-manager");
+      } catch (cloneError) {
+        const reason = `Failed to auto-clone repository (${project.path}): ${cloneError}`;
+        logger.error(`Cannot execute task ${taskId}: ${reason}`, "agent-manager");
+        await logTaskAction(taskId, "agent_error", agentId, reason);
+        await transitionTask(taskId, "failed" as TaskStatus, agentId, reason);
+        return;
+      }
+    }
+
+    if (!existsSync(project.path)) {
+      const reason = `Project path does not exist on disk: ${project.path}`;
+      logger.error(`Cannot execute task ${taskId}: ${reason}`, "agent-manager");
+      await logTaskAction(taskId, "agent_error", agentId, reason);
+      await transitionTask(taskId, "failed" as TaskStatus, agentId, reason);
       return;
     }
 
@@ -1291,6 +1332,9 @@ class AgentManager {
       if (currentBranch !== task.branch) {
         await gitService.checkoutBranch(project.path, task.branch);
       }
+
+      // Ensure git user config exists for commits
+      await gitService.ensureUserConfig(project.path);
 
       // Stage all changes
       await gitService.stageAll(project.path);
@@ -1519,6 +1563,43 @@ class AgentManager {
         await transitionTask(parentTaskId, "review" as TaskStatus, undefined, "All subtasks completed");
       }
     }
+  }
+
+  /**
+   * Auto-clone a GitHub repo URL to a local directory.
+   * Fetches the first user's GitHub token for authentication.
+   */
+  private async autoCloneProject(repoUrl: string, projectName: string): Promise<string> {
+    const REPOS_DIR = join(homedir(), ".agenthub", "repos");
+    await mkdir(REPOS_DIR, { recursive: true });
+
+    const dirName = projectName.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
+    let targetPath = join(REPOS_DIR, dirName);
+    if (existsSync(targetPath)) {
+      // Already cloned — reuse
+      logger.info(`Reusing existing clone at ${targetPath}`, "agent-manager");
+      return targetPath;
+    }
+
+    // Fetch first user's GitHub token
+    const user = await db
+      .select({ accessToken: schema.users.accessToken })
+      .from(schema.users)
+      .limit(1)
+      .get();
+
+    let token: string | undefined;
+    if (user?.accessToken) {
+      try {
+        token = safeDecrypt(user.accessToken);
+      } catch {
+        logger.warn("Failed to decrypt user token for auto-clone", "agent-manager");
+      }
+    }
+
+    const credentials = token ? { type: "https" as const, token } : undefined;
+    await gitService.clone(repoUrl, targetPath, credentials);
+    return targetPath;
   }
 }
 

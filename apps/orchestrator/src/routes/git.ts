@@ -1,9 +1,14 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
+import { existsSync } from "fs";
+import { mkdir } from "fs/promises";
+import { join } from "path";
+import { homedir } from "os";
+import { nanoid } from "nanoid";
 import { GitService } from "../git/git-service.js";
 import { logger } from "../lib/logger.js";
-import { encrypt } from "../lib/encryption.js";
+import { encrypt, safeDecrypt } from "../lib/encryption.js";
 
 const router: ReturnType<typeof Router> = Router();
 const gitService = new GitService();
@@ -73,6 +78,55 @@ router.post("/projects/:id/git/init", async (req, res) => {
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
+    }
+
+    // If project.path is a URL, clone it to a local directory first
+    if (project.path.startsWith("http")) {
+      const REPOS_DIR = join(homedir(), ".agenthub", "repos");
+      await mkdir(REPOS_DIR, { recursive: true });
+
+      const dirName = (project.name || "repo").replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
+      let targetPath = join(REPOS_DIR, dirName);
+      if (existsSync(targetPath)) {
+        targetPath = join(REPOS_DIR, `${dirName}-${nanoid(6)}`);
+      }
+
+      // Get credentials if available
+      const gitIntegration = await db
+        .select()
+        .from(schema.integrations)
+        .where(and(eq(schema.integrations.projectId, req.params.id), eq(schema.integrations.type, "git")))
+        .get();
+
+      let credentials: { type: "ssh" | "https"; token?: string; sshKeyPath?: string } | undefined;
+      if (gitIntegration?.credentials) {
+        credentials = JSON.parse(safeDecrypt(gitIntegration.credentials));
+      }
+
+      // Also check user's GitHub access token
+      if (!credentials) {
+        const user = await db.select().from(schema.users).get();
+        const accessToken = user?.accessToken ? safeDecrypt(user.accessToken) : null;
+        if (accessToken) {
+          credentials = { type: "https", token: accessToken };
+        }
+      }
+
+      await gitService.clone(project.path, targetPath, credentials);
+
+      // Update project.path to the local directory
+      await db
+        .update(schema.projects)
+        .set({ path: targetPath, updatedAt: new Date() })
+        .where(eq(schema.projects.id, req.params.id));
+
+      logger.info("Cloned remote repository to local path", "git-routes", {
+        projectId: req.params.id,
+        from: project.path,
+        to: targetPath,
+      });
+
+      return res.json({ success: true, cloned: true, path: targetPath });
     }
 
     await gitService.initGitRepo(project.path);

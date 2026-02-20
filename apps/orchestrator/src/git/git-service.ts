@@ -18,6 +18,37 @@ export interface GitCommit {
 
 export class GitService {
   /**
+   * Clone a remote repository to a local path
+   */
+  async clone(
+    repoUrl: string,
+    targetPath: string,
+    credentials?: { type: "ssh" | "https"; token?: string; sshKeyPath?: string },
+  ): Promise<void> {
+    let url = repoUrl;
+    if (credentials?.type === "https" && credentials.token) {
+      url = repoUrl.replace("https://", `https://${credentials.token}@`);
+    }
+
+    const env: Record<string, string> = Object.fromEntries(
+      Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
+    );
+
+    if (credentials?.type === "ssh" && credentials.sshKeyPath) {
+      env.GIT_SSH_COMMAND = `ssh -i "${credentials.sshKeyPath}" -o StrictHostKeyChecking=no`;
+    }
+
+    const result = await execFileNoThrow("git", ["clone", url, targetPath], {
+      timeout: 120000,
+      env,
+    });
+
+    if (result.error) {
+      throw new Error(`Failed to clone repository: ${result.stderr}`);
+    }
+  }
+
+  /**
    * Detect if a directory is a git repository
    */
   async detectGitRepo(projectPath: string): Promise<boolean> {
@@ -31,7 +62,10 @@ export class GitService {
    * Initialize a new git repository
    */
   async initGitRepo(projectPath: string): Promise<void> {
-    await execFileNoThrow("git", ["init"], { cwd: projectPath });
+    const result = await execFileNoThrow("git", ["init"], { cwd: projectPath });
+    if (result.error) {
+      throw new Error(`Failed to initialize git repo: ${result.stderr}`);
+    }
   }
 
   /**
@@ -575,6 +609,21 @@ export class GitService {
     });
 
     return result.stdout;
+  }
+
+  /**
+   * Ensure git user.name and user.email are configured locally.
+   * Prevents commit failures on repos without global git config.
+   */
+  async ensureUserConfig(projectPath: string): Promise<void> {
+    const nameResult = await execFileNoThrow("git", ["config", "user.name"], { cwd: projectPath });
+    if (!nameResult.stdout.trim()) {
+      await execFileNoThrow("git", ["config", "user.name", "AgentHub"], { cwd: projectPath });
+    }
+    const emailResult = await execFileNoThrow("git", ["config", "user.email"], { cwd: projectPath });
+    if (!emailResult.stdout.trim()) {
+      await execFileNoThrow("git", ["config", "user.email", "agent@agenthub.dev"], { cwd: projectPath });
+    }
   }
 
   /**

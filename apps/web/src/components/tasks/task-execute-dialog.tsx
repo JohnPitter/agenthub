@@ -22,7 +22,7 @@ export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExe
   const [selectedAgentId, setSelectedAgentId] = useState("");
 
   const availableTasks = tasks.filter(
-    (t) => t.status === "created" || t.status === "changes_requested",
+    (t) => t.status === "created" || t.status === "changes_requested" || t.status === "failed",
   );
   const activeAgents = agents.filter((a) => a.isActive);
 

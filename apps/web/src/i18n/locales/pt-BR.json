@@ -53,7 +53,7 @@
   "taskStatus": {
     "created": "Criada",
     "backlog": "Backlog",
-    "assigned": "Atribuída",
+    "assigned": "Disponível",
     "in_progress": "Em Progresso",
     "review": "Review",
     "done": "Concluída",
@@ -120,7 +120,22 @@
     "completedTask": "Task",
     "completedAgent": "Agente",
     "completedWhen": "Concluída",
-    "viewAllProjects": "Ver todos"
+    "viewAllProjects": "Ver todos",
+    "greetingMorning": "Bom dia!",
+    "greetingAfternoon": "Boa tarde!",
+    "greetingEvening": "Boa noite!",
+    "quote1": "Conversa é barata. Me mostre o código.",
+    "quote2": "Design não é apenas aparência e sensação. Design é como funciona.",
+    "quote3": "Qualquer tolo pode escrever código que um computador entende. Bons programadores escrevem código que humanos entendem.",
+    "quote4": "Faça funcionar, faça certo, faça rápido.",
+    "quote5": "A única maneira de ir rápido é ir bem.",
+    "quote6": "A frase mais perigosa da língua é: Sempre fizemos assim.",
+    "quote7": "Se você dobrar o número de experimentos por ano, vai dobrar sua inventividade.",
+    "quote8": "Nossa indústria não respeita tradição — ela só respeita inovação.",
+    "quote9": "Se você não tem vergonha da primeira versão do seu produto, lançou tarde demais.",
+    "quote10": "O software está devorando o mundo.",
+    "quote11": "Medir progresso de programação por linhas de código é como medir progresso de construção de aviões por peso.",
+    "quote12": "Quando algo é importante o suficiente, você faz mesmo que as chances não estejam a seu favor."
   },
   "projects": {
     "title": "Projetos",
@@ -154,7 +169,8 @@
     "advances": "Avançar",
     "recentTasks": "Tasks Recentes",
     "filterAll": "Todas",
-    "noneAssigned": "Não atribuída"
+    "noneAssigned": "Não atribuída",
+    "errorNoTechLead": "Nenhum agente Tech Lead disponível. Configure um agente Tech Lead antes de iniciar workflows."
   },
   "agents": {
     "title": "Agentes",
@@ -206,6 +222,8 @@
     "lightDesc": "Tema claro para ambientes iluminados",
     "workspace": "Workspace Padrão",
     "workspaceDesc": "Diretório padrão para escanear projetos automaticamente",
+    "initializingRepo": "Inicializando repositório...",
+    "initializingRepoDesc": "Isso pode levar alguns segundos. Clonando e configurando o repositório.",
     "language": "Idioma",
     "languageDesc": "Idioma da interface",
     "connected": "Conectado",
@@ -379,6 +397,8 @@
     "queued": "Adicionada à fila",
     "agent_error": "Erro na execução",
     "status_change": "Mudança de status",
+    "tool_use": "Ferramenta utilizada",
+    "workflow_phase": "Fase do workflow",
     "git_commit": "Commit realizado",
     "git_push": "Push realizado",
     "git_branch": "Branch criada",
@@ -783,6 +803,7 @@
     "errorPathRequired": "Caminho local \u00e9 obrigat\u00f3rio",
     "errorDuplicate": "J\u00e1 existe um projeto com este caminho",
     "errorRepoExists": "J\u00e1 existe um reposit\u00f3rio com este nome no GitHub",
+    "errorCloneFailed": "Falha ao clonar o reposit\u00f3rio. Verifique sua conex\u00e3o e tente novamente.",
     "errorTokenExpired": "Token do GitHub expirado. Reconecte em Configura\u00e7\u00f5es."
   },
   "pixelOffice": {

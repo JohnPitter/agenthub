@@ -65,6 +65,7 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
       const msg = err instanceof Error ? err.message : "";
       if (msg === "errorDuplicate") setError(t("createProject.errorDuplicate"));
       else if (msg === "errorRepoExists") setError(t("createProject.errorRepoExists"));
+      else if (msg === "errorCloneFailed") setError(t("createProject.errorCloneFailed"));
       else if (msg === "errorNameRequired") setError(t("createProject.errorNameRequired"));
       else if (msg === "errorPathRequired") setError(t("createProject.errorPathRequired"));
       else if (msg.includes("github_reauth") || msg.includes("Session expired")) setError(t("createProject.errorTokenExpired"));

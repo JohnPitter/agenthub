@@ -1,6 +1,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { getAgentPrompt } from "./agent-prompts";
 import { eventBus } from "../realtime/event-bus";
+import { logTaskAction } from "../tasks/task-lifecycle";
 import { logger } from "../lib/logger";
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
@@ -211,6 +212,9 @@ export class AgentSession {
                   action: toolName,
                 });
               }
+
+              // Log tool_use to task_logs for activity feed
+              logTaskAction(taskId, "tool_use", agent.id, `Tool: ${toolName}`).catch(() => {});
 
               // Persist tool use to database
               db.insert(schema.messages).values({

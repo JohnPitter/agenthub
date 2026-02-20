@@ -5,12 +5,17 @@ import { nanoid } from "nanoid";
 import { readFile } from "fs/promises";
 import { join, extname } from "path";
 import { GitService } from "../git/git-service";
+import { GitHubService } from "../git/github-service";
 import { execFileNoThrow } from "../lib/exec-file";
 import { slugify } from "../lib/utils";
 import { logger } from "../lib/logger";
+import { safeDecrypt } from "../lib/encryption";
+import { agentManager } from "../agents/agent-manager";
+import { eventBus } from "../realtime/event-bus";
 import { docGenerator } from "../agents/doc-generator.js";
 
 const gitService = new GitService();
+const githubService = new GitHubService();
 
 export const tasksRouter: ReturnType<typeof Router> = Router();
 
@@ -111,6 +116,17 @@ tasksRouter.get("/:id/subtasks", async (req, res) => {
 
 // PATCH /api/tasks/:id
 tasksRouter.patch("/:id", async (req, res) => {
+  // Pre-flight: validate tech_lead exists before allowing "assigned" transition
+  let techLeadId: string | null = null;
+  if (req.body.status === "assigned") {
+    const agents = await db.select().from(schema.agents);
+    const techLead = agents.find((a) => a.role === "tech_lead" && a.isActive);
+    if (!techLead) {
+      return res.status(400).json({ error: "errorNoTechLead" });
+    }
+    techLeadId = techLead.id;
+  }
+
   const updates: Record<string, unknown> = { updatedAt: new Date() };
 
   const allowedFields = ["title", "description", "status", "priority", "category", "assignedAgentId", "result"];
@@ -126,13 +142,105 @@ tasksRouter.patch("/:id", async (req, res) => {
 
   const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).get();
 
-  // Fire-and-forget: generate change summary when task completes
+  // Fire-and-forget: start workflow when task moves to "assigned" (Disponível Para Desenvolvimento)
+  if (req.body.status === "assigned" && task && techLeadId) {
+    agentManager.runWorkflow(task.id, techLeadId).catch((err) => {
+      logger.error(`Failed to start workflow for task ${task.id}: ${err}`, "tasks-router");
+    });
+    logger.info(`Workflow triggered for task ${task.id} via column drag`, "tasks-router");
+  }
+
+  // Fire-and-forget: push branch + create PR when task moves to "done"
   if (req.body.status === "done" && task) {
+    // Generate change summary
     docGenerator.generateChangeSummary(task.id).then((summary) => {
       logger.info(`Auto-generated change summary for task ${task.id} (${summary.length} chars)`, "tasks-router");
     }).catch((err) => {
       logger.warn(`Failed to auto-generate change summary for task ${task.id}: ${err}`, "tasks-router");
     });
+
+    // Push + PR if task has a branch
+    if (task.branch) {
+      (async () => {
+        try {
+          const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
+          if (!project) return;
+
+          const gitConfig = await db.select().from(schema.integrations)
+            .where(and(eq(schema.integrations.projectId, task.projectId), eq(schema.integrations.type, "git")))
+            .get();
+
+          if (!gitConfig?.config) return;
+
+          const config = JSON.parse(gitConfig.config);
+          const credentials = gitConfig.credentials ? JSON.parse(safeDecrypt(gitConfig.credentials)) : undefined;
+          const branchName = task.branch!;
+
+          // Push branch to remote
+          await gitService.push(project.path, branchName, "origin", credentials);
+
+          eventBus.emit("task:git_push", {
+            taskId: task.id,
+            projectId: task.projectId,
+            branchName,
+            commitSha: task.result?.match(/Committed as ([a-f0-9]+)/)?.[1] || "",
+            remote: "origin",
+          });
+
+          logger.info(`Auto-pushed task ${task.id} branch ${branchName}`, "tasks-router");
+
+          // Create PR (always-on)
+          const baseBranch = config.defaultBranch || "main";
+          if (branchName !== baseBranch) {
+            const existingPR = await githubService.findPRForBranch(project.path, branchName);
+            if (!existingPR) {
+              const pr = await githubService.createPR(project.path, {
+                title: task.title as string,
+                body: `Automated PR for task \`${task.id}\`\n\nBranch: \`${branchName}\` → \`${baseBranch}\``,
+                headBranch: branchName,
+                baseBranch,
+                draft: false,
+              });
+
+              if (pr) {
+                await db.insert(schema.taskLogs).values({
+                  id: crypto.randomUUID(),
+                  taskId: task.id,
+                  agentId: null,
+                  action: "pr_created",
+                  fromStatus: null,
+                  toStatus: null,
+                  detail: JSON.stringify({ prNumber: pr.number, prUrl: pr.url }),
+                  filePath: null,
+                  createdAt: new Date(),
+                });
+
+                eventBus.emit("task:pr_created", {
+                  taskId: task.id,
+                  projectId: task.projectId,
+                  prNumber: pr.number,
+                  prUrl: pr.url,
+                  prTitle: pr.title,
+                  headBranch: branchName,
+                  baseBranch,
+                });
+
+                logger.info(`Auto-PR created for task ${task.id}: #${pr.number}`, "tasks-router");
+              }
+            }
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          logger.error(`Auto push+PR failed for task ${task.id}: ${msg}`, "tasks-router");
+
+          eventBus.emit("task:pr_error", {
+            taskId: task.id,
+            projectId: task.projectId,
+            error: msg,
+          });
+        }
+      })();
+    }
   }
 
   res.json({ task });

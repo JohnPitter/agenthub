@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Users, Loader2, Trash2 } from "lucide-react";
+import { Users, Trash2 } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useAgents } from "../hooks/use-agents";
 import { AgentConfigDialog } from "../components/agents/agent-config-dialog";
 import { AgentConfigPanel } from "../components/agents/agent-config-panel";
 import { CommandBar } from "../components/layout/command-bar";
 import { cn } from "../lib/utils";
+import { SkeletonAgentList } from "../components/ui/skeleton";
 import type { Agent } from "@agenthub/shared";
 
 export function ProjectAgents() {
@@ -51,8 +52,11 @@ export function ProjectAgents() {
 
       {/* Master-Detail */}
       {projectAgents.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-brand" />
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-80 shrink-0 border-r border-stroke bg-neutral-bg-subtle overflow-y-auto p-3">
+            <SkeletonAgentList />
+          </div>
+          <div className="flex-1" />
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">

@@ -566,7 +566,7 @@ export function AppSidebar() {
       {/* Agent status indicators */}
       {agents.length > 0 && (
         <div className={cn(
-          "border-t border-stroke2 px-7 py-5",
+          "mt-14 border-t border-stroke2 px-7 py-5",
           collapsed ? "flex flex-col gap-2.5" : "flex flex-wrap gap-2.5"
         )}>
           {agents.filter((a) => a.role !== "receptionist").map((agent) => {

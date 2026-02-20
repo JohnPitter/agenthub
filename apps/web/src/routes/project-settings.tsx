@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FolderOpen, Users, GitBranch, AlertTriangle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { FolderOpen, Users, GitBranch, AlertTriangle, RefreshCw, CheckCircle2, Loader2 } from "lucide-react";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useNotificationStore } from "../stores/notification-store";
@@ -32,11 +32,11 @@ export function ProjectSettings() {
   const { status, remoteStatus, lastCommit, config, isGitRepo, loading, initRepo, updateConfig } = useGitStatus(id);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [initializing, setInitializing] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>("geral");
   const [gitConfigForm, setGitConfigForm] = useState({
     remoteUrl: "",
     defaultBranch: "main",
-    autoPR: false,
   });
 
   const handleArchive = async () => {
@@ -167,20 +167,33 @@ export function ProjectSettings() {
                   </div>
                 ) : !isGitRepo ? (
                   <div className="card-glow px-6 py-8 text-center">
-                    <p className="text-[13px] text-neutral-fg3 mb-4">Repositório Git não inicializado</p>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await initRepo();
-                          addToast("success", "Git inicializado", "Repositório criado com sucesso");
-                        } catch {
-                          addToast("error", "Erro ao inicializar", "Não foi possível criar o repositório Git");
-                        }
-                      }}
-                      className="btn-primary rounded-lg px-5 py-2.5 text-[12px] font-semibold text-white"
-                    >
-                      Inicializar Repositório
-                    </button>
+                    {initializing ? (
+                      <>
+                        <Loader2 className="h-6 w-6 animate-spin text-brand mx-auto mb-3" />
+                        <p className="text-[13px] text-neutral-fg2 font-medium mb-1">{t("settings.initializingRepo")}</p>
+                        <p className="text-[11px] text-neutral-fg3">{t("settings.initializingRepoDesc")}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[13px] text-neutral-fg3 mb-4">Repositório Git não inicializado</p>
+                        <button
+                          onClick={async () => {
+                            setInitializing(true);
+                            try {
+                              await initRepo();
+                              addToast("success", "Git inicializado", "Repositório criado com sucesso");
+                            } catch {
+                              addToast("error", "Erro ao inicializar", "Não foi possível criar o repositório Git");
+                            } finally {
+                              setInitializing(false);
+                            }
+                          }}
+                          className="btn-primary rounded-lg px-5 py-2.5 text-[12px] font-semibold text-white"
+                        >
+                          Inicializar Repositório
+                        </button>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-5">
@@ -293,27 +306,6 @@ export function ProjectSettings() {
                         </div>
 
                         <div className="section-divider" />
-
-                        <div className="flex items-center justify-between py-1">
-                          <div>
-                            <p className="text-[12px] font-semibold text-neutral-fg1">Auto-PR após push</p>
-                            <p className="text-[11px] text-neutral-fg3">Cria PR automaticamente ao fazer push</p>
-                          </div>
-                          <button
-                            onClick={() => setGitConfigForm({ ...gitConfigForm, autoPR: !gitConfigForm.autoPR })}
-                            className={cn(
-                              "relative h-5 w-9 rounded-full transition-all duration-200",
-                              (config?.autoPR ?? gitConfigForm.autoPR) ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke"
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
-                                (config?.autoPR ?? gitConfigForm.autoPR) && "left-[18px]"
-                              )}
-                            />
-                          </button>
-                        </div>
 
                         <button
                           onClick={async () => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   X, Clock, User, GitBranch, CheckCircle2, Tag,
-  Calendar, FileDiff, DollarSign, Coins, Hash,
+  Calendar, FileDiff, DollarSign, Coins, Hash, RotateCcw,
 } from "lucide-react";
 import { cn, formatDate, formatRelativeTime, api } from "../../lib/utils";
 import { AgentAvatar } from "../agents/agent-avatar";
@@ -32,9 +32,10 @@ interface TaskDetailDrawerProps {
   agents: Agent[];
   onClose: () => void;
   onViewChanges?: (taskId: string) => void;
+  onRetry?: (taskId: string, agentId: string) => void;
 }
 
-export function TaskDetailDrawer({ task, agents, onClose, onViewChanges }: TaskDetailDrawerProps) {
+export function TaskDetailDrawer({ task, agents, onClose, onViewChanges, onRetry }: TaskDetailDrawerProps) {
   const [descExpanded, setDescExpanded] = useState(false);
   const [resultExpanded, setResultExpanded] = useState(false);
   const [subtasks, setSubtasks] = useState<Task[]>([]);
@@ -101,6 +102,17 @@ export function TaskDetailDrawer({ task, agents, onClose, onViewChanges }: TaskD
             >
               <FileDiff className="h-4 w-4" />
               Ver Alterações
+            </button>
+          )}
+
+          {/* Retry button for failed tasks */}
+          {onRetry && task.status === "failed" && task.assignedAgentId && (
+            <button
+              onClick={() => onRetry(task.id, task.assignedAgentId!)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-light/50 px-4 py-2.5 text-[12px] font-semibold text-danger transition-all hover:bg-danger-light hover:border-danger/40"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Retentar Task
             </button>
           )}
 

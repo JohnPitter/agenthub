@@ -332,7 +332,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
                   </span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {[32000, 64000, 96000, 128000].map((v) => (
+                  {[32000, 64000, 128000, 256000].map((v) => (
                     <button
                       key={v}
                       type="button"

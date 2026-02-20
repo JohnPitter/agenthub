@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.0] - 2026-02-20
+
+### Fase 28: Automatic Workflow Triggering via Kanban Drag
+
+#### Added
+
+- **Auto-trigger workflow on column drag** — Moving a task to "Disponível" (status `assigned`) automatically starts the multi-agent workflow (`tech_lead_triage → architect → dev → qa`). Pre-validates that an active `tech_lead` agent exists; returns `errorNoTechLead` (400) if missing.
+- **Auto push + PR on completion** — When a task moves to "Concluída" (status `done`) and has a branch, automatically pushes the branch to remote and creates a GitHub Pull Request (always-on, no toggle).
+- **Auto change summary** — `docGenerator.generateChangeSummary()` fires on task completion to document what changed.
+- **Error toast for missing Tech Lead** — Both project and global kanban boards show localized error when tech_lead is missing.
+- **i18n key `tasks.errorNoTechLead`** — Added in all 5 locales (pt-BR, en-US, es, ja, zh-CN).
+- **4 new test cases** — `errorNoTechLead` validation (no agent, inactive agent), successful `assigned` transition with tech_lead, non-assigned transitions without tech_lead.
+
+#### Changed
+
+- **Column rename** — `taskStatus.assigned` renamed from "Atribuída"/"Assigned" to "Disponível"/"Ready for Dev" in all 5 locales.
+- **Removed all Play/Execute buttons** — Execution is now fully automatic via column drag. Removed from `kanban-card.tsx`, `kanban-column.tsx`, `kanban-board.tsx`, `task-card.tsx`, `project-board.tsx`, `project-tasks.tsx`, `tasks.tsx`.
+- **Removed `autoPR` toggle** — PR creation is always-on. Removed toggle from `project-settings.tsx`, removed `autoPR` from `GitConfig` interface in `use-git-status.ts`, removed `if (!config.autoPR) return` guard from `socket-handler.ts`.
+- **`kanban-board.tsx`** — Added `onError` callback with rollback on failed status updates.
+- **`project-board.tsx`** — Added `onError` handler for `errorNoTechLead` toast.
+
+#### Fixed
+
+- **PATCH `/api/tasks/:id`** — Now validates tech_lead existence before allowing `assigned` status transition, preventing tasks from being moved to a workflow column without a configured agent.
+
+##### Stats
+
+- **Arquivos modificados:** 15+
+- **Testes:** 27 test cases (4 new)
+
+---
+
 ## [0.27.0] - 2026-02-19
 
 ### Fase 27: Landing Page Redesign + CI Pipeline Fix

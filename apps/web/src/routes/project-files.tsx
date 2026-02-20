@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { FileTree, type FileNode } from "../components/files/file-tree";
 import { FileViewer } from "../components/files/file-viewer";
 import { CommandBar } from "../components/layout/command-bar";
+import { SkeletonFileTree } from "../components/ui/skeleton";
 import { api } from "../lib/utils";
 
 export function ProjectFiles() {
@@ -65,9 +66,7 @@ export function ProjectFiles() {
         {/* File Tree Sidebar */}
         <div className="w-64 shrink-0 border-r border-stroke2 bg-neutral-bg-subtle overflow-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-brand" />
-            </div>
+            <SkeletonFileTree />
           ) : (
             <div className="p-4">
               <FileTree

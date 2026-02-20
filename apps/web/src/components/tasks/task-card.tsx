@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { GripVertical, Clock, Trash2, User, Play, GitBranch, CheckCircle2, FileDiff } from "lucide-react";
+import { GripVertical, Clock, Trash2, User, GitBranch, CheckCircle2, FileDiff } from "lucide-react";
 import { cn, formatDate } from "../../lib/utils";
 import { AgentAvatar } from "../agents/agent-avatar";
 import { TaskReviewActions } from "./task-review-actions";
@@ -25,7 +25,6 @@ interface TaskCardProps {
   agents: Agent[];
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
-  onExecute?: (taskId: string, agentId: string) => void;
   onViewChanges?: (taskId: string) => void;
   onApprove?: (taskId: string) => void;
   onReject?: (taskId: string, feedback: string) => void;
@@ -33,7 +32,7 @@ interface TaskCardProps {
   onDragStart?: (e: React.DragEvent, task: Task) => void;
 }
 
-export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChanges, onApprove, onReject, draggable, onDragStart }: TaskCardProps) {
+export function TaskCard({ task, agents, onEdit, onDelete, onViewChanges, onApprove, onReject, draggable, onDragStart }: TaskCardProps) {
   const { t } = useTranslation();
   const priorityDot = PRIORITY_DOT[task.priority] ?? PRIORITY_DOT.medium;
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null;
@@ -143,18 +142,6 @@ export function TaskCard({ task, agents, onEdit, onDelete, onExecute, onViewChan
               title={t("tasks.viewChanges")}
             >
               <FileDiff className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {onExecute && task.assignedAgentId && (task.status === "created" || task.status === "changes_requested") && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onExecute(task.id, task.assignedAgentId!);
-              }}
-              className="rounded-md p-2 text-success opacity-0 transition-colors hover:bg-success-light group-hover:opacity-100"
-              title={t("tasks.run")}
-            >
-              <Play className="h-3.5 w-3.5" />
             </button>
           )}
           <button

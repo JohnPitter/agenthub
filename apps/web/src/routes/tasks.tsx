@@ -2,19 +2,21 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
-  Loader2, FolderOpen, Play, Clock, GitBranch,
+  FolderOpen, Play, Clock, GitBranch,
   CheckCircle2, AlertTriangle, Zap, Terminal, FileCode,
   ArrowRightLeft, Eye, User, GripVertical, X, Tag,
   Calendar, Hash, DollarSign, Coins, Plus, FileDiff,
-  LayoutGrid, Building2,
+  LayoutGrid, Building2, RotateCcw,
 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { PixelOffice } from "../components/pixel-office/pixel-office";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 import { NewTaskDialog } from "../components/tasks/new-task-dialog";
+import { SkeletonKanban } from "../components/ui/skeleton";
 import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useChatStore } from "../stores/chat-store";
+import { useNotificationStore } from "../stores/notification-store";
 import { getSocket } from "../lib/socket";
 import { cn, api, formatRelativeTime, formatDate } from "../lib/utils";
 import type {
@@ -31,6 +33,7 @@ const KANBAN_COLUMNS: { status: TaskStatus; labelKey: string; dotColor: string; 
   { status: "in_progress", labelKey: "taskStatus.in_progress", dotColor: "bg-warning", glowColor: "ring-warning/30" },
   { status: "review", labelKey: "taskStatus.review", dotColor: "bg-purple", glowColor: "ring-purple/30" },
   { status: "done", labelKey: "taskStatus.done", dotColor: "bg-success", glowColor: "ring-success/30" },
+  { status: "failed", labelKey: "taskStatus.failed", dotColor: "bg-danger", glowColor: "ring-danger/30" },
   { status: "cancelled", labelKey: "taskStatus.cancelled", dotColor: "bg-neutral-fg3", glowColor: "ring-neutral-fg3/30" },
 ];
 
@@ -67,6 +70,7 @@ export function TasksPage() {
   const agents = useWorkspaceStore((s) => s.agents);
   const agentActivity = useChatStore((s) => s.agentActivity);
   const updateAgentActivity = useChatStore((s) => s.updateAgentActivity);
+  const addToast = useNotificationStore((s) => s.addToast);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
@@ -247,8 +251,11 @@ export function TasksPage() {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
     try {
       await api(`/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify({ status: newStatus }) });
-    } catch {
+    } catch (err) {
       fetchTasks(); // rollback
+      if (err instanceof Error && err.message === "errorNoTechLead") {
+        addToast("error", t("tasks.errorNoTechLead"));
+      }
     }
   }, [tasks, fetchTasks]);
 
@@ -264,10 +271,11 @@ export function TasksPage() {
     return (
       <div className="flex h-full flex-col">
         <CommandBar><span className="text-[13px] font-semibold text-neutral-fg1">{t("tasks.title")}</span></CommandBar>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-brand" />
-            <p className="text-[13px] text-neutral-fg3 font-medium">{t("common.loading")}</p>
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-x-auto px-6 pb-6 pt-4">
+              <SkeletonKanban columns={7} />
+            </div>
           </div>
         </div>
       </div>
@@ -427,7 +435,7 @@ export function TasksPage() {
           {/* ─── View content ─── */}
           {viewMode === "kanban" ? (
             <div className="flex-1 overflow-x-auto px-6 pb-6 pt-4">
-              <div className="grid h-full grid-cols-6 gap-4" style={{ minWidth: 1200 }}>
+              <div className="grid h-full grid-cols-7 gap-4" style={{ minWidth: 1400 }}>
                 {KANBAN_COLUMNS.map((column) => {
                   const columnTasks = getColumnTasks(column.status);
                   const isOver = dragOverColumn === column.status;
@@ -551,6 +559,10 @@ export function TasksPage() {
           agentActivity={agentActivity}
           onClose={() => setSelectedTask(null)}
           onViewChanges={setChangesTaskId}
+          onRetry={(taskId, agentId) => {
+            getSocket().emit("user:execute_task", { taskId, agentId });
+            setSelectedTask(null);
+          }}
         />
       )}
 
@@ -605,9 +617,10 @@ interface TaskDetailPanelProps {
   agentActivity: Map<string, { status: string; currentTask?: string; currentFile?: string; lastActivity: number; progress: number; taskId?: string }>;
   onClose: () => void;
   onViewChanges?: (taskId: string) => void;
+  onRetry?: (taskId: string, agentId: string) => void;
 }
 
-function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, onViewChanges }: TaskDetailPanelProps) {
+function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, onViewChanges, onRetry }: TaskDetailPanelProps) {
   const { t } = useTranslation();
   const [descExpanded, setDescExpanded] = useState(false);
   const [resultExpanded, setResultExpanded] = useState(false);
@@ -668,6 +681,17 @@ function TaskDetailPanel({ task, agentMap, projectMap, agentActivity, onClose, o
             >
               <FileDiff className="h-4 w-4" />
               {t("tasks.viewChanges")}
+            </button>
+          )}
+
+          {/* Retry button for failed tasks */}
+          {onRetry && task.status === "failed" && task.assignedAgentId && (
+            <button
+              onClick={() => onRetry(task.id, task.assignedAgentId!)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-light/50 px-4 py-2.5 text-[12px] font-semibold text-danger transition-all hover:bg-danger-light hover:border-danger/40"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Retentar Task
             </button>
           )}
 
@@ -966,7 +990,7 @@ function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, o
         </div>
       )}
 
-      {/* Footer: Agent + time */}
+      {/* Footer: Agent + time + execute */}
       <div className="flex items-center justify-between pt-2 border-t border-stroke">
         {agent ? (
           <div className="flex items-center gap-2">

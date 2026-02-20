@@ -10,6 +10,7 @@ import {
   RefreshCw,
   AlertCircle,
 } from "lucide-react";
+import { SkeletonPRList } from "../components/ui/skeleton";
 import { usePullRequests, type PullRequest } from "../hooks/use-pull-requests";
 import { useGitStatus } from "../hooks/use-git-status";
 import { useSocket } from "../hooks/use-socket";
@@ -290,9 +291,7 @@ export function ProjectPRs() {
       {/* PR List */}
       <div className="flex-1 overflow-y-auto p-8">
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <RefreshCw className="h-5 w-5 animate-spin text-neutral-fg-disabled" />
-          </div>
+          <SkeletonPRList />
         ) : prs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-bg2 border border-stroke mb-4">

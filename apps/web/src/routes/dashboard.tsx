@@ -1,17 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus, Activity, FolderOpen, Users, Zap, CheckCircle2, ListTodo,
   UserCheck, Play, Eye, ThumbsUp, XCircle, MessageSquare, Clock, AlertTriangle, ArrowRightLeft, HelpCircle,
-  ChevronLeft, ChevronRight, ArrowRight,
+  ChevronLeft, ChevronRight, ArrowRight, Wrench, GitBranch,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { api, formatRelativeTime } from "../lib/utils";
 import { cn } from "../lib/utils";
 import { getStackIcon } from "@agenthub/shared";
-import { CommandBar } from "../components/layout/command-bar";
 import { SkeletonCard } from "../components/ui/skeleton";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 
@@ -82,6 +81,8 @@ const ACTION_MAP: Record<string, { icon: LucideIcon; key: string; color: string 
   queued: { icon: Clock, key: "actions.queued", color: "text-neutral-fg2" },
   agent_error: { icon: AlertTriangle, key: "actions.agent_error", color: "text-danger" },
   status_change: { icon: ArrowRightLeft, key: "actions.status_change", color: "text-neutral-fg2" },
+  tool_use: { icon: Wrench, key: "actions.tool_use", color: "text-info" },
+  workflow_phase: { icon: GitBranch, key: "actions.workflow_phase", color: "text-purple" },
 };
 
 const DEFAULT_ACTION = { icon: HelpCircle, key: "actions.unknown", color: "text-neutral-fg3" };
@@ -137,6 +138,28 @@ const STAT_ITEMS = [
 
 const MAX_DASHBOARD_PROJECTS = 8;
 
+const QUOTES = [
+  { text: "dashboard.quote1", author: "Linus Torvalds" },
+  { text: "dashboard.quote2", author: "Steve Jobs" },
+  { text: "dashboard.quote3", author: "Martin Fowler" },
+  { text: "dashboard.quote4", author: "Kent Beck" },
+  { text: "dashboard.quote5", author: "Robert C. Martin" },
+  { text: "dashboard.quote6", author: "Grace Hopper" },
+  { text: "dashboard.quote7", author: "Jeff Bezos" },
+  { text: "dashboard.quote8", author: "Satya Nadella" },
+  { text: "dashboard.quote9", author: "Reid Hoffman" },
+  { text: "dashboard.quote10", author: "Marc Andreessen" },
+  { text: "dashboard.quote11", author: "Bill Gates" },
+  { text: "dashboard.quote12", author: "Elon Musk" },
+] as const;
+
+function getGreetingKey(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "dashboard.greetingMorning";
+  if (hour < 18) return "dashboard.greetingAfternoon";
+  return "dashboard.greetingEvening";
+}
+
 export function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -152,27 +175,21 @@ export function Dashboard() {
   }, [activityPage]);
 
   const displayProjects = projects.slice(0, MAX_DASHBOARD_PROJECTS);
+  const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);
 
   return (
     <div className="flex h-full flex-col">
-      <CommandBar>
-        <span className="text-[13px] font-semibold text-neutral-fg1">
-          {t("dashboard.title")}
-        </span>
-      </CommandBar>
+      <div className="glass shrink-0 border-b border-stroke2 py-6 px-8">
+        <h1 className="text-display text-gradient">{t(getGreetingKey())}</h1>
+        <p className="text-subtitle mt-1">
+          {t("dashboard.projectCount", { count: projects.length })}
+        </p>
+        <p className="text-[13px] italic text-neutral-fg3 mt-1">
+          &ldquo;{t(quote.text)}&rdquo; — {quote.author}
+        </p>
+      </div>
 
       <div className="flex-1 overflow-y-auto p-10">
-        {/* Hero area */}
-        <div className="relative mb-8">
-          <div className="glow-orb glow-orb-brand w-[200px] h-[200px] -top-32 -left-20 opacity-40" />
-          <div className="glow-orb glow-orb-purple w-[140px] h-[140px] -top-16 right-10 opacity-30" />
-          <div className="relative">
-            <h1 className="text-display text-gradient animate-fade-up">{t("dashboard.title")}</h1>
-            <p className="text-subtitle mt-2 animate-fade-up stagger-1">
-              {t("dashboard.projectCount", { count: projects.length })}
-            </p>
-          </div>
-        </div>
 
         {/* Stat cards grid */}
         {stats && (

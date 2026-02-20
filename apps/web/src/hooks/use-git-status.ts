@@ -20,7 +20,6 @@ export interface GitCommit {
 export interface GitConfig {
   remoteUrl?: string;
   defaultBranch: string;
-  autoPR: boolean;
 }
 
 export interface GitRemoteStatus {

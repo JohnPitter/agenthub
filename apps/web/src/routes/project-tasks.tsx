@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useTasks } from "../hooks/use-tasks";
 import { useSocket } from "../hooks/use-socket";
@@ -11,6 +11,7 @@ import { TaskFilters } from "../components/tasks/task-filters";
 import { TaskCommitDialog } from "../components/tasks/task-commit-dialog";
 import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
 import { CommandBar } from "../components/layout/command-bar";
+import { SkeletonKanban } from "../components/ui/skeleton";
 import { Tablist } from "../components/ui/tablist";
 import { cn, formatRelativeTime } from "../lib/utils";
 import type { Task, TaskStatus, TaskPriority } from "@agenthub/shared";
@@ -192,11 +193,8 @@ export function ProjectTasks() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-brand" />
-            <p className="text-[13px] text-neutral-fg3 font-medium">{t("common.loading")}</p>
-          </div>
+        <div className="flex-1 overflow-x-auto px-8 pb-8 pt-4">
+          <SkeletonKanban columns={6} />
         </div>
       ) : viewMode === "kanban" ? (
         /* Kanban View */
@@ -238,7 +236,6 @@ export function ProjectTasks() {
                           agents={agents}
                           onEdit={setEditingTask}
                           onDelete={handleDelete}
-                          onExecute={(taskId, agentId) => executeTask(taskId, agentId)}
                           onViewChanges={setChangesTaskId}
                           onApprove={(taskId) => approveTask(taskId)}
                           onReject={(taskId, feedback) => rejectTask(taskId, feedback)}

@@ -2,6 +2,10 @@ import { Router } from "express";
 import { db, schema } from "@agenthub/database";
 import { eq, desc, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { join } from "path";
+import { homedir } from "os";
+import { mkdir } from "fs/promises";
+import { existsSync } from "fs";
 import { scanWorkspace } from "../workspace/scanner";
 import {
   fetchUserRepos,
@@ -14,6 +18,22 @@ import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
 const git = new GitService();
+const REPOS_DIR = join(homedir(), ".agenthub", "repos");
+
+async function cloneGitHubRepo(
+  cloneUrl: string,
+  projectName: string,
+  accessToken: string,
+): Promise<string> {
+  await mkdir(REPOS_DIR, { recursive: true });
+  const dirName = projectName.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
+  let targetPath = join(REPOS_DIR, dirName);
+  if (existsSync(targetPath)) {
+    targetPath = join(REPOS_DIR, `${dirName}-${nanoid(6)}`);
+  }
+  await git.clone(cloneUrl, targetPath, { type: "https", token: accessToken });
+  return targetPath;
+}
 
 /**
  * Fetch GitHub "About" description for a local project via REST API.
@@ -151,16 +171,25 @@ projectsRouter.post("/create", async (req, res) => {
         throw ghErr;
       }
 
-      // Check duplicate path
+      // Check duplicate by clone URL
       const existing = await db.select({ id: schema.projects.id }).from(schema.projects).where(eq(schema.projects.path, repoResult.clone_url)).get();
       if (existing) {
         return res.status(409).json({ error: "errorDuplicate" });
       }
 
+      // Clone to local directory
+      let localPath: string;
+      try {
+        localPath = await cloneGitHubRepo(repoResult.clone_url, name.trim(), accessToken);
+      } catch (cloneErr) {
+        logger.error(`Failed to clone repo ${repoResult.clone_url}: ${cloneErr}`, "projects");
+        return res.status(500).json({ error: "errorCloneFailed" });
+      }
+
       const project = {
         id: nanoid(),
         name: name.trim(),
-        path: repoResult.clone_url,
+        path: localPath,
         stack: JSON.stringify([]),
         icon: null,
         description: repoResult.description || description?.trim() || null,
@@ -171,7 +200,7 @@ projectsRouter.post("/create", async (req, res) => {
       };
 
       await db.insert(schema.projects).values(project);
-      logger.info(`GitHub repo created: ${repoResult.full_name}`, "projects");
+      logger.info(`GitHub repo created and cloned: ${repoResult.full_name} → ${localPath}`, "projects");
       return res.status(201).json({ project });
     }
 
@@ -240,24 +269,48 @@ projectsRouter.get("/:id", async (req, res) => {
   }
 });
 
-// POST /api/projects — create project
+// POST /api/projects — create project (import flow)
 projectsRouter.post("/", async (req, res) => {
   try {
     const { name, path, stack, icon, description, teamId } = req.body;
 
+    // Clone GitHub repos to local directory
+    let resolvedPath = path;
+    if (path?.startsWith("http")) {
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+      const user = await db.select({ accessToken: schema.users.accessToken }).from(schema.users).where(eq(schema.users.id, userId)).get();
+      if (!user?.accessToken) return res.status(424).json({ error: "github_reauth", message: "GitHub access token not found." });
+
+      let accessToken: string;
+      try {
+        accessToken = safeDecrypt(user.accessToken);
+      } catch {
+        return res.status(424).json({ error: "github_reauth", message: "GitHub token could not be decrypted." });
+      }
+
+      try {
+        resolvedPath = await cloneGitHubRepo(path, name, accessToken);
+      } catch (cloneErr) {
+        logger.error(`Failed to clone imported repo ${path}: ${cloneErr}`, "projects");
+        return res.status(500).json({ error: "errorCloneFailed" });
+      }
+    }
+
     // Auto-fetch GitHub "About" description when not provided and path is local
     let resolvedDescription: string | null = description ?? null;
-    if (!resolvedDescription && path && !path.startsWith("http")) {
+    if (!resolvedDescription && resolvedPath && !resolvedPath.startsWith("http")) {
       const userId = req.user?.userId;
       if (userId) {
-        resolvedDescription = await fetchGitHubDescription(userId, path);
+        resolvedDescription = await fetchGitHubDescription(userId, resolvedPath);
       }
     }
 
     const project = {
       id: nanoid(),
       name,
-      path,
+      path: resolvedPath,
       stack: JSON.stringify(stack ?? []),
       icon: icon ?? null,
       description: resolvedDescription,

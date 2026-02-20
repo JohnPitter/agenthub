@@ -101,6 +101,13 @@ export function setupSocketHandlers(
     // Execute a task with a specific agent
     socket.on("user:execute_task", async ({ taskId, agentId }) => {
       logger.info(`Execute task ${taskId} with agent ${agentId}`, "socket");
+
+      // Reset non-created tasks to created before executing
+      const task = await db.select({ status: schema.tasks.status }).from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      if (task && task.status !== "created" && task.status !== "in_progress") {
+        await transitionTask(taskId, "created", undefined, `Resetting from ${task.status} for execution`);
+      }
+
       await agentManager.assignTask(taskId, agentId);
     });
 
@@ -406,7 +413,6 @@ export function setupSocketHandlers(
  * Auto-create PR after a successful push if autoPR is enabled in git config.
  */
 async function tryAutoPR(task: { id: string; projectId: string; title: string; branch: string | null }, projectPath: string, branchName: string, config: Record<string, unknown>) {
-  if (!config.autoPR) return;
 
   try {
     // Check if a PR already exists for this branch
@@ -487,15 +493,29 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
   });
 
   eventBus.on("task:status", (data) => {
+    // Scope to project room if taskId resolves to a projectId
+    // task:status doesn't carry projectId directly, so broadcast globally
     io.emit("task:status", data);
   });
 
   eventBus.on("task:created", (data) => {
-    io.emit("task:created", data);
+    const task = data.task as Record<string, unknown> | undefined;
+    const projectId = task?.projectId as string | undefined;
+    if (projectId) {
+      io.to(`project:${projectId}`).emit("task:created", data);
+    } else {
+      io.emit("task:created", data);
+    }
   });
 
   eventBus.on("task:updated", (data) => {
-    io.emit("task:updated", data);
+    const task = data.task as Record<string, unknown> | undefined;
+    const projectId = task?.projectId as string | undefined;
+    if (projectId) {
+      io.to(`project:${projectId}`).emit("task:updated", data);
+    } else {
+      io.emit("task:updated", data);
+    }
   });
 
   eventBus.on("task:queued", (data) => {
@@ -528,6 +548,10 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
 
   eventBus.on("task:pr_merged", (data) => {
     io.to(`project:${data.projectId}`).emit("task:pr_merged", data);
+  });
+
+  eventBus.on("task:pr_error", (data) => {
+    io.to(`project:${data.projectId}`).emit("task:pr_error", data);
   });
 
   eventBus.on("workflow:phase", (data) => {

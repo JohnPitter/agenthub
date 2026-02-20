@@ -20,6 +20,7 @@ import type {
   TaskReadyToCommitEvent,
   TaskPRCreatedEvent,
   TaskPRMergedEvent,
+  TaskPRErrorEvent,
   BoardActivityEvent,
   BoardAgentCursorEvent,
   DevServerOutputEvent,
@@ -107,6 +108,12 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     socket.on("devserver:output", onDevServerOutput);
     socket.on("devserver:status", onDevServerStatus);
 
+    const onTaskPRError = (data: TaskPRErrorEvent) => {
+      const store = useNotificationStore.getState();
+      store.addToast("error", "PR creation failed", data.error);
+    };
+    socket.on("task:pr_error", onTaskPRError);
+
     const onNotificationNew = (data: NotificationEvent) => {
       const store = useNotificationStore.getState();
       store.addNotificationFromSocket({
@@ -148,6 +155,7 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
       socket.off("board:agent_cursor", onBoardAgentCursor);
       socket.off("devserver:output", onDevServerOutput);
       socket.off("devserver:status", onDevServerStatus);
+      socket.off("task:pr_error", onTaskPRError);
       socket.off("notification:new", onNotificationNew);
     };
   }, [projectId]);

@@ -19,6 +19,7 @@ export interface EventMap {
   "task:git_push": { taskId: string; projectId: string; branchName: string; commitSha: string; remote: string };
   "task:git_push_error": { taskId: string; projectId: string; error: string };
   "task:pr_created": { taskId: string; projectId: string; prNumber: number; prUrl: string; prTitle: string; headBranch: string; baseBranch: string };
+  "task:pr_error": { taskId: string; projectId: string; error: string };
   "task:pr_merged": { taskId: string; projectId: string; prNumber: number; method: string };
   "workflow:phase": { taskId: string; projectId: string; phase: string; agentId: string; agentName: string; detail?: string };
   "board:activity": { projectId: string; agentId: string; action: string; detail: string; timestamp: number };

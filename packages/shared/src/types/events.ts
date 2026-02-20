@@ -20,6 +20,7 @@ export interface ServerToClientEvents {
   "task:git_push_error": (data: TaskGitPushErrorEvent) => void;
   "task:pr_created": (data: TaskPRCreatedEvent) => void;
   "task:pr_merged": (data: TaskPRMergedEvent) => void;
+  "task:pr_error": (data: TaskPRErrorEvent) => void;
   "workflow:phase": (data: WorkflowPhaseEvent) => void;
   "board:activity": (data: BoardActivityEvent) => void;
   "board:agent_cursor": (data: BoardAgentCursorEvent) => void;
@@ -214,6 +215,12 @@ export interface TaskPRMergedEvent {
   projectId: string;
   prNumber: number;
   method: string;
+}
+
+export interface TaskPRErrorEvent {
+  taskId: string;
+  projectId: string;
+  error: string;
 }
 
 export interface AgentUpdatedEvent {

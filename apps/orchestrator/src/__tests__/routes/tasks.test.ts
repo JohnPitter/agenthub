@@ -115,6 +115,15 @@ beforeAll(async () => {
   });
 
   app.patch("/api/tasks/:id", async (req, res) => {
+    // Pre-flight: validate tech_lead exists before allowing "assigned" transition
+    if (req.body.status === "assigned") {
+      const agents = await testDb.select().from(schema.agents);
+      const techLead = agents.find((a) => a.role === "tech_lead" && a.isActive);
+      if (!techLead) {
+        return res.status(400).json({ error: "errorNoTechLead" });
+      }
+    }
+
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     const allowedFields = ["title", "description", "status", "priority", "category", "assignedAgentId", "result"];
     for (const field of allowedFields) {
@@ -398,6 +407,58 @@ describe("Tasks Routes — Integration", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.task.result).toBe("Task completed successfully");
+    });
+
+    it("returns 400 errorNoTechLead when moving to assigned without tech_lead agent", async () => {
+      const task = await createTestTask(testDb, project.id);
+      // No tech_lead agent exists in DB
+
+      const res = await request(app)
+        .patch(`/api/tasks/${task.id}`)
+        .send({ status: "assigned" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe("errorNoTechLead");
+
+      // Verify task status was NOT changed
+      const getRes = await request(app).get(`/api/tasks/${task.id}`);
+      expect(getRes.body.task.status).toBe("created");
+    });
+
+    it("returns 400 errorNoTechLead when tech_lead exists but is inactive", async () => {
+      const task = await createTestTask(testDb, project.id);
+      await createTestAgent(testDb, { role: "tech_lead", isActive: false });
+
+      const res = await request(app)
+        .patch(`/api/tasks/${task.id}`)
+        .send({ status: "assigned" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe("errorNoTechLead");
+    });
+
+    it("allows moving to assigned when active tech_lead exists", async () => {
+      const task = await createTestTask(testDb, project.id);
+      await createTestAgent(testDb, { role: "tech_lead", isActive: true });
+
+      const res = await request(app)
+        .patch(`/api/tasks/${task.id}`)
+        .send({ status: "assigned" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.task.status).toBe("assigned");
+    });
+
+    it("allows non-assigned status transitions without tech_lead", async () => {
+      const task = await createTestTask(testDb, project.id);
+      // No agents at all — should still allow in_progress, review, etc.
+
+      const res = await request(app)
+        .patch(`/api/tasks/${task.id}`)
+        .send({ status: "in_progress" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.task.status).toBe("in_progress");
     });
   });
 

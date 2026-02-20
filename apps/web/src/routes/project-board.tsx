@@ -5,11 +5,13 @@ import { LayoutGrid, Table2, Loader2 } from "lucide-react";
 import { useSocket } from "../hooks/use-socket";
 import { useAgents } from "../hooks/use-agents";
 import { useTasks } from "../hooks/use-tasks";
+import { getSocket } from "../lib/socket";
 import { KanbanBoard } from "../components/board/kanban-board";
 import { AgentActivityOverlay } from "../components/board/agent-activity-overlay";
 import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
 import { TaskDetailDrawer } from "../components/tasks/task-detail-drawer";
 import { CommandBar } from "../components/layout/command-bar";
+import { useNotificationStore } from "../stores/notification-store";
 import { cn } from "../lib/utils";
 import type { Task, TaskStatus } from "@agenthub/shared";
 
@@ -23,7 +25,8 @@ export function ProjectBoard() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { agents } = useAgents();
-  const { tasks: initialTasks } = useTasks(id);
+  const addToast = useNotificationStore((s) => s.addToast);
+  const { tasks: initialTasks, refetch: refetchTasks } = useTasks(id);
   const [tasks, setTasks] = useState(initialTasks);
   const [view, setView] = useState<BoardView>("kanban");
   const [changesTaskId, setChangesTaskId] = useState<string | null>(null);
@@ -44,7 +47,19 @@ export function ProjectBoard() {
     setTasks(initialTasks);
   }, [initialTasks]);
 
-  useSocket(id, {
+  // Re-fetch tasks on socket reconnect to ensure board is in sync
+  useEffect(() => {
+    const socket = getSocket();
+    const onReconnect = () => {
+      refetchTasks();
+    };
+    socket.on("connect", onReconnect);
+    return () => {
+      socket.off("connect", onReconnect);
+    };
+  }, [refetchTasks]);
+
+  const { executeTask } = useSocket(id, {
     onTaskStatus: (data) => {
       setTasks((prev) => {
         const existing = prev.find((t) => t.id === data.taskId);
@@ -150,6 +165,11 @@ export function ProjectBoard() {
             onTaskUpdate={handleTaskUpdate}
             onViewChanges={setChangesTaskId}
             onTaskClick={setSelectedTask}
+            onError={(err) => {
+              if (err === "errorNoTechLead") {
+                addToast("error", t("tasks.errorNoTechLead"));
+              }
+            }}
           />
         ) : (
           <Suspense
@@ -180,6 +200,10 @@ export function ProjectBoard() {
           onViewChanges={(taskId) => {
             setSelectedTask(null);
             setChangesTaskId(taskId);
+          }}
+          onRetry={(taskId, agentId) => {
+            executeTask(taskId, agentId);
+            setSelectedTask(null);
           }}
         />
       )}

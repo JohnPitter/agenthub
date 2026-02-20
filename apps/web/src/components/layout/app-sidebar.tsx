@@ -502,8 +502,8 @@ export function AppSidebar() {
             </div>
           )}
 
-          <nav className="flex flex-1 flex-col gap-1.5 overflow-auto px-7 pb-5">
-            {projects.map((project) => {
+          <nav className="flex flex-col gap-1.5 px-7 pb-3">
+            {projects.slice(0, 3).map((project) => {
               const stack: string[] = project.stack
                 ? typeof project.stack === "string" ? JSON.parse(project.stack) : project.stack
                 : [];
@@ -539,6 +539,14 @@ export function AppSidebar() {
                 </Link>
               );
             })}
+            {projects.length > 3 && !collapsed && (
+              <Link
+                to="/projects"
+                className="flex items-center justify-center gap-1.5 rounded-lg py-2 text-[11px] font-medium text-neutral-fg3 hover:text-brand hover:bg-neutral-bg-hover transition-colors"
+              >
+                {t("dashboard.viewAllProjects")} ({projects.length})
+              </Link>
+            )}
           </nav>
         </>
       )}

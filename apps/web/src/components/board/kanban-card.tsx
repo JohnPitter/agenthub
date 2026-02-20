@@ -9,6 +9,7 @@ import type { Task, Agent } from "@agenthub/shared";
 interface KanbanCardProps {
   task: Task;
   agent?: Agent;
+  recentlyMoved?: boolean;
   onViewChanges?: (taskId: string) => void;
   onTaskClick?: (task: Task) => void;
 }
@@ -27,7 +28,7 @@ const PRIORITY_KEYS = {
   urgent: "taskPriority.urgent",
 } as const;
 
-export function KanbanCard({ task, agent, onViewChanges, onTaskClick }: KanbanCardProps) {
+export function KanbanCard({ task, agent, recentlyMoved, onViewChanges, onTaskClick }: KanbanCardProps) {
   const { t } = useTranslation();
   const {
     attributes,
@@ -52,7 +53,8 @@ export function KanbanCard({ task, agent, onViewChanges, onTaskClick }: KanbanCa
       onClick={() => !isDragging && onTaskClick?.(task)}
       className={cn(
         "group cursor-grab card-interactive p-3 active:cursor-grabbing",
-        isDragging && "opacity-40 shadow-glow ring-2 ring-brand/20"
+        isDragging && "opacity-40 shadow-glow ring-2 ring-brand/20",
+        recentlyMoved && "animate-task-arrive"
       )}
     >
       {/* Priority + blocked */}

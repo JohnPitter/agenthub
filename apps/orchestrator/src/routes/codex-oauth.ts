@@ -105,7 +105,7 @@ codexOAuthRouter.get("/oauth/usage", async (_req, res) => {
 
     const token = await getCodexOAuthToken();
     if (!token) {
-      return res.status(401).json({ error: "Not connected" });
+      return res.status(424).json({ error: "openai_oauth_required" });
     }
 
     const creds = await readCodexCredentials();
@@ -124,7 +124,8 @@ codexOAuthRouter.get("/oauth/usage", async (_req, res) => {
 
     if (!response.ok) {
       logger.warn(`WHAM usage API returned ${response.status}`, "codex-oauth");
-      return res.status(response.status).json({ error: "Failed to fetch usage" });
+      const mappedStatus = response.status === 401 || response.status === 403 ? 424 : response.status;
+      return res.status(mappedStatus).json({ error: "openai_oauth_expired" });
     }
 
     const data = await response.json() as Record<string, unknown>;

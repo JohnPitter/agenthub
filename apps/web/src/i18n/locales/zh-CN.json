@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "仪表盘",
+    "projects": "项目",
     "agents": "智能体",
     "tasks": "任务",
     "docs": "文档",
@@ -45,6 +46,8 @@
     "backend_dev": "后端开发",
     "qa": "测试工程师",
     "receptionist": "团队负责人",
+    "doc_writer": "文档工程师",
+    "support": "技术支持",
     "custom": "自定义"
   },
   "taskStatus": {
@@ -109,7 +112,24 @@
     "githubExpiredDesc": "重新连接您的 GitHub 账户以查看仓库",
     "reconnectGithub": "重新连接 GitHub",
     "githubLoadError": "加载仓库失败",
-    "githubLoadErrorDesc": "无法加载您的 GitHub 仓库"
+    "githubLoadErrorDesc": "无法加载您的 GitHub 仓库",
+    "weeklySummary": "本周摘要",
+    "weeklyCreated": "已创建",
+    "weeklyCompleted": "已完成",
+    "weeklyFailed": "失败",
+    "completedTask": "任务",
+    "completedAgent": "智能体",
+    "completedWhen": "完成时间",
+    "viewAllProjects": "查看全部"
+  },
+  "projects": {
+    "title": "项目",
+    "searchPlaceholder": "搜索项目...",
+    "filterAll": "全部",
+    "filterActive": "活跃",
+    "filterArchived": "已归档",
+    "noProjects": "未找到项目",
+    "projectCount": "{{count}} 个项目"
   },
   "tasks": {
     "title": "任务",
@@ -704,5 +724,33 @@
       "opGt": "大于",
       "opLt": "小于"
     }
+  },
+  "createProject": {
+    "button": "\u521b\u5efa\u9879\u76ee",
+    "title": "\u521b\u5efa\u65b0\u9879\u76ee",
+    "localTab": "\u672c\u5730",
+    "githubTab": "GitHub",
+    "name": "\u9879\u76ee\u540d\u79f0",
+    "namePlaceholder": "my-awesome-project",
+    "path": "\u672c\u5730\u8def\u5f84",
+    "pathPlaceholder": "/home/user/projects/my-project",
+    "description": "\u63cf\u8ff0",
+    "descriptionPlaceholder": "\u9879\u76ee\u7684\u7b80\u8981\u63cf\u8ff0...",
+    "private": "\u79c1\u6709\u4ed3\u5e93",
+    "privateDesc": "\u53ea\u6709\u60a8\u53ef\u4ee5\u67e5\u770b\u6b64\u4ed3\u5e93",
+    "creating": "\u521b\u5efa\u4e2d...",
+    "createLocal": "\u521b\u5efa\u672c\u5730\u9879\u76ee",
+    "createGithub": "\u5728 GitHub \u4e0a\u521b\u5efa",
+    "errorNameRequired": "\u9879\u76ee\u540d\u79f0\u4e3a\u5fc5\u586b\u9879",
+    "errorPathRequired": "\u672c\u5730\u8def\u5f84\u4e3a\u5fc5\u586b\u9879",
+    "errorDuplicate": "\u5df2\u5b58\u5728\u4f7f\u7528\u6b64\u8def\u5f84\u7684\u9879\u76ee",
+    "errorRepoExists": "GitHub \u4e0a\u5df2\u5b58\u5728\u540c\u540d\u4ed3\u5e93",
+    "errorTokenExpired": "GitHub \u4ee4\u724c\u5df2\u8fc7\u671f\u3002\u8bf7\u5728\u8bbe\u7f6e\u4e2d\u91cd\u65b0\u8fde\u63a5\u3002"
+  },
+  "pixelOffice": {
+    "label": "Office",
+    "title": "PIXEL OFFICE",
+    "subtitle": "将任务可视化为虚拟办公室",
+    "blocked": "已阻塞"
   }
 }

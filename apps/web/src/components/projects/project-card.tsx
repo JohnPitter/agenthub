@@ -30,7 +30,7 @@ export function ProjectCard({ project, taskCount = 0, agentCount = 0, lastActivi
       {/* Stack icon + status */}
       <div className="relative flex items-start justify-between">
         <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-purple text-[24px] font-bold text-white shadow-brand transition-transform duration-300 group-hover:scale-105">
-          {icon}
+          {icon === "??" ? project.name.charAt(0).toUpperCase() : icon}
         </div>
 
         {project.status && (

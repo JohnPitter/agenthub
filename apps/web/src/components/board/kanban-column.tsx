@@ -11,11 +11,12 @@ interface KanbanColumnProps {
   tasks: Task[];
   agents: Agent[];
   color: string;
+  recentlyMoved?: Set<string>;
   onViewChanges?: (taskId: string) => void;
   onTaskClick?: (task: Task) => void;
 }
 
-export function KanbanColumn({ id, title, tasks, agents, color, onViewChanges, onTaskClick }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, tasks, agents, color, recentlyMoved, onViewChanges, onTaskClick }: KanbanColumnProps) {
   const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -55,7 +56,7 @@ export function KanbanColumn({ id, title, tasks, agents, color, onViewChanges, o
           ) : (
             tasks.map((task) => {
               const agent = agents.find(a => a.id === task.assignedAgentId);
-              return <KanbanCard key={task.id} task={task} agent={agent} onViewChanges={onViewChanges} onTaskClick={onTaskClick} />;
+              return <KanbanCard key={task.id} task={task} agent={agent} recentlyMoved={recentlyMoved?.has(task.id)} onViewChanges={onViewChanges} onTaskClick={onTaskClick} />;
             })
           )}
         </div>

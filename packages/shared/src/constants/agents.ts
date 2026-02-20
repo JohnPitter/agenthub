@@ -99,4 +99,16 @@ export const DEFAULT_AGENTS: AgentBlueprint[] = [
     color: "#EC4899",
     avatar: "fun-emoji:agent-x-spy",
   },
+  {
+    name: "Support",
+    role: "support",
+    model: "claude-opus-4-6",
+    maxThinkingTokens: 32000,
+    description: "Full-access support agent — resolves critical issues that regular devs can't handle. Has unrestricted tool access including Bash, system commands, and direct machine operations. Escalated by team lead, returns resolution to team lead.",
+    allowedTools: ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task", "WebSearch", "WebFetch"],
+    permissionMode: "bypassPermissions",
+    level: "especialista",
+    color: "#DC2626",
+    avatar: "bottts:support-shield",
+  },
 ];

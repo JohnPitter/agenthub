@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "ダッシュボード",
+    "projects": "プロジェクト",
     "agents": "エージェント",
     "tasks": "タスク",
     "docs": "ドキュメント",
@@ -45,6 +46,8 @@
     "backend_dev": "バックエンド開発",
     "qa": "QAエンジニア",
     "receptionist": "チームリード",
+    "doc_writer": "ドキュメントライター",
+    "support": "サポート",
     "custom": "カスタム"
   },
   "taskStatus": {
@@ -109,7 +112,24 @@
     "githubExpiredDesc": "リポジトリを表示するには GitHub アカウントを再接続してください",
     "reconnectGithub": "GitHub を再接続",
     "githubLoadError": "リポジトリの読み込みに失敗",
-    "githubLoadErrorDesc": "GitHub リポジトリを読み込めませんでした"
+    "githubLoadErrorDesc": "GitHub リポジトリを読み込めませんでした",
+    "weeklySummary": "週間サマリー",
+    "weeklyCreated": "作成",
+    "weeklyCompleted": "完了",
+    "weeklyFailed": "失敗",
+    "completedTask": "タスク",
+    "completedAgent": "エージェント",
+    "completedWhen": "完了日",
+    "viewAllProjects": "すべて見る"
+  },
+  "projects": {
+    "title": "プロジェクト",
+    "searchPlaceholder": "プロジェクトを検索...",
+    "filterAll": "すべて",
+    "filterActive": "アクティブ",
+    "filterArchived": "アーカイブ",
+    "noProjects": "プロジェクトが見つかりません",
+    "projectCount": "{{count}} プロジェクト"
   },
   "tasks": {
     "title": "タスク",
@@ -704,5 +724,33 @@
       "opGt": "より大きい",
       "opLt": "より小さい"
     }
+  },
+  "createProject": {
+    "button": "\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u3092\u4f5c\u6210",
+    "title": "\u65b0\u898f\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u4f5c\u6210",
+    "localTab": "\u30ed\u30fc\u30ab\u30eb",
+    "githubTab": "GitHub",
+    "name": "\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u540d",
+    "namePlaceholder": "my-awesome-project",
+    "path": "\u30ed\u30fc\u30ab\u30eb\u30d1\u30b9",
+    "pathPlaceholder": "/home/user/projects/my-project",
+    "description": "\u8aac\u660e",
+    "descriptionPlaceholder": "\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u306e\u7c21\u5358\u306a\u8aac\u660e...",
+    "private": "\u30d7\u30e9\u30a4\u30d9\u30fc\u30c8\u30ea\u30dd\u30b8\u30c8\u30ea",
+    "privateDesc": "\u3042\u306a\u305f\u3060\u3051\u304c\u3053\u306e\u30ea\u30dd\u30b8\u30c8\u30ea\u3092\u898b\u308b\u3053\u3068\u304c\u3067\u304d\u307e\u3059",
+    "creating": "\u4f5c\u6210\u4e2d...",
+    "createLocal": "\u30ed\u30fc\u30ab\u30eb\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u3092\u4f5c\u6210",
+    "createGithub": "GitHub \u306b\u4f5c\u6210",
+    "errorNameRequired": "\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u540d\u306f\u5fc5\u9808\u3067\u3059",
+    "errorPathRequired": "\u30ed\u30fc\u30ab\u30eb\u30d1\u30b9\u306f\u5fc5\u9808\u3067\u3059",
+    "errorDuplicate": "\u3053\u306e\u30d1\u30b9\u306e\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u306f\u65e2\u306b\u5b58\u5728\u3057\u307e\u3059",
+    "errorRepoExists": "GitHub \u306b\u540c\u540d\u306e\u30ea\u30dd\u30b8\u30c8\u30ea\u304c\u65e2\u306b\u5b58\u5728\u3057\u307e\u3059",
+    "errorTokenExpired": "GitHub \u30c8\u30fc\u30af\u30f3\u304c\u671f\u9650\u5207\u308c\u3067\u3059\u3002\u8a2d\u5b9a\u3067\u518d\u63a5\u7d9a\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
+  },
+  "pixelOffice": {
+    "label": "Office",
+    "title": "PIXEL OFFICE",
+    "subtitle": "タスクをバーチャルオフィスとして可視化",
+    "blocked": "ブロック中"
   }
 }

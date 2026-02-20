@@ -6,8 +6,10 @@ import {
   CheckCircle2, AlertTriangle, Zap, Terminal, FileCode,
   ArrowRightLeft, Eye, User, GripVertical, X, Tag,
   Calendar, Hash, DollarSign, Coins, Plus, FileDiff,
+  LayoutGrid, Building2,
 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
+import { PixelOffice } from "../components/pixel-office/pixel-office";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 import { NewTaskDialog } from "../components/tasks/new-task-dialog";
 import { TaskChangesDialog } from "../components/tasks/task-changes-dialog";
@@ -73,6 +75,7 @@ export function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showNewTask, setShowNewTask] = useState(false);
   const [changesTaskId, setChangesTaskId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"kanban" | "office">("kanban");
   const activityEndRef = useRef<HTMLDivElement>(null);
 
   /* ─── Data fetch ─── */
@@ -299,6 +302,36 @@ export function TasksPage() {
 
           <span className="h-5 w-px bg-stroke" />
 
+          {/* View toggle */}
+          <div className="flex items-center rounded-full bg-neutral-bg2 p-1 border border-stroke">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-200",
+                viewMode === "kanban"
+                  ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
+                  : "text-neutral-fg3 hover:text-neutral-fg1",
+              )}
+            >
+              <LayoutGrid className="h-3 w-3" />
+              Kanban
+            </button>
+            <button
+              onClick={() => setViewMode("office")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-200",
+                viewMode === "office"
+                  ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
+                  : "text-neutral-fg3 hover:text-neutral-fg1",
+              )}
+            >
+              <Building2 className="h-3 w-3" />
+              {t("pixelOffice.label")}
+            </button>
+          </div>
+
+          <span className="h-5 w-px bg-stroke" />
+
           {projects.length > 1 && (
             <select
               value={projectFilter}
@@ -391,62 +424,72 @@ export function TasksPage() {
             </div>
           )}
 
-          {/* ─── Kanban Board ─── */}
-          <div className="flex-1 overflow-x-auto px-6 pb-6 pt-4">
-            <div className="grid h-full grid-cols-6 gap-4" style={{ minWidth: 1200 }}>
-              {KANBAN_COLUMNS.map((column) => {
-                const columnTasks = getColumnTasks(column.status);
-                const isOver = dragOverColumn === column.status;
+          {/* ─── View content ─── */}
+          {viewMode === "kanban" ? (
+            <div className="flex-1 overflow-x-auto px-6 pb-6 pt-4">
+              <div className="grid h-full grid-cols-6 gap-4" style={{ minWidth: 1200 }}>
+                {KANBAN_COLUMNS.map((column) => {
+                  const columnTasks = getColumnTasks(column.status);
+                  const isOver = dragOverColumn === column.status;
 
-                return (
-                  <div
-                    key={column.status}
-                    onDragOver={(e) => handleDragOver(e, column.status)}
-                    onDragLeave={() => setDragOverColumn(null)}
-                    onDrop={(e) => handleDrop(e, column.status)}
-                    className={cn(
-                      "flex flex-col rounded-xl transition-all duration-200",
-                      isOver && `ring-2 ${column.glowColor} bg-brand-light/5`,
-                    )}
-                  >
-                    {/* Column header */}
-                    <div className="rounded-t-xl px-4 py-3 border-b border-stroke2 bg-neutral-bg2/50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("h-2 w-2 rounded-full", column.dotColor)} />
-                          <span className="text-[13px] font-semibold text-neutral-fg1">{t(column.labelKey)}</span>
+                  return (
+                    <div
+                      key={column.status}
+                      onDragOver={(e) => handleDragOver(e, column.status)}
+                      onDragLeave={() => setDragOverColumn(null)}
+                      onDrop={(e) => handleDrop(e, column.status)}
+                      className={cn(
+                        "flex flex-col rounded-xl transition-all duration-200",
+                        isOver && `ring-2 ${column.glowColor} bg-brand-light/5`,
+                      )}
+                    >
+                      {/* Column header */}
+                      <div className="rounded-t-xl px-4 py-3 border-b border-stroke2 bg-neutral-bg2/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("h-2 w-2 rounded-full", column.dotColor)} />
+                            <span className="text-[13px] font-semibold text-neutral-fg1">{t(column.labelKey)}</span>
+                          </div>
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
+                            {columnTasks.length}
+                          </span>
                         </div>
-                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
-                          {columnTasks.length}
-                        </span>
+                      </div>
+
+                      {/* Cards */}
+                      <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+                        {columnTasks.length > 0 ? (
+                          columnTasks.map((task) => (
+                            <WarRoomCard
+                              key={task.id}
+                              task={task}
+                              agentMap={agentMap}
+                              projectMap={projectMap}
+                              agentActivity={agentActivity}
+                              onDragStart={handleDragStart}
+                              onClick={setSelectedTask}
+                            />
+                          ))
+                        ) : (
+                          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-stroke py-8">
+                            <p className="text-[11px] text-neutral-fg-disabled">{t("common.empty")}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-
-                    {/* Cards */}
-                    <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
-                      {columnTasks.length > 0 ? (
-                        columnTasks.map((task) => (
-                          <WarRoomCard
-                            key={task.id}
-                            task={task}
-                            agentMap={agentMap}
-                            projectMap={projectMap}
-                            agentActivity={agentActivity}
-                            onDragStart={handleDragStart}
-                            onClick={setSelectedTask}
-                          />
-                        ))
-                      ) : (
-                        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-stroke py-8">
-                          <p className="text-[11px] text-neutral-fg-disabled">{t("common.empty")}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <PixelOffice
+              tasks={tasks}
+              projectFilter={projectFilter}
+              agentMap={agentMap}
+              agentActivity={agentActivity}
+              onTaskClick={setSelectedTask}
+            />
+          )}
         </div>
 
         {/* ═══ Right: Live Activity Feed ═══ */}

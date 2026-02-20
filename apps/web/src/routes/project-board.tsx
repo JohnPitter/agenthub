@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutGrid, Table2, Loader2 } from "lucide-react";
@@ -28,6 +28,17 @@ export function ProjectBoard() {
   const [view, setView] = useState<BoardView>("kanban");
   const [changesTaskId, setChangesTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const recentlyMovedRef = useRef<Set<string>>(new Set());
+  const [recentlyMoved, setRecentlyMoved] = useState<Set<string>>(new Set());
+
+  const markTaskMoved = useCallback((taskId: string) => {
+    recentlyMovedRef.current.add(taskId);
+    setRecentlyMoved(new Set(recentlyMovedRef.current));
+    setTimeout(() => {
+      recentlyMovedRef.current.delete(taskId);
+      setRecentlyMoved(new Set(recentlyMovedRef.current));
+    }, 600);
+  }, []);
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -35,13 +46,17 @@ export function ProjectBoard() {
 
   useSocket(id, {
     onTaskStatus: (data) => {
-      setTasks((prev) =>
-        prev.map((t) =>
+      setTasks((prev) => {
+        const existing = prev.find((t) => t.id === data.taskId);
+        if (existing && existing.status !== data.status) {
+          markTaskMoved(data.taskId);
+        }
+        return prev.map((t) =>
           t.id === data.taskId
             ? { ...t, status: data.status as TaskStatus, updatedAt: new Date() }
             : t
-        )
-      );
+        );
+      });
     },
     onTaskCreated: (data) => {
       const task = data.task as Task;
@@ -55,9 +70,13 @@ export function ProjectBoard() {
     onTaskUpdated: (data) => {
       const task = data.task as Task;
       if (task) {
-        setTasks((prev) =>
-          prev.map((t) => (t.id === task.id ? { ...t, ...task } : t))
-        );
+        setTasks((prev) => {
+          const existing = prev.find((t) => t.id === task.id);
+          if (existing && task.status && existing.status !== task.status) {
+            markTaskMoved(task.id);
+          }
+          return prev.map((t) => (t.id === task.id ? { ...t, ...task } : t));
+        });
       }
     },
   });
@@ -85,13 +104,13 @@ export function ProjectBoard() {
             <span className="text-[13px] font-semibold text-neutral-fg1">
               {view === "kanban" ? "Kanban Board" : t("tasks.title")}
             </span>
-            <span className="text-[13px] text-neutral-fg3">
+            <span className="text-[12px] text-neutral-fg3">
               {tasks.length} task{tasks.length !== 1 ? "s" : ""}
             </span>
           </div>
 
           {/* Pill view toggle */}
-          <div className="flex items-center rounded-full bg-neutral-bg2 p-1 border border-stroke">
+          <div className="flex items-center rounded-full bg-neutral-bg2 p-1 border border-stroke ml-6">
             <button
               onClick={() => setView("kanban")}
               className={cn(
@@ -127,6 +146,7 @@ export function ProjectBoard() {
             projectId={id || ""}
             tasks={tasks}
             agents={agents}
+            recentlyMoved={recentlyMoved}
             onTaskUpdate={handleTaskUpdate}
             onViewChanges={setChangesTaskId}
             onTaskClick={setSelectedTask}

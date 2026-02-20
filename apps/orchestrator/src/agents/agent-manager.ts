@@ -1099,7 +1099,7 @@ class AgentManager {
           baseBranch = await gitService.getCurrentBranch(project.path);
         }
 
-        branchName = `task/${task.id}-${slugify(task.title as string)}`;
+        branchName = `task/agenthub-${slugify(task.title as string)}`;
         const branchExists = await gitService.branchExists(project.path, branchName);
 
         if (!branchExists) {

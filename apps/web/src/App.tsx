@@ -20,6 +20,7 @@ const ProjectSettings = lazy(() => import("./routes/project-settings").then((m) 
 const ProjectFiles = lazy(() => import("./routes/project-files").then((m) => ({ default: m.ProjectFiles })));
 const ProjectPRs = lazy(() => import("./routes/project-prs").then((m) => ({ default: m.ProjectPRs })));
 const ProjectPreview = lazy(() => import("./routes/project-preview").then((m) => ({ default: m.ProjectPreview })));
+const ProjectsPage = lazy(() => import("./routes/projects-page").then((m) => ({ default: m.ProjectsPage })));
 const Analytics = lazy(() => import("./routes/analytics").then((m) => ({ default: m.Analytics })));
 const AgentsPage = lazy(() => import("./routes/agents").then((m) => ({ default: m.AgentsPage })));
 const TasksPage = lazy(() => import("./routes/tasks").then((m) => ({ default: m.TasksPage })));
@@ -60,6 +61,7 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+            <Route path="/projects" element={<ErrorBoundary><Suspense fallback={<RouteLoader />}><ProjectsPage /></Suspense></ErrorBoundary>} />
             <Route path="/project/:id" element={<ErrorBoundary><Suspense fallback={<RouteLoader />}><ProjectOverview /></Suspense></ErrorBoundary>} />
             <Route path="/project/:id/board" element={<ErrorBoundary><Suspense fallback={<RouteLoader />}><ProjectBoard /></Suspense></ErrorBoundary>} />
             <Route path="/project/:id/tasks" element={<ErrorBoundary><Suspense fallback={<RouteLoader />}><ProjectTasks /></Suspense></ErrorBoundary>} />

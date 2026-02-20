@@ -33,6 +33,8 @@ const ROLE_LABELS: Record<string, string> = {
   backend_dev: "Backend Dev",
   qa: "QA Engineer",
   receptionist: "Team Lead",
+  doc_writer: "Doc Writer",
+  support: "Support",
   custom: "Custom",
 };
 
@@ -58,6 +60,7 @@ function buildDefaultWorkflow(agents: Agent[]): AgentWorkflow {
   const frontendDev = agents.find((a) => a.role === "frontend_dev");
   const backendDev = agents.find((a) => a.role === "backend_dev");
   const qa = agents.find((a) => a.role === "qa");
+  const support = agents.find((a) => a.role === "support");
 
   const steps: WorkflowStep[] = [];
   const addEdge = (fromId: string, toId: string, label: string) => {
@@ -114,6 +117,12 @@ function buildDefaultWorkflow(agents: Agent[]): AgentWorkflow {
     steps.push({ id: qaId, agentId: qa.id, label: "Revisar e testar implementacao", nextSteps: [], nextStepLabels: [] });
   }
 
+  // 5. Support — critical issue resolution (escalated by Tech Lead)
+  const supportId = genId();
+  if (support) {
+    steps.push({ id: supportId, agentId: support.id, label: "Resolver issue critico (acesso total)", nextSteps: [], nextStepLabels: [] });
+  }
+
   // ── Entry edges (how tasks reach the Tech Lead) ────────
 
   // 0a. WhatsApp (Team Lead) → Tech Lead
@@ -163,6 +172,16 @@ function buildDefaultWorkflow(agents: Agent[]): AgentWorkflow {
   // 5. Tech Lead → Architect (TL nao conseguiu criar plano — escalar)
   if (techLead && architect) {
     addEdge(tlId, archId, "Escalar");
+  }
+
+  // 6. Tech Lead → Support (issue critico — precisa acesso total)
+  if (techLead && support) {
+    addEdge(tlId, supportId, "Issue critico");
+  }
+
+  // 7. Support → Tech Lead (resolucao concluida)
+  if (support && techLead) {
+    addEdge(supportId, tlId, "Resolvido");
   }
 
   const entryStepId = steps[0]?.id ?? "";

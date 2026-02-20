@@ -10,11 +10,12 @@ import { TeamSwitcher } from "../teams/team-switcher";
 import { useTeamStore } from "../../stores/team-store";
 import { api } from "../../lib/utils";
 import { cn } from "../../lib/utils";
-import type { Project } from "@agenthub/shared";
+import type { Agent, Project } from "@agenthub/shared";
 import { getStackIcon } from "@agenthub/shared";
 
 const NAV_ITEMS = [
   { to: "/dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
+  { to: "/projects", icon: FolderOpen, labelKey: "nav.projects" },
   { to: "/agents", icon: Users, labelKey: "nav.agents" },
   { to: "/tasks", icon: ListTodo, labelKey: "nav.tasks" },
   { to: "/docs", icon: BookOpen, labelKey: "nav.docs" },
@@ -150,21 +151,63 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
     return () => clearInterval(interval);
   }, [fetchAccount, fetchConnection, fetchLimits, fetchOpenAIConnection, fetchOpenAIUsage]);
 
+  const connectionLoading = !useUsageStore((s) => s.connectionFetched);
+  const accountLoading = !useUsageStore((s) => s.accountFetched);
+  const limitsLoading = !useUsageStore((s) => s.limitsFetched);
+  const openaiLoading = !useUsageStore((s) => s.openaiConnectionFetched);
+
   const connected = connection?.connected ?? false;
   const plan = detectPlan(account?.subscriptionType ?? connection?.subscriptionType);
   const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.pro;
+
+  const isInitialLoading = connectionLoading;
 
   if (collapsed) {
     return (
       <div
         className="mx-auto mt-6 mb-2 flex flex-col items-center"
-        title={connected ? `Plano: ${limit.label}` : "CLI desconectado"}
+        title={isInitialLoading ? "Carregando..." : connected ? `Plano: ${limit.label}` : "CLI desconectado"}
       >
-        {connected ? (
+        {isInitialLoading ? (
+          <div className="h-5 w-5 rounded-full bg-neutral-bg1 animate-pulse" />
+        ) : connected ? (
           <CheckCircle2 className="h-5 w-5 text-success" strokeWidth={1.8} />
         ) : (
           <XCircle className="h-5 w-5 text-neutral-fg-disabled" strokeWidth={1.8} />
         )}
+      </div>
+    );
+  }
+
+  // Initial loading — full skeleton
+  if (isInitialLoading) {
+    return (
+      <div className="mx-7 mt-6 rounded-xl border border-stroke2 bg-neutral-bg3/50 p-4 animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <div className="h-3.5 w-3.5 rounded-full bg-neutral-bg1" />
+            <div className="h-3 w-20 rounded bg-neutral-bg1" />
+          </div>
+          <div className="h-4 w-12 rounded-md bg-neutral-bg1" />
+        </div>
+        {/* Email skeleton */}
+        <div className="h-2.5 w-36 rounded bg-neutral-bg1 mb-3" />
+        {/* Usage bars skeleton */}
+        <div className="flex flex-col gap-2.5">
+          {[1, 2, 3].map((i) => (
+            <div key={i}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="h-2.5 w-16 rounded bg-neutral-bg1" />
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2.5 w-8 rounded bg-neutral-bg1" />
+                  <div className="h-2 w-5 rounded bg-neutral-bg1" />
+                </div>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-neutral-bg1" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -181,7 +224,7 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
           <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg-disabled group-hover:text-neutral-fg3">CLI</span>
         </div>
         <p className="text-[11px] text-neutral-fg3 leading-relaxed">
-          Claude Code CLI desconectado
+          Claude desconectado
         </p>
         <p className="mt-1 text-[10px] text-brand font-medium">
           Conectar &rarr;
@@ -197,20 +240,41 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <CheckCircle2 className="h-3.5 w-3.5 text-success" strokeWidth={2} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Claude CLI</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Claude</span>
         </div>
-        <span className="rounded-md bg-brand-light px-1.5 py-0.5 text-[9px] font-bold text-brand uppercase tracking-wider">{limit.label}</span>
+        {accountLoading ? (
+          <div className="h-4 w-12 rounded-md bg-neutral-bg1 animate-pulse" />
+        ) : (
+          <span className="rounded-md bg-brand-light px-1.5 py-0.5 text-[9px] font-bold text-brand uppercase tracking-wider">{limit.label}</span>
+        )}
       </div>
 
       {/* Account email */}
-      {(account?.email ?? connection?.email) && (
+      {accountLoading ? (
+        <div className="h-2.5 w-36 rounded bg-neutral-bg1 animate-pulse mb-3" />
+      ) : (account?.email ?? connection?.email) ? (
         <p className="text-[10px] text-neutral-fg-disabled truncate mb-3">
           {account?.email ?? connection?.email}
         </p>
-      )}
+      ) : null}
 
       {/* Real usage bars */}
-      {limits ? (
+      {limitsLoading || !limits ? (
+        <div className="flex flex-col gap-2.5 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="h-2.5 w-16 rounded bg-neutral-bg1" />
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2.5 w-8 rounded bg-neutral-bg1" />
+                  <div className="h-2 w-5 rounded bg-neutral-bg1" />
+                </div>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-neutral-bg1" />
+            </div>
+          ))}
+        </div>
+      ) : (
         <div className="flex flex-col gap-2.5">
           {limits.fiveHour && (
             <UsageBar
@@ -237,18 +301,32 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
             />
           )}
         </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse">
-              <div className="h-2.5 w-16 rounded bg-neutral-bg1 mb-1" />
-              <div className="h-1.5 w-full rounded-full bg-neutral-bg1" />
-            </div>
-          ))}
-        </div>
       )}
 
-      {openaiConnection?.connected && (
+      {/* OpenAI section */}
+      {openaiLoading ? (
+        <div className="mt-2.5 pt-2.5 border-t border-stroke2 animate-pulse">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <div className="h-3.5 w-3.5 rounded-full bg-neutral-bg1" />
+              <div className="h-3 w-14 rounded bg-neutral-bg1" />
+            </div>
+            <div className="h-4 w-10 rounded-md bg-neutral-bg1" />
+          </div>
+          <div className="h-2.5 w-32 rounded bg-neutral-bg1 mb-2" />
+          <div className="flex flex-col gap-2.5">
+            {[1, 2].map((i) => (
+              <div key={i}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="h-2.5 w-14 rounded bg-neutral-bg1" />
+                  <div className="h-2.5 w-8 rounded bg-neutral-bg1" />
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-neutral-bg1" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : openaiConnection?.connected ? (
         <div className="mt-2.5 pt-2.5 border-t border-stroke2">
           {/* OpenAI header */}
           <div className="flex items-center justify-between mb-2">
@@ -299,7 +377,7 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
             );
           })()}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -311,6 +389,7 @@ export function AppSidebar() {
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
   const agents = useWorkspaceStore((s) => s.agents);
+  const setAgents = useWorkspaceStore((s) => s.setAgents);
   const agentActivity = useChatStore((s) => s.agentActivity);
   const activeTeamId = useTeamStore((s) => s.activeTeamId);
   const { id: routeProjectId } = useParams();
@@ -323,6 +402,15 @@ export function AppSidebar() {
       setProjects(projects);
     }).catch(() => {});
   }, [setProjects, activeTeamId]);
+
+  // Load agents on mount so they persist across hard refreshes
+  useEffect(() => {
+    if (agents.length === 0) {
+      api<{ agents: Agent[] }>("/agents").then(({ agents }) => {
+        setAgents(agents);
+      }).catch(() => {});
+    }
+  }, [agents.length, setAgents]);
 
   useEffect(() => {
     if (routeProjectId) setActiveProject(routeProjectId);
@@ -441,7 +529,7 @@ export function AppSidebar() {
                       ? "bg-gradient-to-br from-brand to-purple text-white shadow-brand"
                       : "bg-neutral-bg3 text-neutral-fg2 group-hover:bg-brand-light group-hover:text-brand",
                   )}>
-                    {icon}
+                    {icon === "??" ? project.name.charAt(0).toUpperCase() : icon}
                   </span>
                   {!collapsed && (
                     <span className="truncate text-[13px] font-medium">
@@ -473,7 +561,7 @@ export function AppSidebar() {
           "border-t border-stroke2 px-7 py-5",
           collapsed ? "flex flex-col gap-2.5" : "flex flex-wrap gap-2.5"
         )}>
-          {agents.slice(0, collapsed ? 4 : 5).map((agent) => {
+          {agents.filter((a) => a.role !== "receptionist").map((agent) => {
             const activity = agentActivity.get(agent.id);
             const status = activity?.status ?? "idle";
             const statusColor = AGENT_STATUS_COLORS[status];

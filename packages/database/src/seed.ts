@@ -128,6 +128,25 @@ Your responsibilities:
 
 You are precise and thorough. Every endpoint, parameter, and description must match the actual code.`,
 
+  support: `You are the Support Engineer, a senior DevOps/SRE specialist on the AgentHub team.
+
+## Your Role
+You are the escalation path for critical issues that regular devs can't resolve.
+The Tech Lead assigns you when a problem requires full machine access — system debugging, infrastructure fixes, dependency issues, environment problems.
+
+## Responsibilities
+- Diagnose system-level issues: broken builds, dependency conflicts, environment misconfigurations
+- Debug using logs, process inspection, network analysis, and file system exploration
+- Fix infrastructure and tooling problems
+- Resolve permission, path, and environment variable problems
+- Recover from corrupted state (git, database, cache)
+
+## Process
+1. Diagnose first — Read logs, check system state, trace the error chain
+2. Minimal fix — Make the smallest change that resolves the problem
+3. Verify — Confirm the fix works and hasn't broken anything else
+4. Report — Summarize what happened, what you did, and what to watch for`,
+
   receptionist: `You are the Team Lead, the Scrum Master and WhatsApp coordinator for the AgentHub development team.
 
 LANGUAGE: Always respond in Brazilian Portuguese (pt-BR).
@@ -170,38 +189,69 @@ CRITICAL RULES:
 };
 
 async function seed() {
-  const [{ total }] = await db.select({ total: count() }).from(agents);
+  const existingAgents = await db.select({ role: agents.role }).from(agents);
+  const existingRoles = new Set(existingAgents.map((a) => a.role));
 
-  if (total > 0) {
-    console.log(`Database already has ${total} agents. Skipping seed.`);
-    process.exit(0);
+  if (existingAgents.length === 0) {
+    // Fresh seed — insert all
+    const now = new Date();
+    for (const blueprint of DEFAULT_AGENTS) {
+      await db.insert(agents).values({
+        id: nanoid(),
+        name: blueprint.name,
+        role: blueprint.role,
+        model: blueprint.model,
+        maxThinkingTokens: blueprint.maxThinkingTokens,
+        systemPrompt: SYSTEM_PROMPTS[blueprint.role] ?? "",
+        description: blueprint.description,
+        allowedTools: JSON.stringify(blueprint.allowedTools),
+        permissionMode: blueprint.permissionMode,
+        level: blueprint.level,
+        isDefault: true,
+        isActive: true,
+        color: blueprint.color,
+        avatar: blueprint.avatar,
+        soul: blueprint.soul ?? DEFAULT_SOULS[blueprint.role as AgentRole] ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    console.log(`Seeded ${DEFAULT_AGENTS.length} default agents.`);
+  } else {
+    // Sync — insert missing agents only
+    const now = new Date();
+    let added = 0;
+    for (const blueprint of DEFAULT_AGENTS) {
+      if (existingRoles.has(blueprint.role)) continue;
+      await db.insert(agents).values({
+        id: nanoid(),
+        name: blueprint.name,
+        role: blueprint.role,
+        model: blueprint.model,
+        maxThinkingTokens: blueprint.maxThinkingTokens,
+        systemPrompt: SYSTEM_PROMPTS[blueprint.role] ?? "",
+        description: blueprint.description,
+        allowedTools: JSON.stringify(blueprint.allowedTools),
+        permissionMode: blueprint.permissionMode,
+        level: blueprint.level,
+        isDefault: true,
+        isActive: true,
+        color: blueprint.color,
+        avatar: blueprint.avatar,
+        soul: blueprint.soul ?? DEFAULT_SOULS[blueprint.role as AgentRole] ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      console.log(`Added missing agent: ${blueprint.name} (${blueprint.role})`);
+      added++;
+    }
+    if (added === 0) {
+      console.log(`All ${DEFAULT_AGENTS.length} default agents already exist. Nothing to do.`);
+    } else {
+      console.log(`Added ${added} missing agent(s). Total: ${existingAgents.length + added}.`);
+    }
   }
 
-  const now = new Date();
-
-  for (const blueprint of DEFAULT_AGENTS) {
-    await db.insert(agents).values({
-      id: nanoid(),
-      name: blueprint.name,
-      role: blueprint.role,
-      model: blueprint.model,
-      maxThinkingTokens: blueprint.maxThinkingTokens,
-      systemPrompt: SYSTEM_PROMPTS[blueprint.role] ?? "",
-      description: blueprint.description,
-      allowedTools: JSON.stringify(blueprint.allowedTools),
-      permissionMode: blueprint.permissionMode,
-      level: blueprint.level,
-      isDefault: true,
-      isActive: true,
-      color: blueprint.color,
-      avatar: blueprint.avatar,
-      soul: blueprint.soul ?? DEFAULT_SOULS[blueprint.role as AgentRole] ?? null,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-
-  console.log(`Seeded ${DEFAULT_AGENTS.length} default agents.`);
   process.exit(0);
 }
 

@@ -36,6 +36,9 @@ export interface PullRequestReview {
   submittedAt: string;
 }
 
+const DESCRIPTION_CACHE_TTL_MS = 10 * 60_000; // 10 minutes
+const descriptionCache = new Map<string, { value: string | null; expiresAt: number }>();
+
 export class GitHubService {
   /**
    * Check if gh CLI is available
@@ -51,6 +54,30 @@ export class GitHubService {
   async isAuthenticated(): Promise<boolean> {
     const result = await execFileNoThrow("gh", ["auth", "status"], { timeout: 10000 });
     return !result.error;
+  }
+
+  /**
+   * Get repo description (GitHub "About" field) from a local repo (cached 10min)
+   */
+  async getRepoDescription(projectPath: string): Promise<string | null> {
+    const cached = descriptionCache.get(projectPath);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
+    const result = await execFileNoThrow(
+      "gh",
+      ["repo", "view", "--json", "description", "-q", ".description"],
+      { cwd: projectPath, timeout: 15000 }
+    );
+
+    if (result.error) {
+      return null;
+    }
+
+    const value = result.stdout.trim() || null;
+    descriptionCache.set(projectPath, { value, expiresAt: Date.now() + DESCRIPTION_CACHE_TTL_MS });
+    return value;
   }
 
   /**

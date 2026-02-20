@@ -427,7 +427,7 @@ router.get("/usage/limits", async (_req, res) => {
 
     let token = await getOAuthToken();
     if (!token) {
-      return res.status(401).json({ error: "OAuth token não encontrado" });
+      return res.status(424).json({ error: "claude_oauth_required" });
     }
 
     let response = await fetchAnthropicUsage(token);
@@ -447,7 +447,8 @@ router.get("/usage/limits", async (_req, res) => {
 
     if (!response.ok) {
       logger.warn("Anthropic usage API returned non-OK", "usage", { status: String(response.status) });
-      return res.status(response.status).json({ error: "Falha ao buscar limites de uso" });
+      const mappedStatus = response.status === 401 || response.status === 403 ? 424 : response.status;
+      return res.status(mappedStatus).json({ error: "claude_oauth_expired" });
     }
 
     const raw = await response.json() as Record<string, unknown>;

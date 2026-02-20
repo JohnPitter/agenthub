@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "projects": "Proyectos",
     "agents": "Agentes",
     "tasks": "Tareas",
     "docs": "Documentación",
@@ -45,6 +46,8 @@
     "backend_dev": "Backend Dev",
     "qa": "QA Engineer",
     "receptionist": "Team Lead",
+    "doc_writer": "Documentador",
+    "support": "Soporte",
     "custom": "Personalizado"
   },
   "taskStatus": {
@@ -109,7 +112,24 @@
     "githubExpiredDesc": "Reconecta tu cuenta de GitHub para ver tus repositorios",
     "reconnectGithub": "Reconectar GitHub",
     "githubLoadError": "Error al cargar repositorios",
-    "githubLoadErrorDesc": "No se pudieron cargar tus repositorios de GitHub"
+    "githubLoadErrorDesc": "No se pudieron cargar tus repositorios de GitHub",
+    "weeklySummary": "Resumen Semanal",
+    "weeklyCreated": "Creadas",
+    "weeklyCompleted": "Completadas",
+    "weeklyFailed": "Fallidas",
+    "completedTask": "Tarea",
+    "completedAgent": "Agente",
+    "completedWhen": "Completada",
+    "viewAllProjects": "Ver todos"
+  },
+  "projects": {
+    "title": "Proyectos",
+    "searchPlaceholder": "Buscar proyecto...",
+    "filterAll": "Todos",
+    "filterActive": "Activos",
+    "filterArchived": "Archivados",
+    "noProjects": "No se encontraron proyectos",
+    "projectCount": "{{count}} proyectos"
   },
   "tasks": {
     "title": "Tareas",
@@ -704,5 +724,33 @@
       "opGt": "Mayor que",
       "opLt": "Menor que"
     }
+  },
+  "createProject": {
+    "button": "Crear Proyecto",
+    "title": "Crear Nuevo Proyecto",
+    "localTab": "Local",
+    "githubTab": "GitHub",
+    "name": "Nombre del Proyecto",
+    "namePlaceholder": "mi-proyecto-genial",
+    "path": "Ruta Local",
+    "pathPlaceholder": "/home/user/proyectos/mi-proyecto",
+    "description": "Descripci\u00f3n",
+    "descriptionPlaceholder": "Una breve descripci\u00f3n del proyecto...",
+    "private": "Repositorio privado",
+    "privateDesc": "Solo t\u00fa puedes ver este repositorio",
+    "creating": "Creando...",
+    "createLocal": "Crear Proyecto Local",
+    "createGithub": "Crear en GitHub",
+    "errorNameRequired": "El nombre del proyecto es obligatorio",
+    "errorPathRequired": "La ruta local es obligatoria",
+    "errorDuplicate": "Ya existe un proyecto con esta ruta",
+    "errorRepoExists": "Ya existe un repositorio con este nombre en GitHub",
+    "errorTokenExpired": "Token de GitHub expirado. Reconecta en Configuraci\u00f3n."
+  },
+  "pixelOffice": {
+    "label": "Office",
+    "title": "PIXEL OFFICE",
+    "subtitle": "Visualiza tus tareas como una oficina virtual",
+    "blocked": "Bloqueado"
   }
 }

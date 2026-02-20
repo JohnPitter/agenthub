@@ -3,9 +3,8 @@ import { useTranslation } from "react-i18next";
 import { X, Brain, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../../lib/agent-avatar";
-import { useUsageStore } from "../../stores/usage-store";
 import type { Agent, AgentModel, AgentRole, PermissionMode, Skill } from "@agenthub/shared";
-import { DEFAULT_SOULS, OPENAI_MODELS } from "@agenthub/shared";
+import { DEFAULT_SOULS, OPENAI_MODELS, CLAUDE_MODELS } from "@agenthub/shared";
 import { api } from "../../lib/utils";
 
 interface AgentConfigDialogProps {
@@ -14,24 +13,15 @@ interface AgentConfigDialogProps {
   onClose: () => void;
 }
 
-const FALLBACK_MODELS: { value: string; label: string }[] = [
-  { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
-  { value: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-];
+const CLAUDE_MODEL_OPTIONS: { value: string; label: string }[] = CLAUDE_MODELS.map((m) => ({
+  value: m.id,
+  label: m.label,
+}));
 
 const OPENAI_MODEL_OPTIONS: { value: string; label: string }[] = OPENAI_MODELS.map((m) => ({
   value: m.id,
   label: m.label,
 }));
-
-// SDK returns shorthand aliases — map to actual model IDs
-const SDK_ALIAS_TO_MODEL: Record<string, { value: string; label: string }> = {
-  default: { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
-  opus: { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
-  sonnet: { value: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-  haiku: { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-};
 
 const PERMISSION_MODE_VALUES: PermissionMode[] = ["default", "acceptEdits", "bypassPermissions"];
 
@@ -41,44 +31,18 @@ const ALL_TOOLS = ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task", "Web
 
 export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogProps) {
   const { t } = useTranslation();
-  const sdkModels = useUsageStore((s) => s.models);
-  const fetchModels = useUsageStore((s) => s.fetchModels);
   const [openaiConnected, setOpenaiConnected] = useState(false);
 
   useEffect(() => {
-    fetchModels();
-    // Check OpenAI connection status
     fetch("/api/openai/status", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setOpenaiConnected(data.connected === true))
       .catch(() => {});
-  }, [fetchModels]);
+  }, []);
 
-  const modelOptions = (() => {
-    // Build Claude models list
-    let claudeModels: { value: string; label: string }[];
-    if (sdkModels.length === 0) {
-      claudeModels = FALLBACK_MODELS;
-    } else {
-      const seen = new Set<string>();
-      const mapped: { value: string; label: string }[] = [];
-      for (const m of sdkModels) {
-        const alias = SDK_ALIAS_TO_MODEL[m.value];
-        const entry = alias ?? { value: m.value, label: m.displayName };
-        if (!seen.has(entry.value)) {
-          seen.add(entry.value);
-          mapped.push(entry);
-        }
-      }
-      claudeModels = mapped.length > 0 ? mapped : FALLBACK_MODELS;
-    }
-
-    // Add OpenAI models if connected
-    if (openaiConnected) {
-      return [...claudeModels, ...OPENAI_MODEL_OPTIONS];
-    }
-    return claudeModels;
-  })();
+  const modelOptions = openaiConnected
+    ? [...CLAUDE_MODEL_OPTIONS, ...OPENAI_MODEL_OPTIONS]
+    : CLAUDE_MODEL_OPTIONS;
 
   const parsedTools: string[] = typeof agent.allowedTools === "string"
     ? JSON.parse(agent.allowedTools)
@@ -341,7 +305,7 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               </div>
               <button
                 type="button"
-                onClick={() => setThinkingTokens(thinkingTokens > 0 ? 0 : 16000)}
+                onClick={() => setThinkingTokens(thinkingTokens > 0 ? 0 : 32000)}
                 className={cn(
                   "relative h-5 w-9 rounded-full transition-all duration-200",
                   thinkingTokens > 0 ? "bg-gradient-to-r from-brand to-purple shadow-brand" : "bg-stroke",
@@ -361,27 +325,28 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
 
             {thinkingTokens > 0 && (
               <div className="pt-3 border-t border-stroke">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] text-neutral-fg3">Budget de tokens</span>
                   <span className="text-[12px] font-semibold text-purple tabular-nums">
-                    {thinkingTokens.toLocaleString()}
+                    {(thinkingTokens / 1000).toFixed(0)}k
                   </span>
                 </div>
-                <input
-                  type="range"
-                  min={1024}
-                  max={128000}
-                  step={1024}
-                  value={thinkingTokens}
-                  onChange={(e) => setThinkingTokens(Number(e.target.value))}
-                  className="w-full accent-purple"
-                />
-                <div className="mt-1 flex justify-between text-[10px] text-neutral-fg-disabled">
-                  <span>1k</span>
-                  <span>32k</span>
-                  <span>64k</span>
-                  <span>96k</span>
-                  <span>128k</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {[32000, 64000, 96000, 128000].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setThinkingTokens(v)}
+                      className={cn(
+                        "rounded-lg py-2 text-[12px] font-semibold transition-all",
+                        thinkingTokens === v
+                          ? "bg-purple text-white shadow-brand"
+                          : "bg-neutral-bg3 text-neutral-fg2 hover:bg-neutral-bg-hover hover:text-neutral-fg1",
+                      )}
+                    >
+                      {v / 1000}k
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

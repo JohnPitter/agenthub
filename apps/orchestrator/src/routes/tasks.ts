@@ -438,7 +438,7 @@ tasksRouter.post("/:id/git/branch", async (req, res) => {
 
     // Allow custom branch name or generate default
     const branchName =
-      req.body.branchName || `task/${task.id}-${slugify(task.title as string)}`;
+      req.body.branchName || `task/agenthub-${slugify(task.title as string)}`;
 
     // Check if branch already exists
     const branchExists = await gitService.branchExists(project.path, branchName);

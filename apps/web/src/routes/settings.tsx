@@ -6,6 +6,7 @@ import { cn } from "../lib/utils";
 import { WhatsAppConfig } from "../components/integrations/whatsapp-config";
 import { TelegramConfig } from "../components/integrations/telegram-config";
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n";
+import i18n from "../i18n/i18n";
 import { useThemeStore } from "../stores/theme-store";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useUserStore } from "../stores/user-store";
@@ -13,6 +14,21 @@ import { useUsageStore } from "../stores/usage-store";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../lib/agent-avatar";
 import { api } from "../lib/utils";
 import { SkillList } from "../components/skills/skill-list";
+import { CLAUDE_MODELS } from "@agenthub/shared";
+
+const LOCALE_CURRENCY: Record<string, string> = {
+  "pt-BR": "BRL",
+  "en-US": "USD",
+  "es": "USD",
+  "zh-CN": "CNY",
+  "ja": "JPY",
+};
+
+function formatCurrency(cents: number): string {
+  const lang = i18n.language || "en-US";
+  const currency = LOCALE_CURRENCY[lang] ?? "USD";
+  return new Intl.NumberFormat(lang, { style: "currency", currency }).format(cents / 100);
+}
 
 type SettingsTab = "perfil" | "providers" | "geral" | "integracoes" | "skills" | "aparencia" | "sobre";
 
@@ -575,7 +591,7 @@ function ProvidersSection() {
               )}
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-neutral-fg3">{t("openai.availableModels")}</span>
-                <span className="text-[11px] font-medium text-neutral-fg1">Opus 4.6, Sonnet 4.5, Haiku 4.5</span>
+                <span className="text-[11px] font-medium text-neutral-fg1">{CLAUDE_MODELS.map((m) => m.label.replace("Claude ", "")).join(", ")}</span>
               </div>
             </div>
           )}
@@ -625,7 +641,7 @@ function ProvidersSection() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] text-neutral-fg2">Extra Usage</span>
                     <span className={cn("text-[10px] font-semibold tabular-nums", (limits.extraUsage.utilization ?? 0) >= 80 ? "text-danger" : "text-neutral-fg1")}>
-                      ${limits.extraUsage.usedCredits.toFixed(2)} / ${limits.extraUsage.monthlyLimit.toFixed(2)}
+                      {formatCurrency(limits.extraUsage.usedCredits)} / {formatCurrency(limits.extraUsage.monthlyLimit)}
                     </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
@@ -853,14 +869,63 @@ function ProvidersSection() {
   );
 }
 
+function ThemeMockup({ variant }: { variant: "dark" | "light" | "system" }) {
+  const dark = (
+    <div className="h-full w-full rounded-md bg-[#1C1917] p-1.5 flex gap-1">
+      <div className="w-5 rounded-sm bg-[#292524] flex flex-col gap-1 p-0.5">
+        <div className="h-1 w-full rounded-full bg-[#6366F1]" />
+        <div className="h-0.5 w-3 rounded-full bg-[#44403C]" />
+        <div className="h-0.5 w-3 rounded-full bg-[#44403C]" />
+      </div>
+      <div className="flex-1 rounded-sm bg-[#292524] p-1 flex flex-col gap-0.5">
+        <div className="h-1 w-8 rounded-full bg-[#F5F5F4]" />
+        <div className="h-0.5 w-full rounded-full bg-[#44403C]" />
+        <div className="h-0.5 w-10 rounded-full bg-[#44403C]" />
+        <div className="mt-auto flex gap-0.5">
+          <div className="h-2 w-5 rounded-sm bg-[#6366F1]" />
+          <div className="h-2 w-5 rounded-sm bg-[#44403C]" />
+        </div>
+      </div>
+    </div>
+  );
+  const light = (
+    <div className="h-full w-full rounded-md bg-[#FFFDF7] p-1.5 flex gap-1 border border-[#E7E5E4]">
+      <div className="w-5 rounded-sm bg-[#F5F5F4] flex flex-col gap-1 p-0.5">
+        <div className="h-1 w-full rounded-full bg-[#6366F1]" />
+        <div className="h-0.5 w-3 rounded-full bg-[#D6D3D1]" />
+        <div className="h-0.5 w-3 rounded-full bg-[#D6D3D1]" />
+      </div>
+      <div className="flex-1 rounded-sm bg-white p-1 flex flex-col gap-0.5 border border-[#E7E5E4]">
+        <div className="h-1 w-8 rounded-full bg-[#1C1917]" />
+        <div className="h-0.5 w-full rounded-full bg-[#D6D3D1]" />
+        <div className="h-0.5 w-10 rounded-full bg-[#D6D3D1]" />
+        <div className="mt-auto flex gap-0.5">
+          <div className="h-2 w-5 rounded-sm bg-[#6366F1]" />
+          <div className="h-2 w-5 rounded-sm bg-[#E7E5E4]" />
+        </div>
+      </div>
+    </div>
+  );
+
+  if (variant === "dark") return dark;
+  if (variant === "light") return light;
+  // system: split
+  return (
+    <div className="h-full w-full rounded-md overflow-hidden flex">
+      <div className="w-1/2 overflow-hidden">{dark}</div>
+      <div className="w-1/2 overflow-hidden">{light}</div>
+    </div>
+  );
+}
+
 function ThemeSection() {
   const { t } = useTranslation();
   const { theme, setTheme } = useThemeStore();
 
-  const options = [
-    { value: "system" as const, labelKey: "settings.system", descKey: "settings.systemDesc", preview: "bg-gradient-to-r from-neutral-bg1 to-white" },
-    { value: "dark" as const, labelKey: "settings.dark", descKey: "settings.darkDesc", preview: "bg-neutral-bg1" },
-    { value: "light" as const, labelKey: "settings.light", descKey: "settings.lightDesc", preview: "bg-white" },
+  const options: { value: "system" | "dark" | "light"; labelKey: string; descKey: string }[] = [
+    { value: "system", labelKey: "settings.system", descKey: "settings.systemDesc" },
+    { value: "dark", labelKey: "settings.dark", descKey: "settings.darkDesc" },
+    { value: "light", labelKey: "settings.light", descKey: "settings.lightDesc" },
   ];
 
   return (
@@ -869,7 +934,7 @@ function ThemeSection() {
         <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.theme")}</h3>
         <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.themeDesc")}</p>
       </div>
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-3 gap-4">
         {options.map((opt) => {
           const isActive = theme === opt.value;
           return (
@@ -877,22 +942,20 @@ function ThemeSection() {
               key={opt.value}
               onClick={() => setTheme(opt.value)}
               className={cn(
-                "card-glow flex items-center gap-4 px-6 py-4 text-left transition-all",
-                isActive && "border-2 border-brand",
+                "group flex flex-col items-center gap-3 rounded-xl p-4 transition-all",
+                isActive
+                  ? "bg-brand-light ring-2 ring-brand"
+                  : "bg-neutral-bg3/50 ring-1 ring-stroke hover:ring-brand/40 hover:bg-neutral-bg-hover",
               )}
             >
-              <span
-                className={cn(
-                  "h-6 w-6 rounded-full border-2",
-                  isActive ? "border-brand shadow-brand" : "border-stroke",
-                  opt.preview,
-                )}
-              />
-              <div>
-                <p className={cn("text-[13px] font-semibold", isActive ? "text-brand" : "text-neutral-fg2")}>
+              <div className="h-16 w-full">
+                <ThemeMockup variant={opt.value} />
+              </div>
+              <div className="text-center">
+                <p className={cn("text-[12px] font-semibold", isActive ? "text-brand" : "text-neutral-fg2")}>
                   {t(opt.labelKey)}
                 </p>
-                <p className="text-[11px] text-neutral-fg3">{t(opt.descKey)}</p>
+                <p className="text-[10px] text-neutral-fg3 mt-0.5">{t(opt.descKey)}</p>
               </div>
             </button>
           );
@@ -1002,7 +1065,12 @@ export function SettingsPage() {
                             isActive && "border-2 border-brand",
                           )}
                         >
-                          <span className="text-[20px]">{lang.flag}</span>
+                          <img
+                            src={`https://flagcdn.com/w40/${lang.flag.toLowerCase()}.png`}
+                            srcSet={`https://flagcdn.com/w80/${lang.flag.toLowerCase()}.png 2x`}
+                            alt={lang.label}
+                            className="h-5 w-7 rounded-sm object-cover"
+                          />
                           <div>
                             <p className={cn("text-[13px] font-semibold", isActive ? "text-brand" : "text-neutral-fg1")}>
                               {lang.label}

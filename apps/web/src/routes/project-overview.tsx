@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings, Users, CheckCircle2, ListTodo, Loader2, Zap, Activity, Play } from "lucide-react";
+import { Settings, Users, CheckCircle2, ListTodo, Zap, Play, Kanban } from "lucide-react";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useSocket } from "../hooks/use-socket";
@@ -10,7 +10,7 @@ import { CommandBar } from "../components/layout/command-bar";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonTable } from "../components/ui/skeleton";
 import { api, cn, formatRelativeTime } from "../lib/utils";
-import type { Task, Agent } from "@agenthub/shared";
+import type { Task, Agent, Project } from "@agenthub/shared";
 
 const STATUS_BADGE_CLS: Record<string, string> = {
   created: "bg-info-light text-info",
@@ -26,6 +26,7 @@ export function ProjectOverview() {
   const projects = useWorkspaceStore((s) => s.projects);
   const agents = useWorkspaceStore((s) => s.agents);
   const setAgents = useWorkspaceStore((s) => s.setAgents);
+  const updateProject = useWorkspaceStore((s) => s.updateProject);
   const project = projects.find((p) => p.id === id);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoaded, setTasksLoaded] = useState(false);
@@ -41,7 +42,13 @@ export function ProjectOverview() {
         .then(({ agents }) => setAgents(agents))
         .catch(() => {});
     }
-  }, [id, agents.length, setAgents]);
+    // Fetch individual project to backfill GitHub description
+    api<{ project: Project }>(`/projects/${id}`)
+      .then(({ project: p }) => {
+        if (p.description) updateProject(id, { description: p.description });
+      })
+      .catch(() => {});
+  }, [id, agents.length, setAgents, updateProject]);
 
   if (!project) {
     return <div className="p-6 text-neutral-fg2">{t("project.notFound")}</div>;
@@ -77,6 +84,13 @@ export function ProjectOverview() {
         actions={
           <div className="flex items-center gap-2">
             <Link
+              to={`/project/${id}/board`}
+              className="flex items-center gap-2 rounded-lg border border-stroke2 bg-neutral-bg2 px-4 py-2 text-[13px] font-semibold text-neutral-fg1 transition-all hover:bg-neutral-bg-hover"
+            >
+              <Kanban className="h-4 w-4" />
+              {t("project.board")}
+            </Link>
+            <Link
               to={`/project/${id}/preview`}
               className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand to-purple px-4 py-2 text-[13px] font-semibold text-white shadow-brand transition-all hover:shadow-lg"
             >
@@ -91,21 +105,14 @@ export function ProjectOverview() {
             </Link>
           </div>
         }
-      />
+      >
+        {project.description && (
+          <span className="text-[13px] text-neutral-fg2 truncate">{project.description}</span>
+        )}
+      </CommandBar>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-10">
-        {/* Hero header */}
-        <div className="relative mb-10">
-          <div className="glow-orb glow-orb-brand w-[250px] h-[250px] -top-28 -left-16 opacity-30" />
-          <div className="relative">
-            <h1 className="text-heading text-neutral-fg1 animate-fade-up">{project.name}</h1>
-            {project.description && (
-              <p className="text-subtitle mt-1 animate-fade-up stagger-1">{project.description}</p>
-            )}
-          </div>
-        </div>
-
         {/* Stat cards row */}
         <div className="grid grid-cols-4 gap-4 mb-10 animate-fade-up stagger-2">
           {statCards.map((stat) => {

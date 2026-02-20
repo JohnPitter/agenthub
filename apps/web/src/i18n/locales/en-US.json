@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "projects": "Projects",
     "agents": "Agents",
     "tasks": "Tasks",
     "docs": "Documentation",
@@ -45,6 +46,8 @@
     "backend_dev": "Backend Dev",
     "qa": "QA Engineer",
     "receptionist": "Team Lead",
+    "doc_writer": "Doc Writer",
+    "support": "Support",
     "custom": "Custom"
   },
   "taskStatus": {
@@ -109,7 +112,24 @@
     "githubExpiredDesc": "Reconnect your GitHub account to see your repositories",
     "reconnectGithub": "Reconnect GitHub",
     "githubLoadError": "Failed to load repositories",
-    "githubLoadErrorDesc": "Could not load your GitHub repositories"
+    "githubLoadErrorDesc": "Could not load your GitHub repositories",
+    "weeklySummary": "Weekly Summary",
+    "weeklyCreated": "Created",
+    "weeklyCompleted": "Completed",
+    "weeklyFailed": "Failed",
+    "completedTask": "Task",
+    "completedAgent": "Agent",
+    "completedWhen": "Completed",
+    "viewAllProjects": "View all"
+  },
+  "projects": {
+    "title": "Projects",
+    "searchPlaceholder": "Search project...",
+    "filterAll": "All",
+    "filterActive": "Active",
+    "filterArchived": "Archived",
+    "noProjects": "No projects found",
+    "projectCount": "{{count}} projects"
   },
   "tasks": {
     "title": "Tasks",
@@ -742,5 +762,33 @@
       "opGt": "Greater than",
       "opLt": "Less than"
     }
+  },
+  "createProject": {
+    "button": "Create Project",
+    "title": "Create New Project",
+    "localTab": "Local",
+    "githubTab": "GitHub",
+    "name": "Project Name",
+    "namePlaceholder": "my-awesome-project",
+    "path": "Local Path",
+    "pathPlaceholder": "/home/user/projects/my-project",
+    "description": "Description",
+    "descriptionPlaceholder": "A brief description of the project...",
+    "private": "Private repository",
+    "privateDesc": "Only you can see this repository",
+    "creating": "Creating...",
+    "createLocal": "Create Local Project",
+    "createGithub": "Create on GitHub",
+    "errorNameRequired": "Project name is required",
+    "errorPathRequired": "Local path is required",
+    "errorDuplicate": "A project with this path already exists",
+    "errorRepoExists": "A repository with this name already exists on GitHub",
+    "errorTokenExpired": "GitHub token expired. Please re-authenticate in Settings."
+  },
+  "pixelOffice": {
+    "label": "Office",
+    "title": "PIXEL OFFICE",
+    "subtitle": "Visualize your tasks as a virtual office",
+    "blocked": "Blocked"
   }
 }

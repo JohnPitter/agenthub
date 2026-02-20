@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
 const router: ReturnType<typeof Router> = Router();
@@ -33,7 +33,12 @@ interface TrendDataPoint {
 
 /**
  * GET /api/analytics/agents
- * Get performance metrics for all agents
+ * Get performance metrics for all agents.
+ *
+ * Success/failure is attributed to EVERY agent that participated in a task's
+ * workflow (via task_logs), not just the last assigned agent. This reflects the
+ * real multi-agent pipeline where Tech Lead → Dev → QA all contribute.
+ *
  * Query params: period (7d, 30d, all), projectId (optional)
  */
 router.get("/analytics/agents", async (req, res) => {
@@ -52,38 +57,101 @@ router.get("/analytics/agents", async (req, res) => {
 
     // Get all agents
     const agents = await db.select().from(schema.agents).all();
+    const agentMap = new Map(agents.map((a) => [a.id, a]));
 
+    // Get all tasks in the period
+    const taskConditions = [];
+    if (projectId && typeof projectId === "string") {
+      taskConditions.push(eq(schema.tasks.projectId, projectId));
+    }
+    if (dateThreshold) {
+      taskConditions.push(gte(schema.tasks.createdAt, dateThreshold));
+    }
+
+    const allTasks = await db
+      .select()
+      .from(schema.tasks)
+      .where(taskConditions.length > 0 ? and(...taskConditions) : undefined)
+      .all();
+
+    if (allTasks.length === 0) {
+      const metrics: AgentMetrics[] = agents.map((agent) => ({
+        agentId: agent.id,
+        agentName: agent.name,
+        totalTasks: 0,
+        completedTasks: 0,
+        failedTasks: 0,
+        inProgressTasks: 0,
+        successRate: 0,
+        avgCompletionTime: null,
+        tasksByStatus: { pending: 0, assigned: 0, in_progress: 0, review: 0, done: 0, failed: 0 },
+      }));
+      res.json({ metrics });
+      return;
+    }
+
+    const taskIds = allTasks.map((t) => t.id);
+    const taskById = new Map(allTasks.map((t) => [t.id, t]));
+
+    // Get all task_logs for these tasks to find which agents participated
+    const logs = await db
+      .select({ taskId: schema.taskLogs.taskId, agentId: schema.taskLogs.agentId })
+      .from(schema.taskLogs)
+      .where(inArray(schema.taskLogs.taskId, taskIds))
+      .all();
+
+    // Build a map: agentId → Set<taskId> (all tasks the agent participated in)
+    const agentTasks = new Map<string, Set<string>>();
+
+    // From task_logs: any agent that performed an action on a task
+    for (const log of logs) {
+      if (!log.agentId) continue;
+      if (!agentTasks.has(log.agentId)) agentTasks.set(log.agentId, new Set());
+      agentTasks.get(log.agentId)!.add(log.taskId);
+    }
+
+    // Also include the currently assigned agent (covers tasks with no logs yet)
+    for (const task of allTasks) {
+      if (!task.assignedAgentId) continue;
+      if (!agentTasks.has(task.assignedAgentId)) agentTasks.set(task.assignedAgentId, new Set());
+      agentTasks.get(task.assignedAgentId)!.add(task.id);
+    }
+
+    // Build metrics per agent
     const metrics: AgentMetrics[] = [];
 
     for (const agent of agents) {
-      // Build where conditions
-      const conditions = [eq(schema.tasks.assignedAgentId, agent.id)];
-      if (projectId && typeof projectId === "string") {
-        conditions.push(eq(schema.tasks.projectId, projectId));
+      const participatedTaskIds = agentTasks.get(agent.id);
+      if (!participatedTaskIds || participatedTaskIds.size === 0) {
+        metrics.push({
+          agentId: agent.id,
+          agentName: agent.name,
+          totalTasks: 0,
+          completedTasks: 0,
+          failedTasks: 0,
+          inProgressTasks: 0,
+          successRate: 0,
+          avgCompletionTime: null,
+          tasksByStatus: { pending: 0, assigned: 0, in_progress: 0, review: 0, done: 0, failed: 0 },
+        });
+        continue;
       }
-      if (dateThreshold) {
-        conditions.push(gte(schema.tasks.createdAt, dateThreshold));
-      }
 
-      // Get all tasks for this agent
-      const tasks = await db
-        .select()
-        .from(schema.tasks)
-        .where(and(...conditions))
-        .all();
-
-      const totalTasks = tasks.length;
-
-      // Single pass to count by status and accumulate completion times
       const tasksByStatus = { pending: 0, assigned: 0, in_progress: 0, review: 0, done: 0, failed: 0 };
       let totalCompletionTime = 0;
       let doneWithTimeCount = 0;
+      let totalTasks = 0;
 
-      for (const t of tasks) {
-        const status = t.status as keyof typeof tasksByStatus;
+      for (const taskId of participatedTaskIds) {
+        const task = taskById.get(taskId);
+        if (!task) continue;
+
+        totalTasks++;
+        const status = task.status as keyof typeof tasksByStatus;
         if (status in tasksByStatus) tasksByStatus[status]++;
-        if (t.status === "done" && t.completedAt && t.createdAt) {
-          totalCompletionTime += new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime();
+
+        if (task.status === "done" && task.completedAt && task.createdAt) {
+          totalCompletionTime += new Date(task.completedAt).getTime() - new Date(task.createdAt).getTime();
           doneWithTimeCount++;
         }
       }

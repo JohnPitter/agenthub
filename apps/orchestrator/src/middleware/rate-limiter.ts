@@ -14,7 +14,7 @@ interface RateLimitConfig {
  * Category-based rate limit configurations.
  */
 const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
-  auth:    { windowMs: 15 * 60_000, maxRequests: 20 },   // 20 req / 15 min
+  auth:    { windowMs: 15 * 60_000, maxRequests: 100 },  // 100 req / 15 min (relaxed for dev)
   api:     { windowMs: 60_000,      maxRequests: 300 },   // 300 req / min
   git:     { windowMs: 60_000,      maxRequests: 30 },    // 30 req / min
   upload:  { windowMs: 60_000,      maxRequests: 10 },    // 10 req / min

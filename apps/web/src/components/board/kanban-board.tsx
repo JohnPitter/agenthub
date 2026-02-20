@@ -17,6 +17,7 @@ interface KanbanBoardProps {
   projectId: string;
   tasks: Task[];
   agents: Agent[];
+  recentlyMoved?: Set<string>;
   onTaskUpdate?: (taskId: string, status: TaskStatus) => void;
   onViewChanges?: (taskId: string) => void;
   onTaskClick?: (task: Task) => void;
@@ -31,7 +32,7 @@ const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
   { id: "cancelled", title: "Cancelada", color: "var(--rt-neutral-fg3)" },
 ];
 
-export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChanges, onTaskClick }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpdate, onViewChanges, onTaskClick }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -99,6 +100,7 @@ export function KanbanBoard({ projectId, tasks, agents, onTaskUpdate, onViewChan
             tasks={tasksByStatus.get(column.id) || []}
             agents={agents}
             color={column.color}
+            recentlyMoved={recentlyMoved}
             onViewChanges={onViewChanges}
             onTaskClick={onTaskClick}
           />

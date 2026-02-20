@@ -399,6 +399,24 @@ body {
   animation: scale-in 0.2s ease-out both;
 }
 
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-pixel-walk {
+  animation: pixel-walk 0.3s ease-in-out infinite;
+}
+
+@keyframes pixel-walk {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
 /* Stagger delays for lists */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }
@@ -796,4 +814,15 @@ body {
 
 .table-row:hover {
   background: var(--color-neutral-bg-hover);
+}
+
+/* ═══ Task arrive animation — kanban board ═══ */
+
+@keyframes task-arrive {
+  from { opacity: 0; transform: translateX(-12px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.animate-task-arrive {
+  animation: task-arrive 300ms ease-out;
 }

@@ -6,6 +6,7 @@ export type AgentRole =
   | "qa"
   | "receptionist"
   | "doc_writer"
+  | "support"
   | "custom";
 
 export type AgentModel = string;
@@ -28,7 +29,9 @@ export const OPENAI_MODELS = [
 export const CLAUDE_MODELS = [
   { id: "claude-opus-4-6", label: "Claude Opus 4.6", provider: "claude" as const },
   { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", provider: "claude" as const },
+  { id: "claude-opus-4-5-20251101", label: "Claude Opus 4.5", provider: "claude" as const },
   { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5", provider: "claude" as const },
+  { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4", provider: "claude" as const },
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", provider: "claude" as const },
 ] as const;
 

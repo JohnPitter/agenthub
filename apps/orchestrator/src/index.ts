@@ -37,7 +37,10 @@ import { workflowsRouter } from "./routes/workflows.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { teamsRouter } from "./routes/teams.js";
 import { skillsRouter, agentSkillsRouter } from "./routes/skills.js";
+import { DEFAULT_AGENTS } from "@agenthub/shared";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
+import { db, schema } from "@agenthub/database";
+import { eq } from "drizzle-orm";
 
 const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
 
@@ -122,8 +125,33 @@ setupSocketHandlers(io);
 taskTimeoutManager.start();
 taskWatcher.start();
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   logger.info(`Orchestrator running on http://localhost:${PORT}`, "server");
+
+  // Sync default agents' allowedTools with current blueprints
+  try {
+    const defaultAgents = await db.select().from(schema.agents).where(eq(schema.agents.isDefault, true));
+    let synced = 0;
+    for (const agent of defaultAgents) {
+      const blueprint = DEFAULT_AGENTS.find((b) => b.role === agent.role);
+      if (!blueprint) continue;
+      const currentTools = JSON.stringify(JSON.parse(agent.allowedTools || "[]").sort());
+      const blueprintTools = JSON.stringify([...blueprint.allowedTools].sort());
+      if (currentTools !== blueprintTools) {
+        await db
+          .update(schema.agents)
+          .set({ allowedTools: JSON.stringify(blueprint.allowedTools), updatedAt: new Date() })
+          .where(eq(schema.agents.id, agent.id));
+        logger.info(`Synced tools for ${agent.name}: ${blueprint.allowedTools.join(", ")}`, "startup");
+        synced++;
+      }
+    }
+    if (synced > 0) {
+      logger.info(`Synced allowedTools for ${synced} default agent(s)`, "startup");
+    }
+  } catch (err) {
+    logger.error(`Failed to sync default agent tools: ${err}`, "startup");
+  }
 
   // Auto-restore WhatsApp sessions (fire-and-forget)
   restoreWhatsAppSessions().catch((err) => {

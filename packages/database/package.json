@@ -21,8 +21,8 @@
     "nanoid": "^5.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "drizzle-kit": "^0.30.0",
+    "@types/node": "^25.3.0",
+    "drizzle-kit": "^0.31.9",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"
   }

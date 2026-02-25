@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ChevronRight } from "lucide-react";
 import { FileTree, type FileNode } from "../components/files/file-tree";
 import { FileViewer } from "../components/files/file-viewer";
@@ -8,6 +9,7 @@ import { SkeletonFileTree } from "../components/ui/skeleton";
 import { api } from "../lib/utils";
 
 export function ProjectFiles() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [files, setFiles] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export function ProjectFiles() {
             })}
           </div>
         ) : (
-          <span className="text-[13px] text-neutral-fg3">Selecione um arquivo</span>
+          <span className="text-[13px] text-neutral-fg3">{t("files.selectFile")}</span>
         )}
       </CommandBar>
 

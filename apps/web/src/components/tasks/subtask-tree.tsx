@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { cn, formatRelativeTime } from "../../lib/utils";
 import type { Task, Agent } from "@agenthub/shared";
@@ -24,6 +25,7 @@ interface SubtaskTreeProps {
 }
 
 export function SubtaskTree({ parentTask, subtasks, agents, onCreateSubtask, onClickTask }: SubtaskTreeProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const completedCount = subtasks.filter((t) => t.status === "done" || t.status === "cancelled").length;
   const totalCount = subtasks.length;
@@ -38,7 +40,7 @@ export function SubtaskTree({ parentTask, subtasks, agents, onCreateSubtask, onC
           className="flex items-center gap-1.5 text-[12px] font-semibold text-neutral-fg1 hover:text-brand transition-colors"
         >
           {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-          Subtasks
+          {t("common.subtasks")}
           <span className="text-[11px] font-medium text-neutral-fg3 ml-1">
             {completedCount}/{totalCount}
           </span>
@@ -48,7 +50,7 @@ export function SubtaskTree({ parentTask, subtasks, agents, onCreateSubtask, onC
           className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-brand hover:bg-brand-light transition-colors"
         >
           <Plus className="h-3 w-3" />
-          Subtask
+          {t("common.subtask")}
         </button>
       </div>
 
@@ -67,7 +69,7 @@ export function SubtaskTree({ parentTask, subtasks, agents, onCreateSubtask, onC
         <div className="space-y-1.5">
           {subtasks.length === 0 ? (
             <p className="text-[11px] text-neutral-fg-disabled py-2 text-center">
-              Nenhuma subtask ainda
+              {t("tasks.noSubtasks")}
             </p>
           ) : (
             subtasks.map((subtask) => {

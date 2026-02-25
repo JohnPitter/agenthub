@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import {
   X, FileDiff, FileCode, Loader2,
   GitCommit, ChevronDown, ChevronRight, Clock, User,
@@ -31,6 +32,7 @@ interface TaskChangesDialogProps {
 }
 
 export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
+  const { t } = useTranslation();
   const [commits, setCommits] = useState<CommitInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
         }
       })
       .catch((err) => {
-        setError(err.message ?? "Falha ao carregar alterações");
+        setError(err.message ?? t("tasks.failedToLoadChanges"));
       })
       .finally(() => setLoading(false));
   }, [taskId]);
@@ -82,11 +84,11 @@ export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
               <FileDiff className="h-4 w-4 text-brand" />
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold text-neutral-fg1">Alterações</h2>
+              <h2 className="text-[15px] font-semibold text-neutral-fg1">{t("tasks.changes")}</h2>
               <p className="text-[12px] text-neutral-fg3">
                 {loading
-                  ? "Carregando..."
-                  : `${commits.length} commit${commits.length !== 1 ? "s" : ""} · ${totalFiles} arquivo${totalFiles !== 1 ? "s" : ""}`}
+                  ? t("common.loading")
+                  : t("tasks.commitsSummary", { commits: commits.length, files: totalFiles })}
               </p>
             </div>
           </div>
@@ -104,7 +106,7 @@ export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
             <div className="flex flex-1 items-center justify-center">
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-brand" />
-                <p className="text-[13px] text-neutral-fg3 font-medium">Carregando alterações...</p>
+                <p className="text-[13px] text-neutral-fg3 font-medium">{t("tasks.loadingChanges")}</p>
               </div>
             </div>
           ) : error ? (
@@ -115,8 +117,8 @@ export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
             <div className="flex flex-1 items-center justify-center">
               <div className="flex flex-col items-center gap-2 text-center">
                 <GitCommit className="h-8 w-8 text-neutral-fg-disabled" />
-                <p className="text-[13px] text-neutral-fg-disabled">Nenhuma alteração encontrada</p>
-                <p className="text-[11px] text-neutral-fg3">A task precisa ter uma branch com commits para exibir alterações.</p>
+                <p className="text-[13px] text-neutral-fg-disabled">{t("tasks.noChangesFound")}</p>
+                <p className="text-[11px] text-neutral-fg3">{t("tasks.taskNeedsBranch")}</p>
               </div>
             </div>
           ) : (
@@ -152,7 +154,7 @@ export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
                               {isUncommitted ? "WIP" : commit.shortHash}
                             </span>
                             <span className="text-[10px] text-neutral-fg3">
-                              {commit.files.length} arquivo{commit.files.length !== 1 ? "s" : ""}
+                              {t("tasks.fileCount", { count: commit.files.length })}
                             </span>
                           </div>
                           <p className="text-[11px] font-medium text-neutral-fg1 leading-snug truncate">
@@ -234,7 +236,7 @@ export function TaskChangesDialog({ taskId, onClose }: TaskChangesDialogProps) {
                   </>
                 ) : (
                   <div className="flex flex-1 items-center justify-center">
-                    <p className="text-[12px] text-neutral-fg-disabled">Selecione um arquivo para ver o diff</p>
+                    <p className="text-[12px] text-neutral-fg-disabled">{t("tasks.selectFileForDiff")}</p>
                   </div>
                 )}
               </div>

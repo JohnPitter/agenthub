@@ -388,9 +388,9 @@ export function setupSocketHandlers(
       if (task?.assignedAgentId) {
         const updatedDescription = [
           task.description ?? "",
-          "\n\n---\n## Feedback do Review\n",
+          "\n\n---\n## Review Feedback\n",
           feedback,
-          "\n\nPor favor, implemente as mudanças solicitadas acima.",
+          "\n\nPlease implement the requested changes above.",
         ].join("");
 
         await db.update(schema.tasks).set({
@@ -493,9 +493,12 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
   });
 
   eventBus.on("task:status", (data) => {
-    // Scope to project room if taskId resolves to a projectId
-    // task:status doesn't carry projectId directly, so broadcast globally
-    io.emit("task:status", data);
+    const projectId = data.projectId as string | undefined;
+    if (projectId) {
+      io.to(`project:${projectId}`).emit("task:status", data);
+    } else {
+      io.emit("task:status", data);
+    }
   });
 
   eventBus.on("task:created", (data) => {

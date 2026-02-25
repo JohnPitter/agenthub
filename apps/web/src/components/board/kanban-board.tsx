@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   DndContext,
   DragStartEvent,
@@ -24,17 +25,20 @@ interface KanbanBoardProps {
   onError?: (error: string) => void;
 }
 
-const COLUMNS: Array<{ id: TaskStatus; title: string; color: string }> = [
-  { id: "created", title: "Backlog", color: "var(--rt-neutral-fg3)" },
-  { id: "assigned", title: "Disponível", color: "var(--rt-orange)" },
-  { id: "in_progress", title: "Em Progresso", color: "var(--rt-warning)" },
-  { id: "review", title: "Review", color: "var(--rt-purple)" },
-  { id: "done", title: "Concluída", color: "var(--rt-success)" },
-  { id: "failed", title: "Falhou", color: "var(--rt-danger)" },
-  { id: "cancelled", title: "Cancelada", color: "var(--rt-neutral-fg3)" },
-];
+function getColumns(t: (key: string) => string): Array<{ id: TaskStatus; title: string; color: string }> {
+  return [
+    { id: "created", title: t("board.backlog"), color: "var(--rt-neutral-fg3)" },
+    { id: "assigned", title: t("taskStatus.assigned"), color: "var(--rt-orange)" },
+    { id: "in_progress", title: t("board.inProgress"), color: "var(--rt-warning)" },
+    { id: "review", title: t("board.review"), color: "var(--rt-purple)" },
+    { id: "done", title: t("board.done"), color: "var(--rt-success)" },
+    { id: "failed", title: t("taskStatus.failed"), color: "var(--rt-danger)" },
+    { id: "cancelled", title: t("taskStatus.cancelled"), color: "var(--rt-neutral-fg3)" },
+  ];
+}
 
 export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpdate, onViewChanges, onTaskClick, onError }: KanbanBoardProps) {
+  const { t } = useTranslation();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -80,17 +84,19 @@ export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpd
     }
   };
 
+  const columns = useMemo(() => getColumns(t), [t]);
+
   const tasksByStatus = useMemo(() => {
     const map = new Map<TaskStatus, Task[]>();
-    for (const col of COLUMNS) map.set(col.id, []);
-    for (const t of tasks) {
+    for (const col of columns) map.set(col.id, []);
+    for (const task of tasks) {
       // Filter out subtasks — they should not appear as independent cards
-      if (t.parentTaskId) continue;
-      const list = map.get(t.status as TaskStatus);
-      if (list) list.push(t);
+      if (task.parentTaskId) continue;
+      const list = map.get(task.status as TaskStatus);
+      if (list) list.push(task);
     }
     return map;
-  }, [tasks]);
+  }, [tasks, columns]);
 
   return (
     <DndContext
@@ -99,7 +105,7 @@ export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpd
       onDragEnd={handleDragEnd}
     >
       <div className="flex h-full gap-5 overflow-x-auto pb-4">
-        {COLUMNS.map((column) => (
+        {columns.map((column) => (
           <KanbanColumn
             key={column.id}
             id={column.id}

@@ -1,19 +1,22 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckCircle2, FileCode, Check, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AgentAvatar } from "../agents/agent-avatar";
 import { TaskRejectDialog } from "../tasks/task-reject-dialog";
 import type { Agent, Task } from "@agenthub/shared";
 
-const ROLE_LABELS: Record<string, string> = {
-  architect: "Arquiteto",
-  tech_lead: "Tech Lead",
-  frontend_dev: "Frontend Dev",
-  backend_dev: "Backend Dev",
-  qa: "QA Engineer",
-  receptionist: "Team Lead",
-  custom: "Custom",
-};
+function getRoleLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    architect: t("roles.architect"),
+    tech_lead: t("roles.tech_lead"),
+    frontend_dev: t("roles.frontend_dev"),
+    backend_dev: t("roles.backend_dev"),
+    qa: t("roles.qa"),
+    receptionist: t("roles.receptionist"),
+    custom: t("roles.custom"),
+  };
+}
 
 interface AgentActivity {
   status: string;
@@ -22,12 +25,14 @@ interface AgentActivity {
   progress?: number;
 }
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  idle: { color: "text-neutral-fg3", bg: "bg-neutral-bg2", label: "Ocioso" },
-  running: { color: "text-success", bg: "bg-success-light", label: "Executando" },
-  paused: { color: "text-warning", bg: "bg-warning-light", label: "Pausado" },
-  error: { color: "text-danger", bg: "bg-danger-light", label: "Erro" },
-};
+function getStatusConfig(t: (key: string) => string): Record<string, { color: string; bg: string; label: string }> {
+  return {
+    idle: { color: "text-neutral-fg3", bg: "bg-neutral-bg2", label: t("agentStatus.idle") },
+    running: { color: "text-success", bg: "bg-success-light", label: t("agentStatus.running") },
+    paused: { color: "text-warning", bg: "bg-warning-light", label: t("agentStatus.paused") },
+    error: { color: "text-danger", bg: "bg-danger-light", label: t("agentStatus.error") },
+  };
+}
 
 interface AgentStatusCardProps {
   agent: Agent;
@@ -39,9 +44,12 @@ interface AgentStatusCardProps {
 }
 
 export function AgentStatusCard({ agent, activity, task, onApprove, onReject, onCancel }: AgentStatusCardProps) {
+  const { t } = useTranslation();
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const statusConfig = getStatusConfig(t);
+  const roleLabels = getRoleLabels(t);
   const status = activity?.status ?? "idle";
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.idle;
+  const config = statusConfig[status] ?? statusConfig.idle;
   const progress = activity?.progress ?? 0;
 
   const handleReject = (feedback: string) => {
@@ -68,7 +76,7 @@ export function AgentStatusCard({ agent, activity, task, onApprove, onReject, on
 
         <h3 className="text-[13px] font-semibold text-neutral-fg1">{agent.name}</h3>
         <p className="mb-3 text-[11px] text-neutral-fg3">
-          {ROLE_LABELS[agent.role] ?? agent.role}
+          {roleLabels[agent.role] ?? agent.role}
         </p>
 
         {/* Task info */}
@@ -99,14 +107,14 @@ export function AgentStatusCard({ agent, activity, task, onApprove, onReject, on
               className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-success px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:opacity-90"
             >
               <Check className="h-3.5 w-3.5" />
-              Aprovar
+              {t("tasks.approve")}
             </button>
             <button
               onClick={() => setShowRejectDialog(true)}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-danger px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:opacity-90"
             >
               <X className="h-3.5 w-3.5" />
-              Rejeitar
+              {t("tasks.reject")}
             </button>
           </div>
         )}

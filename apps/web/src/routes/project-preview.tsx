@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Play, Square, RefreshCw, Loader2, Terminal, AlertCircle, ExternalLink, ArrowLeft } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { useSocket } from "../hooks/use-socket";
@@ -18,6 +19,7 @@ interface LogLine {
 const MAX_LOG_LINES = 500;
 
 export function ProjectPreview() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const projects = useWorkspaceStore((s) => s.projects);
   const project = projects.find((p) => p.id === id);
@@ -85,7 +87,7 @@ export function ProjectPreview() {
     try {
       await api(`/projects/${id}/dev-server/start`, { method: "POST" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start dev server");
+      setError(err instanceof Error ? err.message : t("project.previewError"));
     } finally {
       setLoading(false);
     }
@@ -99,7 +101,7 @@ export function ProjectPreview() {
       setStatus("stopped");
       setPort(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to stop dev server");
+      setError(err instanceof Error ? err.message : t("project.previewStopError"));
     } finally {
       setLoading(false);
     }
@@ -110,7 +112,7 @@ export function ProjectPreview() {
   };
 
   if (!project) {
-    return <div className="p-6 text-neutral-fg2">Projeto não encontrado.</div>;
+    return <div className="p-6 text-neutral-fg2">{t("project.notFound")}</div>;
   }
 
   const isStopped = status === "stopped";
@@ -118,11 +120,11 @@ export function ProjectPreview() {
   const isRunning = status === "running";
   const isError = status === "error";
 
-  const STATUS_INDICATOR: Record<ServerStatus, { label: string; cls: string }> = {
-    stopped: { label: "Parado", cls: "bg-neutral-fg-disabled" },
-    starting: { label: "Iniciando...", cls: "bg-warning animate-pulse" },
-    running: { label: "Rodando", cls: "bg-success" },
-    error: { label: "Erro", cls: "bg-danger" },
+  const STATUS_INDICATOR: Record<ServerStatus, { labelKey: string; cls: string }> = {
+    stopped: { labelKey: "project.previewStopped", cls: "bg-neutral-fg-disabled" },
+    starting: { labelKey: "project.previewStarting", cls: "bg-warning animate-pulse" },
+    running: { labelKey: "project.previewRunning", cls: "bg-success" },
+    error: { labelKey: "common.error", cls: "bg-danger" },
   };
 
   const indicator = STATUS_INDICATOR[status];
@@ -136,7 +138,7 @@ export function ProjectPreview() {
             {/* Status indicator */}
             <div className="flex items-center gap-2">
               <span className={cn("h-2 w-2 rounded-full", indicator.cls)} />
-              <span className="text-[12px] font-medium text-neutral-fg3">{indicator.label}</span>
+              <span className="text-[12px] font-medium text-neutral-fg3">{t(indicator.labelKey)}</span>
               {port && (
                 <span className="text-[11px] font-mono text-neutral-fg-disabled">:{port}</span>
               )}
@@ -156,7 +158,7 @@ export function ProjectPreview() {
                 ) : (
                   <Play className="h-4 w-4" />
                 )}
-                Iniciar
+                {t("project.previewStart")}
               </button>
             ) : (
               <button
@@ -169,7 +171,7 @@ export function ProjectPreview() {
                 ) : (
                   <Square className="h-4 w-4" />
                 )}
-                Parar
+                {t("project.previewStop")}
               </button>
             )}
 
@@ -179,7 +181,7 @@ export function ProjectPreview() {
                 <button
                   onClick={handleRefresh}
                   className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-                  title="Recarregar preview"
+                  title={t("project.previewReload")}
                 >
                   <RefreshCw className="h-4 w-4" />
                 </button>
@@ -188,7 +190,7 @@ export function ProjectPreview() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-                  title="Abrir em nova aba"
+                  title={t("project.previewOpenTab")}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
@@ -200,7 +202,7 @@ export function ProjectPreview() {
         <Link
           to={`/project/${id}`}
           className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-          title="Voltar ao projeto"
+          title={t("common.back")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
@@ -219,9 +221,9 @@ export function ProjectPreview() {
                 <Play className="h-8 w-8 text-brand" />
               </div>
               <div>
-                <h3 className="text-[16px] font-semibold text-neutral-fg1">Iniciar Dev Server</h3>
+                <h3 className="text-[16px] font-semibold text-neutral-fg1">{t("project.previewStartServer")}</h3>
                 <p className="mt-1 text-[13px] text-neutral-fg3">
-                  Clique em "Iniciar" para rodar o servidor de desenvolvimento
+                  {t("project.previewStartHint")}
                 </p>
               </div>
               <button
@@ -234,7 +236,7 @@ export function ProjectPreview() {
                 ) : (
                   <Play className="h-5 w-5" />
                 )}
-                Iniciar Dev Server
+                {t("project.previewStartServer")}
               </button>
             </div>
           </div>
@@ -257,14 +259,14 @@ export function ProjectPreview() {
                 <div className="flex h-full items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-8 w-8 text-brand animate-spin" />
-                    <p className="text-[13px] text-neutral-fg3">Aguardando servidor iniciar...</p>
+                    <p className="text-[13px] text-neutral-fg3">{t("project.previewWaiting")}</p>
                   </div>
                 </div>
               ) : isError ? (
                 <div className="flex h-full items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <AlertCircle className="h-8 w-8 text-danger" />
-                    <p className="text-[13px] text-danger font-medium">{error ?? "Erro ao iniciar servidor"}</p>
+                    <p className="text-[13px] text-danger font-medium">{error ?? t("project.previewError")}</p>
                   </div>
                 </div>
               ) : null}
@@ -278,7 +280,7 @@ export function ProjectPreview() {
                   Output
                 </span>
                 <span className="ml-auto text-[10px] text-neutral-fg-disabled tabular-nums">
-                  {logs.length} linhas
+                  {logs.length} {t("project.previewLines")}
                 </span>
               </div>
               <div
@@ -297,7 +299,7 @@ export function ProjectPreview() {
                   </div>
                 ))}
                 {logs.length === 0 && (
-                  <span className="text-neutral-500">Aguardando output...</span>
+                  <span className="text-neutral-500">{t("project.previewAwaitingOutput")}</span>
                 )}
               </div>
             </div>

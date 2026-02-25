@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Play } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { Task, Agent } from "@agenthub/shared";
@@ -18,6 +19,7 @@ const PRIORITY_DOT: Record<string, string> = {
 };
 
 export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExecuteDialogProps) {
+  const { t } = useTranslation();
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState("");
 
@@ -45,7 +47,7 @@ export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExe
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-light">
               <Play className="h-5 w-5 text-brand" />
             </div>
-            <h2 className="text-[18px] font-semibold text-neutral-fg1">Executar Task</h2>
+            <h2 className="text-[18px] font-semibold text-neutral-fg1">{t("tasks.executeTask")}</h2>
           </div>
           <button onClick={onClose} className="rounded-md p-2 text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1">
             <X className="h-5 w-5" />
@@ -64,7 +66,7 @@ export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExe
                 onChange={(e) => setSelectedTaskId(e.target.value)}
                 className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
               >
-                <option value="">Selecione uma task...</option>
+                <option value="">{t("tasks.selectTask")}</option>
                 {availableTasks.map((task) => (
                   <option key={task.id} value={task.id}>
                     [{task.priority?.toUpperCase()}] {task.title}
@@ -73,7 +75,7 @@ export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExe
               </select>
             ) : (
               <div className="rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[13px] text-neutral-fg-disabled">
-                Nenhuma task disponivel para execucao
+                {t("tasks.noTasksAvailable")}
               </div>
             )}
 
@@ -101,14 +103,14 @@ export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExe
           {/* Select Agent */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Agente
+              {t("tasks.agent")}
             </label>
             <select
               value={selectedAgentId}
               onChange={(e) => setSelectedAgentId(e.target.value)}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
-              <option value="">Selecione um agente...</option>
+              <option value="">{t("tasks.selectAgent")}</option>
               {activeAgents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
                   {agent.name} — {agent.role}
@@ -124,7 +126,7 @@ export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExe
               onClick={onClose}
               className="rounded-md px-5 py-2.5 text-[14px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               onClick={handleExecute}
@@ -132,7 +134,7 @@ export function TaskExecuteDialog({ tasks, agents, onExecute, onClose }: TaskExe
               className="flex items-center gap-2 rounded-md bg-brand px-6 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-brand-hover disabled:opacity-40"
             >
               <Play className="h-4 w-4" />
-              Executar Agora
+              {t("tasks.executeNow")}
             </button>
           </div>
         </div>

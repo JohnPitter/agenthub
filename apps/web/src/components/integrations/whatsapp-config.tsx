@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Smartphone, Wifi, WifiOff, Loader2, QrCode, RefreshCw, Shield, Check } from "lucide-react";
 import { api } from "../../lib/utils";
 import { getSocket } from "../../lib/socket";
@@ -14,6 +15,7 @@ interface IntegrationStatusEvent {
 }
 
 export function WhatsAppConfig() {
+  const { t } = useTranslation();
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export function WhatsAppConfig() {
       }
       // If DB shows error from a previous failed attempt, show error message
       if (data.status === "error") {
-        setError("Conexão anterior falhou. Clique em Conectar para tentar novamente.");
+        setError(t("integrationErrors.prevConnFailed"));
       }
       // Reset loading if status is terminal
       if (data.status !== "connecting") {
@@ -74,7 +76,7 @@ export function WhatsAppConfig() {
       }
       if (data.status === "error") {
         setLoading(false);
-        setError("Falha na conexão. Tente novamente.");
+        setError(t("integrationErrors.connFailed"));
       }
     };
 
@@ -86,7 +88,7 @@ export function WhatsAppConfig() {
 
   const handleConnect = async () => {
     if (!activeProjectId) {
-      setError("Selecione um projeto primeiro");
+      setError(t("integrationErrors.selectProjectFirst"));
       return;
     }
 
@@ -108,7 +110,7 @@ export function WhatsAppConfig() {
       setStatus(data.status);
       setIntegrationId(data.integrationId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao conectar");
+      setError(err instanceof Error ? err.message : t("whatsapp.connectError"));
       setLoading(false);
     }
   };
@@ -128,7 +130,7 @@ export function WhatsAppConfig() {
       setQrCode(null);
       setIntegrationId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao desconectar");
+      setError(err instanceof Error ? err.message : t("whatsapp.disconnectError"));
     } finally {
       setLoading(false);
     }
@@ -147,7 +149,7 @@ export function WhatsAppConfig() {
       });
       setSavedNumber(allowedNumber.trim() || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao salvar número");
+      setError(err instanceof Error ? err.message : t("whatsapp.saveNumberError"));
     } finally {
       setSavingNumber(false);
     }
@@ -156,10 +158,10 @@ export function WhatsAppConfig() {
   const numberChanged = allowedNumber.trim() !== (savedNumber || "");
 
   const statusConfig: Record<ConnectionStatus, { label: string; color: string; icon: typeof Wifi }> = {
-    disconnected: { label: "Desconectado", color: "text-neutral-fg3", icon: WifiOff },
-    connecting: { label: "Conectando...", color: "text-warning", icon: Loader2 },
-    connected: { label: "Conectado", color: "text-success", icon: Wifi },
-    error: { label: "Erro", color: "text-danger", icon: WifiOff },
+    disconnected: { label: t("whatsapp.disconnected"), color: "text-neutral-fg3", icon: WifiOff },
+    connecting: { label: t("common.loading"), color: "text-warning", icon: Loader2 },
+    connected: { label: t("whatsapp.connected"), color: "text-success", icon: Wifi },
+    error: { label: t("common.error"), color: "text-danger", icon: WifiOff },
   };
 
   const currentStatus = statusConfig[status];
@@ -175,7 +177,7 @@ export function WhatsAppConfig() {
           </div>
           <div>
             <h3 className="text-[14px] font-semibold text-neutral-fg1">WhatsApp</h3>
-            <p className="text-[12px] text-neutral-fg3">Comunique-se via WhatsApp Web</p>
+            <p className="text-[12px] text-neutral-fg3">{t("whatsapp.communicateViaWhatsApp")}</p>
           </div>
         </div>
 
@@ -190,7 +192,7 @@ export function WhatsAppConfig() {
         <div className="mb-6 flex flex-col items-center gap-4 rounded-lg border border-stroke bg-neutral-bg1 p-6">
           <div className="flex items-center gap-2 text-[13px] text-neutral-fg2">
             <QrCode className="h-4 w-4" />
-            Escaneie o QR code com seu WhatsApp
+            {t("whatsapp.scanQrCode")}
           </div>
           <div className="rounded-lg bg-white p-4">
             <img
@@ -200,7 +202,7 @@ export function WhatsAppConfig() {
             />
           </div>
           <p className="text-[11px] text-neutral-fg3 text-center max-w-[280px]">
-            Abra o WhatsApp no celular, vá em Dispositivos Conectados e escaneie este QR code
+            {t("whatsapp.scanQrCodeDesc")}
           </p>
         </div>
       )}
@@ -210,8 +212,8 @@ export function WhatsAppConfig() {
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-success/20 bg-success-light p-4">
           <Wifi className="h-5 w-5 text-success" />
           <div>
-            <p className="text-[13px] font-medium text-success">WhatsApp conectado</p>
-            <p className="text-[11px] text-neutral-fg3">Mensagens estão sendo recebidas pelo Team Lead</p>
+            <p className="text-[13px] font-medium text-success">{t("whatsapp.whatsAppConnected")}</p>
+            <p className="text-[11px] text-neutral-fg3">{t("whatsapp.messagesReceived")}</p>
           </div>
         </div>
       )}
@@ -220,7 +222,7 @@ export function WhatsAppConfig() {
       <div className="mb-4">
         <label className="flex items-center gap-2 text-[12px] font-medium text-neutral-fg2 mb-2">
           <Shield className="h-3.5 w-3.5" />
-          Número autorizado
+          {t("whatsapp.authorizedNumber")}
         </label>
         <div className="flex items-center gap-2">
           <input
@@ -246,12 +248,12 @@ export function WhatsAppConfig() {
               ) : savedNumber === allowedNumber.trim() && savedNumber ? (
                 <Check className="h-3.5 w-3.5" />
               ) : null}
-              Salvar
+              {t("common.save")}
             </button>
           )}
         </div>
         <p className="mt-1.5 text-[11px] text-neutral-fg3">
-          Apenas este número poderá enviar mensagens para o sistema
+          {t("whatsapp.authorizedNumberDesc")}
         </p>
       </div>
 
@@ -275,14 +277,14 @@ export function WhatsAppConfig() {
             ) : (
               <Smartphone className="h-4 w-4" />
             )}
-            Conectar WhatsApp
+            {t("whatsapp.connectWhatsApp")}
           </button>
         ) : status === "connecting" ? (
           <button
             onClick={handleDisconnect}
             className="flex items-center gap-2 rounded-lg border border-stroke bg-neutral-bg1 px-5 py-2.5 text-[13px] font-medium text-neutral-fg2 hover:bg-neutral-bg-hover transition-colors"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
         ) : (
           <>
@@ -292,7 +294,7 @@ export function WhatsAppConfig() {
               className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger-light px-5 py-2.5 text-[13px] font-medium text-danger hover:bg-danger/20 transition-colors"
             >
               <WifiOff className="h-4 w-4" />
-              Desconectar
+              {t("whatsapp.disconnect")}
             </button>
             <button
               onClick={fetchStatus}

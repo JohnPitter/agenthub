@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Wrench, Hammer } from "lucide-react";
 import type { Agent, AgentToolUseEvent } from "@agenthub/shared";
 
@@ -7,12 +8,13 @@ interface ToolTimelineProps {
 }
 
 export function ToolTimeline({ toolUses, agents }: ToolTimelineProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex w-[400px] flex-col rounded-lg bg-neutral-bg1 p-5 shadow-2">
       <div className="mb-3 flex items-center gap-2">
         <Wrench className="h-4 w-4 text-brand" />
         <h3 className="text-[13px] font-semibold text-neutral-fg1">
-          Ferramentas Utilizadas
+          {t("board.toolsUsed")}
         </h3>
       </div>
 
@@ -21,7 +23,7 @@ export function ToolTimeline({ toolUses, agents }: ToolTimelineProps) {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <Hammer className="mb-2 h-8 w-8 text-neutral-fg-disabled" />
             <p className="text-[12px] text-neutral-fg3">
-              Nenhuma ferramenta usada ainda
+              {t("board.noToolsUsed")}
             </p>
           </div>
         ) : (

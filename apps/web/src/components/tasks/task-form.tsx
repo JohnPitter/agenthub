@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import type { Task, Agent, TaskPriority, TaskCategory } from "@agenthub/shared";
 
@@ -18,22 +19,17 @@ export interface TaskFormData {
   assignedAgentId: string;
 }
 
-const PRIORITIES: { value: TaskPriority; label: string }[] = [
-  { value: "low", label: "Baixa" },
-  { value: "medium", label: "Média" },
-  { value: "high", label: "Alta" },
-  { value: "urgent", label: "Urgente" },
-];
-
-const CATEGORIES: { value: TaskCategory; label: string }[] = [
-  { value: "feature", label: "Feature" },
-  { value: "bug", label: "Bug" },
-  { value: "refactor", label: "Refactor" },
-  { value: "test", label: "Test" },
-  { value: "docs", label: "Docs" },
-];
+const CATEGORY_VALUES: TaskCategory[] = ["feature", "bug", "refactor", "test", "docs"];
+const CATEGORY_LABELS: Record<TaskCategory, string> = {
+  feature: "Feature",
+  bug: "Bug",
+  refactor: "Refactor",
+  test: "Test",
+  docs: "Docs",
+};
 
 export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? "medium");
@@ -57,7 +53,7 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-[18px] font-semibold text-neutral-fg1">
-            {task ? "Editar Task" : "Nova Task"}
+            {task ? t("tasks.editTask") : t("tasks.newTask")}
           </h2>
           <button onClick={onClose} className="rounded-md p-2 text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1">
             <X className="h-5 w-5" />
@@ -68,13 +64,13 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
           {/* Title */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Titulo
+              {t("tasks.titleLabel")}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Implementar autenticacao JWT"
+              placeholder={t("tasks.titlePlaceholder")}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
               autoFocus
             />
@@ -83,12 +79,12 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
           {/* Description */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Descricao
+              {t("tasks.description")}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Detalhe o que precisa ser feito..."
+              placeholder={t("tasks.descriptionPlaceholder")}
               rows={3}
               className="w-full resize-none rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             />
@@ -98,31 +94,31 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                Prioridade
+                {t("tasks.priority")}
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
                 className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
               >
-                {PRIORITIES.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
+                {(["low", "medium", "high", "urgent"] as TaskPriority[]).map((p) => (
+                  <option key={p} value={p}>{t(`taskPriority.${p}`)}</option>
                 ))}
               </select>
             </div>
 
             <div>
               <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                Categoria
+                {t("tasks.category")}
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as TaskCategory | "")}
                 className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
               >
-                <option value="">Nenhuma</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                <option value="">{t("common.none")}</option>
+                {CATEGORY_VALUES.map((c) => (
+                  <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
                 ))}
               </select>
             </div>
@@ -131,14 +127,14 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
           {/* Assign Agent */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-              Agente Responsavel
+              {t("tasks.assignedAgent")}
             </label>
             <select
               value={assignedAgentId}
               onChange={(e) => setAssignedAgentId(e.target.value)}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
-              <option value="">Auto (Tech Lead decide)</option>
+              <option value="">{t("tasks.autoAssign")}</option>
               {activeAgents.map((agent) => (
                 <option key={agent.id} value={agent.id}>{agent.name} — {agent.role}</option>
               ))}
@@ -152,14 +148,14 @@ export function TaskForm({ agents, task, onSubmit, onClose }: TaskFormProps) {
               onClick={onClose}
               className="rounded-md px-5 py-2.5 text-[14px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={!title.trim()}
               className="rounded-md bg-brand px-6 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-brand-hover disabled:opacity-40"
             >
-              {task ? "Salvar" : "Criar Task"}
+              {task ? t("common.save") : t("tasks.createTask")}
             </button>
           </div>
         </form>

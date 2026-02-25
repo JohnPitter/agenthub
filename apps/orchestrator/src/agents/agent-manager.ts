@@ -12,6 +12,7 @@ import { logger } from "../lib/logger";
 import { safeDecrypt } from "../lib/encryption.js";
 import { GitService } from "../git/git-service";
 import { slugify } from "../lib/utils";
+import { nanoid } from "nanoid";
 import type { Agent, TaskStatus, AgentRole, TaskCategory } from "@agenthub/shared";
 import { getModelProvider } from "@agenthub/shared";
 import { agentMemory } from "./agent-memory.js";
@@ -36,6 +37,7 @@ interface QueuedTask {
 /** Tracks the current phase of the agent workflow for a task */
 type WorkflowPhase =
   | "tech_lead_triage"      // Tech Lead analyzing the request
+  | "split_task_dispatch"   // Tech Lead split the task into subtasks, dispatching
   | "architect_planning"    // Architect creating a plan
   | "tech_lead_review"      // Tech Lead reviewing the plan and picking a dev
   | "dev_execution"         // Dev implementing the task
@@ -46,6 +48,13 @@ type WorkflowPhase =
   | "architect_fix_plan"    // Architect creating plan after Tech Lead couldn't solve
   | "tech_lead_relay_plan"  // Tech Lead receives Architect's plan and relays to dev
   | "direct";               // Direct assignment, no workflow
+
+interface SubtaskDefinition {
+  title: string;
+  description: string;
+  category: TaskCategory;
+  recommended_role: AgentRole;
+}
 
 interface WorkflowState {
   phase: WorkflowPhase;
@@ -148,7 +157,7 @@ class AgentManager {
     eventBus.emit("agent:notification", {
       agentId: techLeadId,
       projectId: task.projectId,
-      message: `Analisando a task para decidir o melhor fluxo de execução...`,
+      message: `Analyzing the task to decide the best execution flow...`,
       level: "info",
     });
 
@@ -202,7 +211,7 @@ class AgentManager {
           eventBus.emit("agent:notification", {
             agentId: workflow.techLeadId,
             projectId: task.projectId,
-            message: `Task complexa — enviando para ${architect.name} criar o plano de execução...`,
+            message: `Complex task — sending to ${architect.name} to create the execution plan...`,
             level: "info",
           });
 
@@ -210,7 +219,7 @@ class AgentManager {
           if (triageDecision.analysis) {
             const updatedDescription = [
               task.description ?? "",
-              "\n\n---\n## Análise do Tech Lead\n",
+              "\n\n---\n## Tech Lead Analysis\n",
               triageDecision.analysis,
             ].join("");
 
@@ -224,6 +233,32 @@ class AgentManager {
           await this.assignTask(taskId, architect.id);
           return true;
         }
+      }
+
+      // SPLIT_TASK → Tech Lead wants to split into parallel subtasks
+      if (triageDecision.splitTask && triageDecision.subtasks.length >= 2 && !task.parentTaskId) {
+        logger.info(
+          `Workflow: Tech Lead decided to SPLIT task ${taskId} into ${triageDecision.subtasks.length} subtasks`,
+          "agent-manager",
+        );
+
+        eventBus.emit("agent:notification", {
+          agentId: workflow.techLeadId,
+          projectId: task.projectId,
+          message: `Splitting task into ${triageDecision.subtasks.length} parallel subtasks...`,
+          level: "info",
+        });
+
+        await this.dispatchSplitTask(taskId, task.projectId, workflow, triageDecision.subtasks, triageDecision.analysis);
+        return true;
+      }
+
+      // If SPLIT_TASK was requested but conditions not met, fall through to simple task
+      if (triageDecision.splitTask) {
+        logger.warn(
+          `SPLIT_TASK requested for task ${taskId} but conditions not met (subtasks: ${triageDecision.subtasks.length}, isSubtask: ${!!task.parentTaskId}), treating as simple task`,
+          "agent-manager",
+        );
       }
 
       // Simple task → Tech Lead planned directly, pick dev and execute
@@ -240,7 +275,7 @@ class AgentManager {
       // Update the task description with the Tech Lead's plan
       const planDescription = [
         task.description ?? "",
-        "\n\n---\n## Plano do Tech Lead\n",
+        "\n\n---\n## Tech Lead Plan\n",
         plan,
       ].join("");
 
@@ -268,14 +303,14 @@ class AgentManager {
       eventBus.emit("agent:notification", {
         agentId: workflow.techLeadId,
         projectId: task.projectId,
-        message: `Plano do Arquiteto pronto. Escolhendo o melhor dev para executar...`,
+        message: `Architect plan ready. Selecting the best dev to execute...`,
         level: "info",
       });
 
       // Update the task description with the architect's plan
       const planDescription = [
         task.description ?? "",
-        "\n\n---\n## Plano do Arquiteto\n",
+        "\n\n---\n## Architect Plan\n",
         workflow.architectPlan,
       ].join("");
 
@@ -318,7 +353,7 @@ class AgentManager {
         eventBus.emit("agent:notification", {
           agentId: workflow.techLeadId,
           projectId: task.projectId,
-          message: `Dev finalizou. Enviando para ${qaAgent.name} revisar a implementação...`,
+          message: `Dev finished. Sending to ${qaAgent.name} to review the implementation...`,
           level: "info",
         });
 
@@ -360,7 +395,7 @@ class AgentManager {
         eventBus.emit("agent:notification", {
           agentId: workflow.techLeadId,
           projectId: task.projectId,
-          message: `QA aprovou a implementação. Aguardando aprovação do usuário.`,
+          message: `QA approved the implementation. Awaiting user approval.`,
           level: "info",
         });
 
@@ -392,7 +427,7 @@ class AgentManager {
       eventBus.emit("agent:notification", {
         agentId: workflow.techLeadId,
         projectId: task.projectId,
-        message: `QA rejeitou a implementação. Reenviando para ${devName} corrigir os problemas encontrados.`,
+        message: `QA rejected the implementation. Sending back to ${devName} to fix the issues found.`,
         level: "warn",
       });
 
@@ -409,14 +444,14 @@ class AgentManager {
       const qaFeedback = qaVerdict.reason || result || "QA found issues";
       const updatedDescription = [
         task.description ?? "",
-        `\n\n---\n## QA Feedback (Tentativa ${workflow.qaRetryCount})\n`,
+        `\n\n---\n## QA Feedback (Attempt ${workflow.qaRetryCount})\n`,
         qaFeedback,
-        "\n\nPor favor, corrija os problemas apontados acima pelo QA.",
-        "\n\n## IMPORTANTE — Decisão do Dev",
-        "\nAnalise os problemas reportados pelo QA e decida:",
-        "\n- Se você CONSEGUE corrigir: implemente as correções normalmente.",
-        "\n- Se você NÃO CONSEGUE corrigir (problema muito complexo, fora do seu escopo, ou precisa de ajuda): ",
-        "termine sua resposta com DEV_NEEDS_HELP na última linha para escalar ao Tech Lead.",
+        "\n\nPlease fix the issues reported above by QA.",
+        "\n\n## IMPORTANT — Dev Decision",
+        "\nAnalyze the problems reported by QA and decide:",
+        "\n- If you CAN fix it: implement the fixes normally.",
+        "\n- If you CANNOT fix it (too complex, out of scope, or needs help): ",
+        "end your response with DEV_NEEDS_HELP on the last line to escalate to the Tech Lead.",
       ].join("");
 
       await db.update(schema.tasks).set({
@@ -464,7 +499,7 @@ class AgentManager {
         eventBus.emit("agent:notification", {
           agentId: workflow.techLeadId,
           projectId: task.projectId,
-          message: `Dev corrigiu os problemas. Reenviando para ${qaAgent.name} re-validar...`,
+          message: `Dev fixed the issues. Sending back to ${qaAgent.name} for re-review...`,
           level: "info",
         });
 
@@ -508,9 +543,9 @@ class AgentManager {
       const improvementPlan = triageDecision.plan || result || "No plan provided";
       const updatedDescription = [
         task.description ?? "",
-        "\n\n---\n## Plano de Melhorias do Tech Lead\n",
+        "\n\n---\n## Tech Lead Improvement Plan\n",
         improvementPlan,
-        "\n\nSiga o plano acima para corrigir os problemas. O QA irá revisar novamente após suas correções.",
+        "\n\nFollow the plan above to fix the issues. QA will review again after your fixes.",
       ].join("");
 
       await db.update(schema.tasks).set({
@@ -524,7 +559,7 @@ class AgentManager {
       eventBus.emit("agent:notification", {
         agentId: workflow.techLeadId,
         projectId: task.projectId,
-        message: `Plano de melhorias criado. Enviando para ${devName} implementar as correções...`,
+        message: `Improvement plan created. Sending to ${devName} to implement the fixes...`,
         level: "info",
       });
 
@@ -566,7 +601,7 @@ class AgentManager {
         eventBus.emit("agent:notification", {
           agentId: workflow.techLeadId,
           projectId: task.projectId,
-          message: `Dev implementou o plano de melhorias. Enviando para ${qaAgent.name} validar...`,
+          message: `Dev implemented the improvement plan. Sending to ${qaAgent.name} for validation...`,
           level: "info",
         });
 
@@ -597,9 +632,9 @@ class AgentManager {
       const architectFixPlan = result || "No plan provided";
       const updatedDescription = [
         task.description ?? "",
-        "\n\n---\n## Plano de Correção do Arquiteto\n",
+        "\n\n---\n## Architect Fix Plan\n",
         architectFixPlan,
-        "\n\nComo Tech Lead, revise o plano do Arquiteto e crie instruções claras para o dev implementar.",
+        "\n\nAs Tech Lead, review the Architect's plan and create clear instructions for the dev to implement.",
       ].join("");
 
       await db.update(schema.tasks).set({
@@ -612,7 +647,7 @@ class AgentManager {
       eventBus.emit("agent:notification", {
         agentId: workflow.techLeadId,
         projectId: task.projectId,
-        message: `Plano do Arquiteto pronto. Repassando para o Tech Lead criar instruções para o dev...`,
+        message: `Architect's plan ready. Sending to Tech Lead to create instructions for the dev...`,
         level: "info",
       });
 
@@ -649,9 +684,9 @@ class AgentManager {
       const relayPlan = result || "No plan provided";
       const updatedDescription = [
         task.description ?? "",
-        "\n\n---\n## Instruções do Tech Lead (baseado no plano do Arquiteto)\n",
+        "\n\n---\n## Tech Lead Instructions (based on Architect's plan)\n",
         relayPlan,
-        "\n\nSiga as instruções acima para corrigir os problemas. O QA irá revisar novamente após suas correções.",
+        "\n\nFollow the instructions above to fix the issues. QA will review again after your fixes.",
       ].join("");
 
       await db.update(schema.tasks).set({
@@ -665,7 +700,7 @@ class AgentManager {
       eventBus.emit("agent:notification", {
         agentId: workflow.techLeadId,
         projectId: task.projectId,
-        message: `Plano de correção pronto. Enviando para ${devName} implementar...`,
+        message: `Fix plan ready. Sending to ${devName} to implement...`,
         level: "info",
       });
 
@@ -746,10 +781,13 @@ class AgentManager {
    */
   private parseTriageDecision(result: string | undefined): {
     needsArchitect: boolean;
+    splitTask: boolean;
+    subtasks: SubtaskDefinition[];
     plan: string | null;
     analysis: string | null;
   } {
-    if (!result) return { needsArchitect: true, plan: null, analysis: null };
+    const empty = { needsArchitect: false, splitTask: false, subtasks: [], plan: null, analysis: null };
+    if (!result) return { ...empty, needsArchitect: true };
 
     const lines = result.trim().split("\n");
 
@@ -758,21 +796,158 @@ class AgentManager {
       const line = lines[i].trim();
 
       if (line === "NEEDS_ARCHITECT") {
-        // Complex task — extract the analysis (everything before the marker)
         const analysis = lines.slice(0, i).join("\n").trim() || null;
-        return { needsArchitect: true, plan: null, analysis };
+        return { ...empty, needsArchitect: true, analysis };
       }
 
       if (line === "SIMPLE_TASK") {
-        // Simple task — the text before the marker IS the plan
         const plan = lines.slice(0, i).join("\n").trim() || null;
-        return { needsArchitect: false, plan, analysis: null };
+        return { ...empty, plan };
+      }
+
+      if (line === "SPLIT_TASK") {
+        const textBefore = lines.slice(0, i).join("\n").trim();
+        const subtasks = this.parseSubtaskDefinitions(textBefore);
+        return { ...empty, splitTask: true, subtasks, analysis: textBefore };
       }
     }
 
     // No explicit marker — default to sending to Architect (safer for complex tasks)
     logger.warn("Tech Lead triage did not contain a decision marker, defaulting to Architect", "agent-manager");
-    return { needsArchitect: true, plan: null, analysis: result };
+    return { ...empty, needsArchitect: true, analysis: result };
+  }
+
+  /**
+   * Parse subtask definitions from a ```subtasks JSON block in the Tech Lead's response.
+   */
+  private parseSubtaskDefinitions(text: string): SubtaskDefinition[] {
+    const match = text.match(/```subtasks\s*\n([\s\S]*?)```/);
+    if (!match) {
+      logger.warn("SPLIT_TASK marker found but no ```subtasks block", "agent-manager");
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      if (!Array.isArray(parsed) || parsed.length < 2) {
+        logger.warn(`Invalid subtask array (length ${parsed?.length}), need at least 2`, "agent-manager");
+        return [];
+      }
+
+      // Validate and cap at 5
+      const valid: SubtaskDefinition[] = [];
+      for (const item of parsed.slice(0, 5)) {
+        if (item.title && item.description) {
+          valid.push({
+            title: item.title,
+            description: item.description,
+            category: item.category || "feature",
+            recommended_role: item.recommended_role || "backend_dev",
+          });
+        }
+      }
+      return valid;
+    } catch (err) {
+      logger.error(`Failed to parse subtask definitions JSON: ${err}`, "agent-manager");
+      return [];
+    }
+  }
+
+  /**
+   * Dispatch a split task: create subtask records, transition parent to in_progress,
+   * and launch independent workflows for each subtask.
+   */
+  private async dispatchSplitTask(
+    parentTaskId: string,
+    projectId: string,
+    workflow: WorkflowState,
+    subtasks: SubtaskDefinition[],
+    analysis: string | null,
+  ): Promise<void> {
+    workflow.phase = "split_task_dispatch";
+    this.workflowStates.set(parentTaskId, workflow);
+
+    // Update parent task description with Tech Lead's split analysis
+    if (analysis) {
+      const parentTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, parentTaskId)).get();
+      const updatedDescription = [
+        parentTask?.description ?? "",
+        "\n\n---\n## Tech Lead Split Analysis\n",
+        analysis,
+      ].join("");
+
+      await db.update(schema.tasks).set({
+        description: updatedDescription,
+        updatedAt: new Date(),
+      }).where(eq(schema.tasks.id, parentTaskId));
+    }
+
+    // Parent is already in_progress (from assignTask to Tech Lead) — it stays there until all subtasks complete
+    await logTaskAction(parentTaskId, "status_change", workflow.techLeadId, `Split into ${subtasks.length} subtasks — waiting for all to complete`);
+
+    eventBus.emit("workflow:phase", {
+      taskId: parentTaskId,
+      projectId,
+      phase: "split_task_dispatch",
+      agentId: workflow.techLeadId,
+      agentName: "Tech Lead",
+      detail: `Dispatching ${subtasks.length} parallel subtasks`,
+    });
+
+    await logTaskAction(parentTaskId, "workflow_phase", workflow.techLeadId, `Phase: split_task_dispatch — Creating ${subtasks.length} subtasks`);
+
+    // Find Tech Lead for subtask workflows
+    const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).get();
+    if (!techLead) {
+      logger.error(`Tech Lead ${workflow.techLeadId} not found for subtask dispatch`, "agent-manager");
+      await transitionTask(parentTaskId, "failed" as TaskStatus, undefined, "Tech Lead not found for subtask dispatch");
+      this.workflowStates.delete(parentTaskId);
+      return;
+    }
+
+    // Create subtask records and launch workflows
+    const parentTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, parentTaskId)).get();
+
+    for (const subtask of subtasks) {
+      const subtaskId = nanoid();
+
+      await db.insert(schema.tasks).values({
+        id: subtaskId,
+        projectId,
+        parentTaskId,
+        title: subtask.title,
+        description: subtask.description,
+        priority: parentTask?.priority ?? "medium",
+        category: subtask.category,
+        status: "assigned",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      logger.info(
+        `Created subtask ${subtaskId}: "${subtask.title}" (${subtask.recommended_role}) for parent ${parentTaskId}`,
+        "agent-manager",
+      );
+
+      await logTaskAction(subtaskId, "status_change", workflow.techLeadId, `Subtask created from parent ${parentTaskId}`);
+
+      eventBus.emit("task:created", {
+        task: await db.select().from(schema.tasks).where(eq(schema.tasks.id, subtaskId)).get(),
+      });
+
+      // Launch independent workflow for each subtask
+      this.runWorkflow(subtaskId, techLead.id).catch((err) => {
+        logger.error(`Failed to start workflow for subtask ${subtaskId}: ${err}`, "agent-manager");
+      });
+    }
+
+    // Clean up parent workflow state — parent is now waiting for subtask completion
+    this.workflowStates.delete(parentTaskId);
+
+    logger.info(
+      `Dispatched ${subtasks.length} subtasks for parent ${parentTaskId}. Parent stays in_progress until all complete.`,
+      "agent-manager",
+    );
   }
 
   /**
@@ -813,7 +988,7 @@ class AgentManager {
       eventBus.emit("agent:notification", {
         agentId: workflow.techLeadId,
         projectId,
-        message: `Dev selecionado: ${selectedDev.name}. Iniciando implementação...`,
+        message: `Dev selected: ${selectedDev.name}. Starting implementation...`,
         level: "info",
       });
 
@@ -890,7 +1065,7 @@ class AgentManager {
     eventBus.emit("agent:notification", {
       agentId: workflow.techLeadId,
       projectId: task.projectId,
-      message: `Dev não conseguiu corrigir os problemas. Analisando para criar um plano de melhorias...`,
+      message: `Dev could not fix the issues. Analyzing to create an improvement plan...`,
       level: "warn",
     });
 
@@ -906,13 +1081,13 @@ class AgentManager {
     // Append error context to task description for Tech Lead
     const updatedDescription = [
       task.description ?? "",
-      "\n\n---\n## Dev não conseguiu resolver — Contexto\n",
+      "\n\n---\n## Dev Could Not Resolve — Context\n",
       errors,
-      "\n\nComo Tech Lead, analise o contexto acima junto com o feedback anterior do QA.",
-      "\n\n## Decisão do Tech Lead",
-      "\nAnalise se você CONSEGUE criar um plano de melhorias para o dev:",
-      "\n- Se SIM: crie um plano detalhado, passo a passo, com os arquivos que precisam ser alterados. Termine com: SIMPLE_TASK",
-      "\n- Se NÃO (problema muito complexo, precisa de análise arquitetural profunda): termine com: NEEDS_ARCHITECT",
+      "\n\nAs Tech Lead, analyze the context above along with the previous QA feedback.",
+      "\n\n## Tech Lead Decision",
+      "\nAnalyze whether you CAN create an improvement plan for the dev:",
+      "\n- If YES: create a detailed, step-by-step plan with the files that need to be changed. End with: SIMPLE_TASK",
+      "\n- If NO (too complex, needs deep architectural analysis): end with: NEEDS_ARCHITECT",
     ].join("");
 
     await db.update(schema.tasks).set({
@@ -955,7 +1130,7 @@ class AgentManager {
     eventBus.emit("agent:notification", {
       agentId: workflow.techLeadId,
       projectId: task.projectId,
-      message: `Plano do Tech Lead não foi suficiente. Escalando para ${architect.name} criar um plano detalhado...`,
+      message: `Tech Lead's plan was not sufficient. Escalating to ${architect.name} to create a detailed plan...`,
       level: "warn",
     });
 
@@ -971,12 +1146,12 @@ class AgentManager {
     // Append context for Architect
     const updatedDescription = [
       task.description ?? "",
-      "\n\n---\n## Escalação para Arquiteto — Contexto\n",
+      "\n\n---\n## Escalation to Architect — Context\n",
       errors,
-      "\n\nO Tech Lead analisou mas não conseguiu criar um plano de melhorias suficiente para o dev.",
-      " Como Arquiteto, analise todo o histórico acima e crie um plano detalhado e definitivo.",
-      " Considere abordagens alternativas e inclua exemplos de código quando necessário.",
-      " Seu plano será repassado ao Tech Lead que o enviará ao dev para implementação.",
+      "\n\nThe Tech Lead analyzed but could not create a sufficient improvement plan for the dev.",
+      " As Architect, analyze the full history above and create a detailed, definitive plan.",
+      " Consider alternative approaches and include code examples when necessary.",
+      " Your plan will be relayed to the Tech Lead who will send it to the dev for implementation.",
     ].join("");
 
     await db.update(schema.tasks).set({

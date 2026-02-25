@@ -1,4 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { File, Loader2, AlertCircle, Edit3, Save, X, Eye, GitCompare } from "lucide-react";
 import { api, formatRelativeTime, cn } from "../../lib/utils";
 import { getLanguageFromFilename } from "./code-editor";
@@ -26,6 +27,7 @@ interface FileContent {
 type ViewMode = "view" | "edit" | "diff";
 
 export function FileViewer({ projectId, filePath }: FileViewerProps) {
+  const { t } = useTranslation();
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
         setFileContent(data);
         setEditedContent(data.content);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load file");
+        setError(err instanceof Error ? err.message : t("files.loadError"));
       } finally {
         setLoading(false);
       }
@@ -106,7 +108,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
         setOriginalContent(originalData);
         setModifiedContent(modifiedData);
       } catch (err) {
-        addToast("error", "Erro ao carregar diff", err instanceof Error ? err.message : "Falha ao carregar versões");
+        addToast("error", t("files.diffError"), err instanceof Error ? err.message : t("files.versionsError"));
       } finally {
         setLoadingDiff(false);
       }
@@ -136,10 +138,10 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
           modified: result.modified,
         });
         setMode("view");
-        addToast("success", "Arquivo salvo", "As alterações foram salvas com sucesso");
+        addToast("success", t("files.fileSaved"), t("files.fileSavedDesc"));
       }
     } catch (err) {
-      addToast("error", "Erro ao salvar", err instanceof Error ? err.message : "Não foi possível salvar o arquivo");
+      addToast("error", t("files.saveError"), err instanceof Error ? err.message : t("files.saveErrorDesc"));
     } finally {
       setSaving(false);
     }
@@ -157,7 +159,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
       <div className="flex h-full items-center justify-center text-center">
         <div>
           <File className="mx-auto h-12 w-12 text-neutral-fg3 mb-3" />
-          <p className="text-[13px] text-neutral-fg3">Selecione um arquivo para visualizar</p>
+          <p className="text-[13px] text-neutral-fg3">{t("files.selectFile")}</p>
         </div>
       </div>
     );
@@ -198,7 +200,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
           <div>
             <h3 className="text-[13px] font-semibold text-neutral-fg1">{fileName}</h3>
             <p className="text-[11px] text-neutral-fg3 mt-0.5">
-              {formatFileSize(fileContent.size)} · Modificado:{" "}
+              {formatFileSize(fileContent.size)} · {t("files.modified")}:{" "}
               {formatRelativeTime(new Date(fileContent.modified))}
             </p>
           </div>
@@ -216,7 +218,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
                 )}
               >
                 <Eye className="h-3 w-3" />
-                Visualizar
+                {t("files.view")}
               </button>
               <button
                 onClick={() => setMode("edit")}
@@ -228,7 +230,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
                 )}
               >
                 <Edit3 className="h-3 w-3" />
-                Editar
+                {t("files.editMode")}
               </button>
               <button
                 onClick={() => setMode("diff")}
@@ -253,7 +255,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
                   className="flex items-center gap-1.5 rounded-md bg-neutral-bg2 px-3 py-1.5 text-[11px] font-semibold text-neutral-fg2 hover:bg-neutral-bg-hover transition-colors disabled:opacity-50"
                 >
                   <X className="h-3 w-3" />
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   onClick={handleSave}
@@ -266,7 +268,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
                   )}
                 >
                   <Save className={cn("h-3 w-3", saving && "animate-pulse")} />
-                  {saving ? "Salvando..." : "Salvar"}
+                  {saving ? t("files.saving") : t("common.save")}
                 </button>
               </>
             )}
@@ -277,7 +279,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
         {mode === "diff" && (
           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-stroke2">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-neutral-fg3 uppercase">Original:</span>
+              <span className="text-[10px] font-semibold text-neutral-fg3 uppercase">{t("files.original")}:</span>
               <VersionSelector
                 projectId={projectId}
                 filePath={filePath}
@@ -287,7 +289,7 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-neutral-fg3 uppercase">Modificado:</span>
+              <span className="text-[10px] font-semibold text-neutral-fg3 uppercase">{t("files.modified")}:</span>
               <VersionSelector
                 projectId={projectId}
                 filePath={filePath}
@@ -313,8 +315,8 @@ export function FileViewer({ projectId, filePath }: FileViewerProps) {
                 original={originalContent}
                 modified={modifiedContent}
                 language={language}
-                originalLabel={originalVersion === "working" ? "Árvore de trabalho" : originalVersion.slice(0, 7)}
-                modifiedLabel={modifiedVersion === "working" ? "Árvore de trabalho" : modifiedVersion.slice(0, 7)}
+                originalLabel={originalVersion === "working" ? t("files.workingTree") : originalVersion.slice(0, 7)}
+                modifiedLabel={modifiedVersion === "working" ? t("files.workingTree") : modifiedVersion.slice(0, 7)}
               />
             )
           ) : (

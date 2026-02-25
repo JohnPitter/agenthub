@@ -1,4 +1,5 @@
 import { MessageSquare, ChevronLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useChatStore } from "../../stores/chat-store";
@@ -10,6 +11,7 @@ import { ThreadView } from "./thread-view";
 import type { Message } from "@agenthub/shared";
 
 export function ChatPanel() {
+  const { t } = useTranslation();
   const chatPanelOpen = useWorkspaceStore((s) => s.chatPanelOpen);
   const toggleChatPanel = useWorkspaceStore((s) => s.toggleChatPanel);
   const agents = useWorkspaceStore((s) => s.agents);
@@ -130,10 +132,10 @@ export function ChatPanel() {
 
     onTaskStatus: (data) => {
       const statusMessages: Record<string, string> = {
-        in_progress: "Task iniciada",
-        review: "Task enviada para review",
-        done: "Task concluida",
-        changes_requested: "Alteracoes solicitadas",
+        in_progress: t("systemMessages.taskStarted"),
+        review: t("systemMessages.taskSentToReview"),
+        done: t("systemMessages.taskCompleted"),
+        changes_requested: t("systemMessages.changesRequested"),
       };
 
       const message = statusMessages[data.status];
@@ -163,7 +165,7 @@ export function ChatPanel() {
         taskId: null,
         agentId: null,
         source: "system",
-        content: task.title ? `Nova task criada: ${task.title}` : "Nova task criada",
+        content: task.title ? t("systemMessages.newTaskCreated", { title: task.title }) : t("systemMessages.newTaskCreatedGeneric"),
         contentType: "system",
         metadata: null,
         parentMessageId: null,
@@ -180,7 +182,7 @@ export function ChatPanel() {
         taskId: data.taskId,
         agentId: data.agentId,
         source: "system",
-        content: `Task na fila (posicao ${data.queuePosition})`,
+        content: t("systemMessages.taskQueued", { position: data.queuePosition }),
         contentType: "system",
         metadata: null,
         parentMessageId: null,

@@ -81,8 +81,8 @@ function contentToText(content: string | ContentBlock[]): string {
   return content
     .map((block) => {
       if (block.type === "text") return block.text;
-      if (block.type === "image") return "[Usuário enviou uma imagem]";
-      return "[Mídia recebida]";
+      if (block.type === "image") return "[User sent an image]";
+      return "[Media received]";
     })
     .join("\n");
 }
@@ -99,17 +99,17 @@ function buildConversationPrompt(
   // Include recent history for context (skip current message, it's the last)
   const priorHistory = history.slice(0, -1);
   if (priorHistory.length > 0) {
-    parts.push("## Conversa anterior:");
+    parts.push("## Previous conversation:");
     for (const entry of priorHistory) {
-      const prefix = entry.role === "user" ? "Usuário" : "Você";
+      const prefix = entry.role === "user" ? "User" : "You";
       parts.push(`${prefix}: ${entry.text}`);
     }
     parts.push("");
   }
 
-  parts.push(`## Mensagem atual do usuário:\n${currentMessage}`);
+  parts.push(`## Current user message:\n${currentMessage}`);
   parts.push(
-    "\nResponda diretamente à mensagem atual, considerando o contexto da conversa anterior.",
+    "\nRespond directly to the current message, considering the previous conversation context.",
   );
 
   return parts.join("\n");
@@ -188,7 +188,7 @@ export async function handleReceptionistMessage(
   } catch (error) {
     logger.error(`Receptionist error: ${error}`, "receptionist");
     return {
-      text: "Desculpe, tive um problema técnico. Pode repetir?",
+      text: "Sorry, I had a technical issue. Could you repeat that?",
       parsedAction: null,
     };
   }

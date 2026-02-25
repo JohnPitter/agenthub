@@ -44,7 +44,7 @@ export function ActiveAgentBar() {
               ? activity.currentTask.slice(0, 50)
               : activeProject
                 ? activeProject.name
-                : "Nenhum projeto"}
+                : t("agents.noProject")}
           </p>
         </div>
       </div>
@@ -67,7 +67,7 @@ export function ActiveAgentBar() {
       <div className="flex items-center gap-2">
         <button
           className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 opacity-40 cursor-not-allowed"
-          title="Em breve"
+          title={t("files.comingSoon")}
           disabled
         >
           <Pause className="h-4 w-4" />
@@ -76,7 +76,7 @@ export function ActiveAgentBar() {
           onClick={() => activity?.taskId && cancelTask(activity.taskId)}
           className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 transition-colors hover:bg-danger-light hover:text-danger disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={!activity?.taskId}
-          title={activity?.taskId ? "Parar execução" : "Nenhuma task em execução"}
+          title={activity?.taskId ? t("agents.stopExecution") : t("agents.noRunningTasks")}
         >
           <Square className="h-4 w-4" />
         </button>

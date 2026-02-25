@@ -45,10 +45,10 @@ export function ProjectSettings() {
     try {
       await api(`/projects/${id}`, { method: "DELETE" });
       removeProject(id);
-      addToast("success", "Projeto arquivado", "O projeto foi removido do AgentHub");
+      addToast("success", t("projectSettings.archived"), t("projectSettings.archivedDesc"));
       navigate("/");
     } catch {
-      addToast("error", "Erro ao arquivar", "Não foi possível arquivar o projeto");
+      addToast("error", t("projectSettings.archiveError"), t("projectSettings.archiveErrorDesc"));
     }
   };
 
@@ -158,12 +158,12 @@ export function ProjectSettings() {
               <div className="flex flex-col gap-6 animate-fade-up">
                 <div>
                   <h3 className="text-title text-neutral-fg1 mb-1">Git</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-6">Controle de versão e automação</p>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("projectSettings.gitDesc")}</p>
                 </div>
 
                 {loading ? (
                   <div className="card-glow px-6 py-8 text-center text-[13px] text-neutral-fg3">
-                    Carregando status do Git...
+                    {t("projectSettings.loadingGit")}
                   </div>
                 ) : !isGitRepo ? (
                   <div className="card-glow px-6 py-8 text-center">
@@ -175,22 +175,22 @@ export function ProjectSettings() {
                       </>
                     ) : (
                       <>
-                        <p className="text-[13px] text-neutral-fg3 mb-4">Repositório Git não inicializado</p>
+                        <p className="text-[13px] text-neutral-fg3 mb-4">{t("projectSettings.gitNotInit")}</p>
                         <button
                           onClick={async () => {
                             setInitializing(true);
                             try {
                               await initRepo();
-                              addToast("success", "Git inicializado", "Repositório criado com sucesso");
+                              addToast("success", t("projectSettings.gitInitialized"), t("projectSettings.gitInitializedDesc"));
                             } catch {
-                              addToast("error", "Erro ao inicializar", "Não foi possível criar o repositório Git");
+                              addToast("error", t("projectSettings.initError"), t("projectSettings.initErrorDesc"));
                             } finally {
                               setInitializing(false);
                             }
                           }}
                           className="btn-primary rounded-lg px-5 py-2.5 text-[12px] font-semibold text-white"
                         >
-                          Inicializar Repositório
+                          {t("projectSettings.initRepo")}
                         </button>
                       </>
                     )}
@@ -201,7 +201,7 @@ export function ProjectSettings() {
                     <div className="card-glow p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-label">Branch Atual</span>
+                          <span className="text-label">{t("projectSettings.currentBranch")}</span>
                           <span className="rounded-full bg-purple-light px-2.5 py-0.5 text-[11px] font-semibold text-purple">
                             {status?.branch}
                           </span>
@@ -217,7 +217,7 @@ export function ProjectSettings() {
 
                       {lastCommit && (
                         <div className="border-t border-stroke pt-4">
-                          <div className="text-label mb-2">Último Commit</div>
+                          <div className="text-label mb-2">{t("projectSettings.lastCommit")}</div>
                           <div className="text-[12px] text-neutral-fg1 font-mono">{lastCommit.sha.slice(0, 7)}</div>
                           <div className="text-[12px] text-neutral-fg2 mt-1">{lastCommit.message}</div>
                           <div className="text-[11px] text-neutral-fg3 mt-1">
@@ -236,12 +236,12 @@ export function ProjectSettings() {
                                 try {
                                   const result = await api(`/projects/${id}/git/sync`, { method: "POST" }) as { success: boolean; conflicts?: boolean };
                                   if (result.conflicts) {
-                                    addToast("warning", "Conflitos de merge", "Conflitos detectados ao sincronizar");
+                                    addToast("warning", t("projectSettings.mergeConflicts"), t("projectSettings.mergeConflictsDesc"));
                                   } else {
-                                    addToast("success", "Sincronizado", "Sincronizado com remote com sucesso");
+                                    addToast("success", t("projectSettings.synced"), t("projectSettings.syncedDesc"));
                                   }
                                 } catch {
-                                  addToast("error", "Erro ao sincronizar", "Não foi possível sincronizar com remote");
+                                  addToast("error", t("projectSettings.syncError"), t("projectSettings.syncErrorDesc"));
                                 } finally {
                                   setSyncing(false);
                                 }
@@ -271,7 +271,7 @@ export function ProjectSettings() {
                       {status && (status.staged.length + status.unstaged.length + status.untracked.length) > 0 && (
                         <div className="mt-4 pt-4 border-t border-stroke">
                           <span className="rounded-full bg-danger-light px-2.5 py-0.5 text-[11px] font-semibold text-danger">
-                            {status.staged.length + status.unstaged.length + status.untracked.length} modificações
+                            {status.staged.length + status.unstaged.length + status.untracked.length} {t("projectSettings.modifications")}
                           </span>
                         </div>
                       )}
@@ -279,11 +279,11 @@ export function ProjectSettings() {
 
                     {/* Git Configuration */}
                     <div className="card-glow p-6">
-                      <div className="text-label mb-4">Configuração</div>
+                      <div className="text-label mb-4">{t("projectSettings.configuration")}</div>
 
                       <div className="flex flex-col gap-4">
                         <div>
-                          <label className="text-[12px] text-neutral-fg2 mb-1.5 block">Remote URL</label>
+                          <label className="text-[12px] text-neutral-fg2 mb-1.5 block">{t("projectSettings.remoteUrl")}</label>
                           <input
                             type="text"
                             value={config?.remoteUrl || ""}
@@ -294,7 +294,7 @@ export function ProjectSettings() {
                         </div>
 
                         <div>
-                          <label className="text-[12px] text-neutral-fg2 mb-1.5 block">Branch Padrão</label>
+                          <label className="text-[12px] text-neutral-fg2 mb-1.5 block">{t("projectSettings.defaultBranch")}</label>
                           <select
                             value={config?.defaultBranch || "main"}
                             onChange={(e) => setGitConfigForm({ ...gitConfigForm, defaultBranch: e.target.value })}
@@ -311,14 +311,14 @@ export function ProjectSettings() {
                           onClick={async () => {
                             try {
                               await updateConfig(gitConfigForm);
-                              addToast("success", "Configuração salva", "Configurações Git atualizadas");
+                              addToast("success", t("projectSettings.configSaved"), t("projectSettings.configSavedDesc"));
                             } catch {
-                              addToast("error", "Erro ao salvar", "Não foi possível atualizar configurações");
+                              addToast("error", t("projectSettings.saveError"), t("projectSettings.saveErrorDesc"));
                             }
                           }}
                           className="mt-2 w-full btn-primary rounded-lg py-2.5 text-[12px] font-semibold text-white"
                         >
-                          Salvar Configurações
+                          {t("projectSettings.saveConfig")}
                         </button>
                       </div>
                     </div>
@@ -331,19 +331,19 @@ export function ProjectSettings() {
             {activeTab === "avancado" && (
               <div className="flex flex-col gap-6 animate-fade-up">
                 <div>
-                  <h3 className="text-title text-danger mb-1">Zona de Perigo</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-6">Ações irreversíveis</p>
+                  <h3 className="text-title text-danger mb-1">{t("projectSettings.dangerZone")}</h3>
+                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("projectSettings.dangerDesc")}</p>
                 </div>
                 <div className="flex items-center justify-between rounded-xl border border-danger/20 bg-danger-light/30 px-6 py-5">
                   <div>
-                    <p className="text-[13px] font-semibold text-neutral-fg1">Arquivar Projeto</p>
-                    <p className="text-[11px] text-neutral-fg3 mt-0.5">Remove o projeto do AgentHub (não afeta arquivos)</p>
+                    <p className="text-[13px] font-semibold text-neutral-fg1">{t("projectSettings.archiveProject")}</p>
+                    <p className="text-[11px] text-neutral-fg3 mt-0.5">{t("projectSettings.archiveProjectDesc")}</p>
                   </div>
                   <button
                     onClick={() => setShowArchiveDialog(true)}
                     className="rounded-lg border border-danger/30 px-5 py-2.5 text-[12px] font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
                   >
-                    Arquivar
+                    {t("projectSettings.archive")}
                   </button>
                 </div>
               </div>
@@ -355,9 +355,9 @@ export function ProjectSettings() {
 
       {showArchiveDialog && (
         <ConfirmDialog
-          title="Arquivar Projeto?"
-          message={`Tem certeza que deseja arquivar "${project.name}"? Esta ação remove o projeto do AgentHub, mas não afeta os arquivos no disco.`}
-          confirmLabel="Arquivar Projeto"
+          title={t("projectSettings.archiveConfirm")}
+          message={t("projectSettings.archiveConfirmMessage", { name: project.name })}
+          confirmLabel={t("projectSettings.archiveProject")}
           variant="danger"
           onConfirm={handleArchive}
           onCancel={() => setShowArchiveDialog(false)}

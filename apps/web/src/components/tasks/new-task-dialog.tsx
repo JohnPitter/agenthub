@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X, ListTodo, MessageSquare, Send, FolderOpen, Plus } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getSocket } from "../../lib/socket";
@@ -14,22 +15,23 @@ interface NewTaskDialogProps {
 
 type Mode = "manual" | "techlead";
 
-const PRIORITIES: { value: TaskPriority; label: string; dot: string }[] = [
-  { value: "low", label: "Baixa", dot: "bg-info" },
-  { value: "medium", label: "Média", dot: "bg-warning" },
-  { value: "high", label: "Alta", dot: "bg-danger" },
-  { value: "urgent", label: "Urgente", dot: "bg-danger" },
-];
+const PRIORITY_DOTS: Record<TaskPriority, string> = {
+  low: "bg-info",
+  medium: "bg-warning",
+  high: "bg-danger",
+  urgent: "bg-danger",
+};
 
-const CATEGORIES: { value: TaskCategory; label: string }[] = [
-  { value: "feature", label: "Feature" },
-  { value: "bug", label: "Bug" },
-  { value: "refactor", label: "Refactor" },
-  { value: "test", label: "Test" },
-  { value: "docs", label: "Docs" },
+const CATEGORIES: { value: TaskCategory; labelKey: string }[] = [
+  { value: "feature", labelKey: "Feature" },
+  { value: "bug", labelKey: "Bug" },
+  { value: "refactor", labelKey: "Refactor" },
+  { value: "test", labelKey: "Test" },
+  { value: "docs", labelKey: "Docs" },
 ];
 
 export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskDialogProps) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>("manual");
 
   // Manual mode state
@@ -84,7 +86,7 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stroke2 px-6 py-4">
-          <h2 className="text-[17px] font-semibold text-neutral-fg1">Nova Task</h2>
+          <h2 className="text-[17px] font-semibold text-neutral-fg1">{t("tasks.newTask")}</h2>
           <button onClick={onClose} className="rounded-md p-2 text-neutral-fg3 transition-colors hover:bg-neutral-bg-hover hover:text-neutral-fg1">
             <X className="h-5 w-5" />
           </button>
@@ -127,7 +129,7 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
               {/* Project */}
               <div>
                 <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                  Projeto
+                  {t("tasks.project")}
                 </label>
                 {projects.length > 0 ? (
                   <select
@@ -142,7 +144,7 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
                 ) : (
                   <div className="flex items-center gap-2 rounded-md border border-dashed border-stroke2 px-4 py-3 text-[13px] text-neutral-fg-disabled">
                     <FolderOpen className="h-4 w-4" />
-                    Nenhum projeto encontrado. Crie um projeto primeiro.
+                    {t("tasks.noProjectFound")}
                   </div>
                 )}
               </div>
@@ -150,13 +152,13 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
               {/* Title */}
               <div>
                 <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                  Titulo
+                  {t("tasks.titleLabel")}
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ex: Implementar autenticacao JWT"
+                  placeholder={t("tasks.titlePlaceholder")}
                   className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
                   autoFocus
                 />
@@ -165,12 +167,12 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
               {/* Description */}
               <div>
                 <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                  Descricao
+                  {t("tasks.description")}
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Detalhe o que precisa ser feito..."
+                  placeholder={t("tasks.descriptionPlaceholder")}
                   rows={3}
                   className="w-full resize-none rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
                 />
@@ -180,30 +182,30 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                    Prioridade
+                    {t("tasks.priority")}
                   </label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as TaskPriority)}
                     className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
                   >
-                    {PRIORITIES.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
+                    {(["low", "medium", "high", "urgent"] as TaskPriority[]).map((p) => (
+                      <option key={p} value={p}>{t(`taskPriority.${p}`)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                    Categoria
+                    {t("tasks.category")}
                   </label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as TaskCategory | "")}
                     className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
                   >
-                    <option value="">Nenhuma</option>
+                    <option value="">{t("common.none")}</option>
                     {CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
+                      <option key={c.value} value={c.value}>{c.labelKey}</option>
                     ))}
                   </select>
                 </div>
@@ -216,7 +218,7 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
                   onClick={onClose}
                   className="rounded-md px-5 py-2.5 text-[14px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover"
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -224,7 +226,7 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
                   className="flex items-center gap-2 rounded-md bg-brand px-6 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-brand-hover disabled:opacity-40"
                 >
                   <Plus className="h-4 w-4" />
-                  Criar Task
+                  {t("tasks.createTask")}
                 </button>
               </div>
             </form>
@@ -233,14 +235,14 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
             <div className="flex flex-col gap-4">
               <div className="rounded-lg bg-purple-light/30 border border-purple/20 px-4 py-3">
                 <p className="text-[12px] text-purple leading-relaxed">
-                  Descreva o que precisa ser feito em linguagem natural. O Tech Leader vai analisar, criar a task, escolher o agente ideal e executar automaticamente.
+                  {t("tasks.techLeadDesc")}
                 </p>
               </div>
 
               {/* Project selector */}
               <div>
                 <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                  Projeto
+                  {t("tasks.project")}
                 </label>
                 <select
                   value={tlProjectId}
@@ -256,12 +258,12 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
               {/* Free-form prompt */}
               <div>
                 <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
-                  O que precisa ser feito?
+                  {t("tasks.whatNeedsToBeDone")}
                 </label>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Ex: Adicionar dark mode no app, corrigir bug no login, refatorar o módulo de pagamento..."
+                  placeholder={t("tasks.techLeadPromptPlaceholder")}
                   rows={4}
                   className="w-full resize-none rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
                   autoFocus
@@ -281,7 +283,7 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
                   onClick={onClose}
                   className="rounded-md px-5 py-2.5 text-[14px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover"
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -295,7 +297,7 @@ export function NewTaskDialog({ projects, agents, onCreated, onClose }: NewTaskD
                   )}
                 >
                   <Send className="h-4 w-4" />
-                  {sent ? "Enviado ao Tech Leader!" : "Enviar ao Tech Leader"}
+                  {sent ? t("tasks.sentToTechLead") : t("tasks.sendToTechLead")}
                 </button>
               </div>
             </div>

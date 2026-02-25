@@ -126,6 +126,7 @@ function UsageBar({ label, utilization, resetsAt, color }: {
 }
 
 function UsageWidget({ collapsed }: { collapsed: boolean }) {
+  const { t } = useTranslation();
   const account = useUsageStore((s) => s.account);
   const connection = useUsageStore((s) => s.connection);
   const limits = useUsageStore((s) => s.limits);
@@ -166,7 +167,7 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
     return (
       <div
         className="mx-auto mt-6 mb-2 flex flex-col items-center"
-        title={isInitialLoading ? "Carregando..." : connected ? `Plano: ${limit.label}` : "CLI desconectado"}
+        title={isInitialLoading ? t("usage.loading") : connected ? t("usage.plan", { plan: limit.label }) : t("usage.cliDisconnected")}
       >
         {isInitialLoading ? (
           <div className="h-5 w-5 rounded-full bg-neutral-bg1 animate-pulse" />
@@ -224,10 +225,10 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
           <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg-disabled group-hover:text-neutral-fg3">CLI</span>
         </div>
         <p className="text-[11px] text-neutral-fg3 leading-relaxed">
-          Claude desconectado
+          {t("usage.disconnected")}
         </p>
         <p className="mt-1 text-[10px] text-brand font-medium">
-          Conectar &rarr;
+          {t("usage.connect")} &rarr;
         </p>
       </Link>
     );
@@ -278,7 +279,7 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
         <div className="flex flex-col gap-2.5">
           {limits.fiveHour && (
             <UsageBar
-              label="Sessão atual"
+              label={t("usage.currentSession")}
               utilization={limits.fiveHour.utilization}
               resetsAt={limits.fiveHour.resetsAt}
               color="bg-brand"
@@ -286,7 +287,7 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
           )}
           {limits.sevenDay && (
             <UsageBar
-              label="Semanal"
+              label={t("usage.weekly")}
               utilization={limits.sevenDay.utilization}
               resetsAt={limits.sevenDay.resetsAt}
               color="bg-purple"
@@ -359,7 +360,7 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
               <div className="flex flex-col gap-2.5">
                 {rl.primary_window && (
                   <UsageBar
-                    label="Sessão"
+                    label={t("usage.session")}
                     utilization={rl.primary_window.used_percent}
                     resetsAt={new Date(rl.primary_window.reset_at * 1000).toISOString()}
                     color="bg-emerald-500"
@@ -367,7 +368,7 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
                 )}
                 {rl.secondary_window && (
                   <UsageBar
-                    label="Semanal"
+                    label={t("usage.weekly")}
                     utilization={rl.secondary_window.used_percent}
                     resetsAt={new Date(rl.secondary_window.reset_at * 1000).toISOString()}
                     color="bg-teal-500"
@@ -558,7 +559,7 @@ export function AppSidebar() {
             <FolderOpen className="h-6 w-6 text-brand" />
           </div>
           <p className="text-center text-[12px] text-neutral-fg3 leading-relaxed">
-            Escaneie um workspace<br />para começar
+            {t("projects.importOrCreate")}
           </p>
         </div>
       )}

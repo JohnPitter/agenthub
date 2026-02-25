@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X, GitCommit, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -17,6 +18,7 @@ export function TaskCommitDialog({
   onCommit,
   onCancel,
 }: TaskCommitDialogProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState(defaultMessage);
   const [showFiles, setShowFiles] = useState(false);
 
@@ -36,8 +38,8 @@ export function TaskCommitDialog({
               <GitCommit className="h-4 w-4 text-success" />
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold text-neutral-fg1">Commitar Alterações</h2>
-              <p className="text-[12px] text-neutral-fg3">{changedFiles.length} arquivos modificados</p>
+              <h2 className="text-[15px] font-semibold text-neutral-fg1">{t("tasks.commitChanges")}</h2>
+              <p className="text-[12px] text-neutral-fg3">{t("tasks.fileCount", { count: changedFiles.length })}</p>
             </div>
           </div>
           <button
@@ -53,12 +55,12 @@ export function TaskCommitDialog({
           {/* Commit Message */}
           <div className="mb-4">
             <label className="mb-2 block text-[12px] font-semibold text-neutral-fg2">
-              Mensagem do Commit
+              {t("tasks.commitMessage")}
             </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Descreva suas alterações..."
+              placeholder={t("tasks.commitPlaceholder")}
               rows={3}
               className="w-full rounded-md border border-stroke bg-neutral-bg1 px-4 py-3 text-[13px] text-neutral-fg1 placeholder-neutral-fg-disabled focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
               autoFocus
@@ -73,7 +75,7 @@ export function TaskCommitDialog({
               className="flex w-full items-center justify-between rounded-md bg-neutral-bg2 px-4 py-3 text-left transition-colors hover:bg-neutral-bg2/80"
             >
               <span className="text-[12px] font-semibold text-neutral-fg2">
-                Arquivos Alterados ({changedFiles.length})
+                {t("tasks.changedFiles", { count: changedFiles.length })}
               </span>
               {showFiles ? (
                 <ChevronUp className="h-4 w-4 text-neutral-fg3" />
@@ -96,7 +98,7 @@ export function TaskCommitDialog({
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-[12px] text-neutral-fg-disabled">Nenhum arquivo alterado</p>
+                  <p className="text-[12px] text-neutral-fg-disabled">{t("tasks.noFilesChanged")}</p>
                 )}
               </div>
             )}
@@ -109,7 +111,7 @@ export function TaskCommitDialog({
               onClick={onCancel}
               className="rounded-md border border-stroke px-5 py-2.5 text-[13px] font-medium text-neutral-fg2 transition-colors hover:bg-neutral-bg-hover"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -122,7 +124,7 @@ export function TaskCommitDialog({
               )}
             >
               <GitCommit className="h-4 w-4" />
-              Commit
+              {t("tasks.commit")}
             </button>
           </div>
         </form>

@@ -64,13 +64,13 @@ export async function transitionTask(
   );
 
   // Emit events
-  eventBus.emit("task:status", { taskId, status: newStatus, agentId });
+  eventBus.emit("task:status", { taskId, projectId: task.projectId, status: newStatus, agentId });
 
   const updated = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
   eventBus.emit("task:updated", { task: updated });
 
   // Check if parent task should advance when subtask completes
-  if (newStatus === "done" && task.parentTaskId) {
+  if ((newStatus === "done" || newStatus === "review") && task.parentTaskId) {
     agentManager.checkSubtaskCompletion(task.parentTaskId).catch((err) => {
       logger.warn(`Failed to check subtask completion: ${err}`, "task-lifecycle");
     });

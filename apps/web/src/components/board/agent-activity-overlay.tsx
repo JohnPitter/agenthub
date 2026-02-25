@@ -1,19 +1,22 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Activity, ChevronDown, ChevronUp, Code2, FileEdit, Terminal, Brain, TestTube, Search } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useChatStore } from "../../stores/chat-store";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { AgentAvatar } from "../agents/agent-avatar";
 
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof Brain; color: string }> = {
-  idle: { label: "Idle", icon: Brain, color: "text-neutral-fg-disabled" },
-  running: { label: "Trabalhando", icon: Code2, color: "text-success" },
-  thinking: { label: "Pensando", icon: Brain, color: "text-info" },
-  paused: { label: "Pausado", icon: Activity, color: "text-warning" },
-  error: { label: "Erro", icon: Activity, color: "text-danger" },
-  busy: { label: "Ocupado", icon: Terminal, color: "text-warning" },
-  working: { label: "Trabalhando", icon: Code2, color: "text-success" },
-};
+function getStatusConfig(t: (key: string) => string): Record<string, { label: string; icon: typeof Brain; color: string }> {
+  return {
+    idle: { label: t("agentStatus.idle"), icon: Brain, color: "text-neutral-fg-disabled" },
+    running: { label: t("agentStatus.running"), icon: Code2, color: "text-success" },
+    thinking: { label: t("agentStatus.thinking"), icon: Brain, color: "text-info" },
+    paused: { label: t("agentStatus.paused"), icon: Activity, color: "text-warning" },
+    error: { label: t("agentStatus.error"), icon: Activity, color: "text-danger" },
+    busy: { label: t("agentStatus.busy"), icon: Terminal, color: "text-warning" },
+    working: { label: t("agentStatus.working"), icon: Code2, color: "text-success" },
+  };
+}
 
 const ACTIVITY_ICONS: Record<string, typeof Brain> = {
   Read: FileEdit,
@@ -37,6 +40,7 @@ function getActivityIcon(currentTask?: string): typeof Brain {
 }
 
 export function AgentActivityOverlay() {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const agentActivity = useChatStore((s) => s.agentActivity);
   const agents = useWorkspaceStore((s) => s.agents);
@@ -59,7 +63,7 @@ export function AgentActivityOverlay() {
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-brand" />
           <span className="text-[12px] font-semibold text-neutral-fg1">
-            Atividade dos Agentes
+            {t("dashboard.recentActivity")}
           </span>
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-success-light px-1.5 text-[10px] font-semibold text-success">
             {activeAgents.length}
@@ -79,7 +83,8 @@ export function AgentActivityOverlay() {
             const activity = agentActivity.get(agent.id);
             if (!activity) return null;
 
-            const statusInfo = STATUS_CONFIG[activity.status] ?? STATUS_CONFIG.idle;
+            const statusConfig = getStatusConfig(t);
+            const statusInfo = statusConfig[activity.status] ?? statusConfig.idle;
             const StatusIcon = statusInfo.icon;
             const ActivityIcon = getActivityIcon(activity.currentTask);
 

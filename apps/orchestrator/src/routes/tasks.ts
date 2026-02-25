@@ -142,7 +142,7 @@ tasksRouter.patch("/:id", async (req, res) => {
 
   const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).get();
 
-  // Fire-and-forget: start workflow when task moves to "assigned" (Disponível Para Desenvolvimento)
+  // Fire-and-forget: start workflow when task moves to "assigned" (Ready for Dev)
   if (req.body.status === "assigned" && task && techLeadId) {
     agentManager.runWorkflow(task.id, techLeadId).catch((err) => {
       logger.error(`Failed to start workflow for task ${task.id}: ${err}`, "tasks-router");
@@ -420,7 +420,7 @@ tasksRouter.get("/:id/changes", async (req, res) => {
             commits.unshift({
               hash: "uncommitted",
               shortHash: "uncommitted",
-              message: "Alterações não commitadas",
+              message: "Uncommitted changes",
               date: new Date().toISOString(),
               author: "",
               files,
@@ -488,7 +488,7 @@ tasksRouter.get("/:id/changes", async (req, res) => {
           commits.unshift({
             hash: "uncommitted",
             shortHash: "uncommitted",
-            message: "Alterações não commitadas",
+            message: "Uncommitted changes",
             date: new Date().toISOString(),
             author: "",
             files,

@@ -218,6 +218,9 @@ const alterStatements = [
   `ALTER TABLE docs ADD COLUMN parent_id TEXT`,
   `ALTER TABLE docs ADD COLUMN "order" INTEGER NOT NULL DEFAULT 0`,
   `ALTER TABLE projects ADD COLUMN team_id TEXT`,
+  `ALTER TABLE projects ADD COLUMN github_url TEXT`,
+  `ALTER TABLE projects ADD COLUMN github_owner TEXT`,
+  `ALTER TABLE projects ADD COLUMN github_repo TEXT`,
 ];
 
 async function migrate() {
@@ -240,6 +243,7 @@ async function migrate() {
 
   // Indexes that depend on columns added by alterStatements
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_docs_parent ON docs(parent_id)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_projects_github ON projects(github_owner, github_repo)`);
 
   console.log("Migration completed successfully.");
   process.exit(0);

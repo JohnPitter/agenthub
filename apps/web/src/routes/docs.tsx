@@ -174,7 +174,7 @@ export function DocsPage() {
           kind: monacoInstance.languages.CompletionItemKind.Reference,
           insertText: `@[${p.name}]`,
           range,
-          detail: "Projeto",
+          detail: t("docs.project"),
         }));
         return { suggestions };
       },
@@ -251,7 +251,7 @@ export function DocsPage() {
     try {
       const { doc } = await api<{ doc: DocArticle }>("/docs", {
         method: "POST",
-        body: JSON.stringify({ title: "Novo Documento" }),
+        body: JSON.stringify({ title: t("docs.newDocument") }),
       });
       setDocs((prev) => [doc, ...prev]);
       setSelectedId(doc.id);
@@ -275,9 +275,9 @@ export function DocsPage() {
         }),
       });
       setDocs((prev) => prev.map((d) => (d.id === doc.id ? doc : d)));
-      addToast("success", "Documento salvo");
+      addToast("success", t("docs.saved"));
     } catch {
-      addToast("error", "Erro ao salvar documento");
+      addToast("error", t("docs.saveError"));
     } finally {
       setSaving(false);
     }
@@ -375,7 +375,7 @@ export function DocsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-fg3" />
               <input
                 type="text"
-                placeholder="Buscar documentos..."
+                placeholder={t("docs.searchDocuments")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-lg border border-stroke2 bg-neutral-bg1 py-2 pl-9 pr-3 text-[13px] text-neutral-fg1 placeholder:text-neutral-fg-disabled focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -425,7 +425,7 @@ export function DocsPage() {
               <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
                 <BookOpen className="h-8 w-8 text-neutral-fg-disabled" />
                 <p className="text-[12px] text-neutral-fg3">
-                  {search ? "Nenhum documento encontrado" : "Nenhum documento criado"}
+                  {search ? t("docs.noDocumentsFound") : t("docs.noDocumentsCreated")}
                 </p>
               </div>
             )}
@@ -466,7 +466,7 @@ export function DocsPage() {
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       className="w-full text-[18px] font-semibold text-neutral-fg1 bg-transparent border-b border-dashed border-stroke2 focus:border-brand focus:outline-none pb-1"
-                      placeholder="Título do documento"
+                      placeholder={t("docs.documentTitle")}
                     />
                   ) : (
                     <h2 className="text-[18px] font-semibold text-neutral-fg1 truncate">{selected.title}</h2>
@@ -477,7 +477,7 @@ export function DocsPage() {
                         type="text"
                         value={editCategory}
                         onChange={(e) => setEditCategory(e.target.value)}
-                        placeholder="Categoria (ex: APIs, Guias)"
+                        placeholder={t("docs.categoryPlaceholder")}
                         className="rounded-md border border-stroke2 bg-neutral-bg2 px-2.5 py-1 text-[12px] text-neutral-fg2 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                       />
                     ) : selected.category ? (
@@ -486,7 +486,7 @@ export function DocsPage() {
                       </span>
                     ) : null}
                     <span className="text-[11px] text-neutral-fg-disabled">
-                      Atualizado {formatRelativeTime(selected.updatedAt)}
+                      {t("docs.lastUpdated")} {formatRelativeTime(selected.updatedAt)}
                     </span>
                   </div>
                 </div>
@@ -498,7 +498,7 @@ export function DocsPage() {
                       try {
                         const { doc } = await api<{ doc: DocArticle }>("/docs", {
                           method: "POST",
-                          body: JSON.stringify({ title: "Nova Subpágina", parentId: selected.id }),
+                          body: JSON.stringify({ title: t("docs.newSubpage"), parentId: selected.id }),
                         });
                         setDocs((prev) => [doc, ...prev]);
                         setSelectedId(doc.id);
@@ -508,7 +508,7 @@ export function DocsPage() {
                       } catch { /* silent */ }
                     }}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-                    title="Criar subpágina"
+                    title={t("docs.createSubpage")}
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -521,7 +521,7 @@ export function DocsPage() {
                         ? "bg-brand-light text-brand"
                         : "text-neutral-fg3 hover:bg-neutral-bg-hover",
                     )}
-                    title={selected.pinned ? "Desafixar" : "Fixar"}
+                    title={selected.pinned ? t("docs.unpin") : t("docs.pin")}
                   >
                     <Pin className="h-4 w-4" />
                   </button>
@@ -537,7 +537,7 @@ export function DocsPage() {
                       )}
                     >
                       <Pencil className="h-3.5 w-3.5" />
-                      Editar
+                      {t("common.edit")}
                     </button>
                     <button
                       onClick={() => setMode("view")}
@@ -549,7 +549,7 @@ export function DocsPage() {
                       )}
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      Preview
+                      {t("docs.preview")}
                     </button>
                   </div>
 
@@ -567,17 +567,17 @@ export function DocsPage() {
                       {saving ? (
                         <>
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          Salvando...
+                          {t("docs.saving")}
                         </>
                       ) : hasChanges ? (
                         <>
                           <Save className="h-4 w-4" />
-                          Salvar
+                          {t("common.save")}
                         </>
                       ) : (
                         <>
                           <Check className="h-4 w-4" />
-                          Salvo
+                          {t("docs.saved")}
                         </>
                       )}
                     </button>
@@ -586,7 +586,7 @@ export function DocsPage() {
                   <button
                     onClick={() => setDeleteConfirm(true)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-fg3 hover:bg-danger-light hover:text-danger transition-colors"
-                    title="Excluir documento"
+                    title={t("docs.deleteDocument")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -602,14 +602,14 @@ export function DocsPage() {
                       <button
                         onClick={insertLink}
                         className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-                        title="Inserir link (Markdown)"
+                        title={t("docs.insertLink")}
                       >
                         <Link2 className="h-3.5 w-3.5" />
                         Link
                       </button>
                       <span className="mx-2 h-4 w-px bg-stroke2" />
                       <span className="text-[11px] text-neutral-fg-disabled">
-                        Digite <code className="rounded bg-neutral-bg-hover px-1 py-0.5 text-[10px] font-mono">@</code> para mencionar projetos
+                        {t("docs.mentionHint")}
                       </span>
                     </div>
                     <div className="flex-1 overflow-hidden">
@@ -633,7 +633,7 @@ export function DocsPage() {
                       />
                     ) : (
                       <p className="text-[13px] text-neutral-fg-disabled italic">
-                        Documento vazio. Clique em Editar para começar.
+                        {t("docs.emptyDocument")}
                       </p>
                     )}
                   </div>
@@ -645,10 +645,10 @@ export function DocsPage() {
               icon={BookOpen}
               title="Documentação"
               description={docs.length === 0
-                ? "Crie seu primeiro documento para começar a base de conhecimento."
-                : "Selecione um documento na lista para visualizar ou editar."
+                ? t("docs.createFirstDoc")
+                : t("docs.selectDocHint")
               }
-              action={docs.length === 0 ? { label: "Novo Documento", onClick: handleCreate, icon: Plus } : undefined}
+              action={docs.length === 0 ? { label: t("docs.newDocument"), onClick: handleCreate, icon: Plus } : undefined}
               className="h-full"
             />
           )}
@@ -659,9 +659,9 @@ export function DocsPage() {
       {/* Delete confirmation dialog */}
       {deleteConfirm && selected && (
         <ConfirmDialog
-          title="Excluir Documento"
-          message={`Tem certeza que deseja excluir "${selected.title}"? Esta ação não pode ser desfeita.`}
-          confirmLabel="Excluir"
+          title={t("docs.deleteDocument")}
+          message={t("docs.deleteConfirm", { title: selected.title })}
+          confirmLabel={t("common.delete")}
           variant="danger"
           onConfirm={handleDelete}
           onCancel={() => setDeleteConfirm(false)}

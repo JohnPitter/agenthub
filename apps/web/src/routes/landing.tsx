@@ -139,6 +139,7 @@ function TypeWriter({ texts, speed = 50 }: { texts: string[]; speed?: number }) 
 /* ── Dashboard Mockup ──────────────────────────────── */
 
 function DashboardMockup() {
+  const { t } = useTranslation();
   const [activeTask, setActiveTask] = useState(0);
 
   useEffect(() => {
@@ -173,12 +174,12 @@ function DashboardMockup() {
           {/* Sidebar */}
           <div className="hidden md:flex flex-col w-[180px] border-r border-stroke2 bg-neutral-bg3/30 p-3 gap-1">
             {[
-              { icon: LayoutDashboard, label: "Dashboard", active: true },
-              { icon: Layers, label: "Projetos", active: false },
-              { icon: Bot, label: "Agentes", active: false },
-              { icon: Workflow, label: "Workflows", active: false },
-              { icon: BarChart3, label: "Analytics", active: false },
-              { icon: Settings, label: "Settings", active: false },
+              { icon: LayoutDashboard, label: t("nav.dashboard"), active: true },
+              { icon: Layers, label: t("nav.projects"), active: false },
+              { icon: Bot, label: t("nav.agents"), active: false },
+              { icon: Workflow, label: t("landing.howItWorksSectionLabel"), active: false },
+              { icon: BarChart3, label: t("nav.analytics"), active: false },
+              { icon: Settings, label: t("nav.settings"), active: false },
             ].map((item) => (
               <div
                 key={item.label}
@@ -199,10 +200,10 @@ function DashboardMockup() {
             {/* Stats row */}
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: "Tasks Ativas", value: "12", icon: Activity, color: "text-brand" },
-                { label: "Em Progresso", value: "4", icon: Clock, color: "text-warning" },
-                { label: "Concluídas", value: "38", icon: CheckCircle2, color: "text-success" },
-                { label: "Agentes", value: "5", icon: Bot, color: "text-purple" },
+                { label: t("landing.mockActiveTasks"), value: "12", icon: Activity, color: "text-brand" },
+                { label: t("landing.mockInProgress"), value: "4", icon: Clock, color: "text-warning" },
+                { label: t("landing.mockCompleted"), value: "38", icon: CheckCircle2, color: "text-success" },
+                { label: t("landing.mockAgents"), value: "5", icon: Bot, color: "text-purple" },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-lg border border-stroke2/50 bg-neutral-bg3/20 p-3">
                   <div className="flex items-center gap-1.5 mb-1.5">
@@ -217,8 +218,8 @@ function DashboardMockup() {
             {/* Task list */}
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[12px] font-semibold text-neutral-fg2">Tasks Recentes</span>
-                <span className="text-[10px] text-brand cursor-pointer">Ver todas →</span>
+                <span className="text-[12px] font-semibold text-neutral-fg2">{t("landing.mockRecentTasks")}</span>
+                <span className="text-[10px] text-brand cursor-pointer">{t("landing.mockViewAll")}</span>
               </div>
               {tasks.map((task, i) => (
                 <div
@@ -260,6 +261,7 @@ function DashboardMockup() {
 /* ── Agents Mockup ─────────────────────────────────── */
 
 function AgentsMockup() {
+  const { t } = useTranslation();
   const agents = [
     { name: "Arquiteto", role: "architect", model: "Claude Sonnet", enabled: true, color: "text-purple", bg: "bg-purple/10", tasks: 24 },
     { name: "Backend Dev", role: "backend", model: "Claude Opus", enabled: true, color: "text-brand", bg: "bg-brand/10", tasks: 47 },
@@ -280,7 +282,7 @@ function AgentsMockup() {
           <div className="w-2.5 h-2.5 rounded-full bg-warning/60" />
           <div className="w-2.5 h-2.5 rounded-full bg-success/60" />
         </div>
-        <span className="text-[10px] text-neutral-fg3 ml-2 font-mono">Agentes · Configuração</span>
+        <span className="text-[10px] text-neutral-fg3 ml-2 font-mono">{t("landing.agentsConfig")}</span>
       </div>
 
       <div className="p-4 md:p-5">
@@ -449,9 +451,7 @@ export function LandingPage() {
                 letterSpacing: "-0.035em",
               }}
             >
-              <span className="text-neutral-fg1">Tenha uma equipe de </span>
-              <span className="text-gradient-brand">desenvolvedores autônomos</span>
-              <span className="text-neutral-fg1"> que você controla o ritmo</span>
+              {t("landing.hero")}
             </h1>
           </Reveal>
 
@@ -616,10 +616,10 @@ export function LandingPage() {
                 {t("landing.howItWorksSectionLabel")}
               </div>
               <h2 className="font-bold tracking-tight mb-5" style={{ fontFamily: SORA, fontSize: "clamp(28px, 3.5vw, 40px)" }}>
-                Workflows visuais que automatizam seu pipeline
+                {t("landing.workflowTitle")}
               </h2>
               <p className="text-[16px] text-neutral-fg2 leading-relaxed mb-8">
-                Defina a ordem de execução dos agentes com um editor visual. Da criação da task até o push automático no GitHub.
+                {t("landing.workflowDesc")}
               </p>
             </Reveal>
 

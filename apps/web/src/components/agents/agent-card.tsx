@@ -98,7 +98,7 @@ export function AgentCard({ agent, onToggle, onConfigure, onDelete }: AgentCardP
           <button
             onClick={() => onDelete(agent.id)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-neutral-bg2 text-neutral-fg3 hover:bg-danger-light hover:text-danger transition-colors"
-            title="Excluir agente"
+            title={t("agents.deleteAgent")}
           >
             <Trash2 className="h-4 w-4" />
           </button>

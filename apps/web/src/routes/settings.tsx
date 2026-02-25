@@ -69,7 +69,7 @@ function ProfileSection() {
     .toUpperCase();
 
   const handleSave = () => {
-    setProfile({ name: draftName.trim() || "Usuário", avatar: draftAvatar, color: draftColor });
+    setProfile({ name: draftName.trim() || t("settings.defaultUser"), avatar: draftAvatar, color: draftColor });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -99,7 +99,7 @@ function ProfileSection() {
             {initials}
           </div>
         )}
-        <p className="text-[15px] font-semibold text-neutral-fg1">{draftName || "Usuário"}</p>
+        <p className="text-[15px] font-semibold text-neutral-fg1">{draftName || t("settings.defaultUser")}</p>
       </div>
 
       {/* Name */}
@@ -111,7 +111,7 @@ function ProfileSection() {
           type="text"
           value={draftName}
           onChange={(e) => setDraftName(e.target.value)}
-          placeholder="Seu nome"
+          placeholder={t("settings.namePlaceholder")}
           className="w-full input-fluent"
         />
       </div>
@@ -337,13 +337,13 @@ function OpenAIUsageBars({ usage }: { usage: Record<string, unknown> }) {
       {/* Reset time */}
       {rl.primary_window?.reset_at && (
         <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
-          Resets {formatResetTime(rl.primary_window.reset_at)}
+          {t("providers.resetsAt")} {formatResetTime(rl.primary_window.reset_at)}
         </p>
       )}
 
       {/* Rate limit warning */}
       {rl.limit_reached && (
-        <p className="text-[10px] text-danger font-medium mt-1">Rate limit reached</p>
+        <p className="text-[10px] text-danger font-medium mt-1">{t("providers.rateLimitReached")}</p>
       )}
     </div>
   );
@@ -465,10 +465,10 @@ function ProvidersSection() {
         setShowApiKeyInput(false);
         setTimeout(() => setOpenaiSuccess(false), 3000);
       } else {
-        setOpenaiError(data.error ?? "Failed to connect");
+        setOpenaiError(data.error ?? t("providers.connectError"));
       }
     } catch (err) {
-      setOpenaiError(err instanceof Error ? err.message : "Failed to connect");
+      setOpenaiError(err instanceof Error ? err.message : t("providers.connectError"));
     } finally {
       setSaving(false);
     }
@@ -484,7 +484,7 @@ function ProvidersSection() {
       setOpenaiStatus({ connected: false });
       setApiKey("");
     } catch {
-      setOpenaiError("Failed to disconnect");
+      setOpenaiError(t("providers.disconnectError"));
     }
   };
 
@@ -566,7 +566,7 @@ function ProvidersSection() {
             <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
               {claudeEmail && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-neutral-fg3">Email</span>
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.email")}</span>
                   <span className="text-[11px] font-medium text-neutral-fg1 truncate ml-2">{claudeEmail}</span>
                 </div>
               )}
@@ -613,7 +613,7 @@ function ProvidersSection() {
                   </div>
                   {limits.fiveHour.resetsAt && (
                     <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
-                      Resets {new Date(limits.fiveHour.resetsAt).toLocaleString()}
+                      {t("providers.resetsAt")} {new Date(limits.fiveHour.resetsAt).toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -631,7 +631,7 @@ function ProvidersSection() {
                   </div>
                   {limits.sevenDay.resetsAt && (
                     <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
-                      Resets {new Date(limits.sevenDay.resetsAt).toLocaleString()}
+                      {t("providers.resetsAt")} {new Date(limits.sevenDay.resetsAt).toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -639,7 +639,7 @@ function ProvidersSection() {
               {limits.extraUsage?.isEnabled && (
                 <div className="mt-1 pt-2 border-t border-stroke2/50">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-neutral-fg2">Extra Usage</span>
+                    <span className="text-[10px] text-neutral-fg2">{t("providers.extraUsage")}</span>
                     <span className={cn("text-[10px] font-semibold tabular-nums", (limits.extraUsage.utilization ?? 0) >= 80 ? "text-danger" : "text-neutral-fg1")}>
                       {formatCurrency(limits.extraUsage.usedCredits)} / {formatCurrency(limits.extraUsage.monthlyLimit)}
                     </span>
@@ -724,7 +724,7 @@ function ProvidersSection() {
             <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
               {openaiStatus?.email && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-neutral-fg3">Email</span>
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.email")}</span>
                   <span className="text-[11px] font-medium text-neutral-fg1 truncate ml-2">{openaiStatus.email}</span>
                 </div>
               )}
@@ -968,9 +968,6 @@ function ThemeSection() {
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>("perfil");
-  const [workspacePath, setWorkspacePath] = useState(
-    () => localStorage.getItem("agenthub:workspacePath") ?? "",
-  );
   const projects = useWorkspaceStore((s) => s.projects);
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
@@ -981,10 +978,6 @@ export function SettingsPage() {
       setActiveProject(projects[0].id);
     }
   }, [activeProjectId, projects, setActiveProject]);
-
-  const handleSaveWorkspace = () => {
-    localStorage.setItem("agenthub:workspacePath", workspacePath.trim());
-  };
 
   return (
     <div className="flex h-full flex-col">
@@ -1026,26 +1019,6 @@ export function SettingsPage() {
 
             {activeTab === "geral" && (
               <div className="flex flex-col gap-6 animate-fade-up">
-                <div className="card-glow p-8">
-                  <h3 className="text-title text-neutral-fg1 mb-1">{t("settings.workspace")}</h3>
-                  <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.workspaceDesc")}</p>
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={workspacePath}
-                      onChange={(e) => setWorkspacePath(e.target.value)}
-                      placeholder="C:\Users\...\Projects"
-                      className="flex-1 input-fluent"
-                    />
-                    <button
-                      onClick={handleSaveWorkspace}
-                      className="btn-primary rounded-lg px-5 py-2.5 text-[13px] font-medium text-white"
-                    >
-                      {t("common.save")}
-                    </button>
-                  </div>
-                </div>
-
                 {/* Language Switcher */}
                 <div className="card-glow p-8">
                   <div className="flex items-center gap-2 mb-1">

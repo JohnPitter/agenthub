@@ -21,10 +21,22 @@ import {
 
 const TOKEN_DIR = path.join(process.cwd(), "data", "whatsapp-tokens");
 
+const STATUS_EMOJI: Record<string, string> = {
+  created: "📋", assigned: "📌", in_progress: "🔄", review: "👀",
+  changes_requested: "📝", done: "✅", cancelled: "❌", blocked: "🚧", failed: "💥",
+};
+
 interface WhatsAppServiceConfig {
   projectId: string;
   linkedAgentId?: string;
   allowedNumber?: string;
+}
+
+/** Tracks a WhatsApp user watching a task's real-time status */
+interface TaskWatcher {
+  whatsappNumber: string;
+  taskId: string;
+  taskTitle: string;
 }
 
 export class WhatsAppService {
@@ -34,9 +46,15 @@ export class WhatsAppService {
   private isConnecting = false;
   private listenersAttached = false;
 
+  /** taskId → TaskWatcher — active real-time watchers */
+  private taskWatchers = new Map<string, TaskWatcher>();
+  /** whatsappNumber → taskId — pending "do you want to track?" confirmations */
+  private pendingTrackConfirmations = new Map<string, string>();
+
   constructor(config: WhatsAppServiceConfig, integrationId: string) {
     this.config = config;
     this.integrationId = integrationId;
+    this.setupTaskWatcherListeners();
   }
 
   async connect(): Promise<void> {
@@ -223,7 +241,26 @@ export class WhatsAppService {
     text: string,
     content: string | ContentBlock[],
   ): Promise<void> {
+    // Check if this is a response to a tracking confirmation
+    if (this.handleTrackConfirmation(from, text)) return;
+
     const lower = text.trim().toLowerCase();
+
+    // Unwatch command — stop all real-time tracking for this user
+    if (lower === "/unwatch") {
+      let count = 0;
+      for (const [taskId, watcher] of this.taskWatchers) {
+        if (watcher.whatsappNumber === from) {
+          this.taskWatchers.delete(taskId);
+          count++;
+        }
+      }
+      const msg = count > 0
+        ? `✅ Stopped tracking ${count} task(s).`
+        : `ℹ️ You are not tracking any tasks.`;
+      await this.sendMessage(from, msg);
+      return;
+    }
 
     // Quick commands — no Receptionist API call, direct ops
     if (lower === "/status" || lower === "/tasks") {
@@ -329,9 +366,27 @@ export class WhatsAppService {
       }
 
       await this.sendMessage(from, result);
+
+      // After task creation, offer real-time tracking
+      if (action.action === "create_task" && !result.startsWith("❌")) {
+        const idMatch = result.match(/\*ID:\*\s*`([^`]+)`/);
+        if (idMatch) {
+          await this.offerTaskTracking(from, idMatch[1], action.title as string);
+        }
+      }
+
+      // After moving to assigned (workflow starts), offer tracking
+      if (action.action === "advance_status" && action.status === "assigned" && !result.startsWith("❌")) {
+        const taskId = action.taskId as string;
+        const task = await db.select({ title: schema.tasks.title })
+          .from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+        if (task) {
+          await this.offerTaskTracking(from, taskId, task.title);
+        }
+      }
     } catch (error) {
       logger.error(`Failed to execute action ${action.action}: ${error}`, "whatsapp");
-      await this.sendMessage(from, "❌ Erro ao executar operação. Tente novamente.").catch(() => {});
+      await this.sendMessage(from, "❌ Failed to execute operation. Please try again.").catch(() => {});
     }
   }
 
@@ -339,21 +394,22 @@ export class WhatsAppService {
     return [
       "🤖 *AgentHub — WhatsApp*",
       "",
-      "Você pode conversar naturalmente comigo! Exemplos:",
+      "You can chat naturally with me! Examples:",
       "",
-      '📋 "Quais são as tasks?" — Lista todas as tasks',
-      '📋 "Mostra as tasks em andamento" — Filtra por status',
-      '🔍 "Me mostra a task XYZ" — Detalhes de uma task',
-      '➕ "Cria uma task: implementar dark mode" — Cria nova task',
-      '✅ "Aprova a task XYZ" — Avança status',
-      '🤖 "Quais agentes estão disponíveis?" — Lista agentes',
-      '📊 "Como tá o projeto?" — Overview do projeto',
-      '🚀 "Atribui a task XYZ pro Dev" — Atribuir a um agente',
-      '🐛 "Tem um bug no login" — Escala para o Tech Lead',
+      '📋 "What are the tasks?" — List all tasks',
+      '📋 "Show tasks in progress" — Filter by status',
+      '🔍 "Show me task XYZ" — Task details',
+      '➕ "Create a task: implement dark mode" — Create new task',
+      '✅ "Approve task XYZ" — Advance status',
+      '🤖 "Which agents are available?" — List agents',
+      '📊 "How is the project?" — Project overview',
+      '🚀 "Assign task XYZ to Dev" — Assign to an agent',
+      '🐛 "There is a bug in the login" — Escalate to Tech Lead',
       "",
-      "*Atalhos rápidos:*",
-      "/status — Lista tasks (sem IA)",
-      "/help — Esta mensagem",
+      "*Quick shortcuts:*",
+      "/status — List tasks (no AI)",
+      "/unwatch — Stop real-time tracking",
+      "/help — This message",
     ].join("\n");
   }
 
@@ -378,12 +434,12 @@ export class WhatsAppService {
         : agents.find(a => a.role === "tech_lead");
 
       if (!techLead) {
-        await this.sendMessage(from, "⚠️ Nenhum Tech Lead disponível no momento. Configure um agente antes.");
+        await this.sendMessage(from, "⚠️ No Tech Lead available at the moment. Please configure an agent first.");
         return;
       }
 
       // Acknowledge receipt
-      await this.sendMessage(from, `✅ Recebido! Encaminhando para *${techLead.name}*...`);
+      await this.sendMessage(from, `✅ Received! Forwarding to *${techLead.name}*...`);
 
       // Create task
       const taskId = nanoid();
@@ -396,13 +452,13 @@ export class WhatsAppService {
         projectId: this.config.projectId,
         title: taskTitle,
         description: [
-          `Solicitação recebida via WhatsApp de *${contactName}*:\n`,
+          `Request received via WhatsApp from *${contactName}*:\n`,
           messageText,
           "\n---",
-          "Instruções: Analise o pedido acima como Tech Lead.",
-          "Se for uma nova feature ou correção, inicie o workflow normal (Architect → Dev).",
-          "Se for uma pergunta sobre status ou informação, responda diretamente.",
-          "Sua resposta final (campo result) será enviada de volta ao solicitante via WhatsApp, então seja claro e conciso.",
+          "Instructions: Analyze the request above as Tech Lead.",
+          "If it's a new feature or fix, start the normal workflow (Architect → Dev).",
+          "If it's a question about status or information, respond directly.",
+          "Your final response (result field) will be sent back to the requester via WhatsApp, so be clear and concise.",
         ].join("\n"),
         priority: "medium",
         category: null,
@@ -415,7 +471,10 @@ export class WhatsAppService {
       eventBus.emit("task:created", { task: { id: taskId, projectId: this.config.projectId } });
 
       // Listen for task completion to reply
-      const cleanup = this.waitForTaskResult(taskId, from);
+      this.waitForTaskResult(taskId, from);
+
+      // Offer real-time tracking
+      await this.offerTaskTracking(from, taskId, taskTitle);
 
       // Start the full workflow (Tech Lead → Architect → Dev)
       await agentManager.runWorkflow(taskId, techLead.id);
@@ -423,7 +482,7 @@ export class WhatsAppService {
       logger.info(`WhatsApp message from ${contactName} routed to ${techLead.name} (task ${taskId})`, "whatsapp");
     } catch (error) {
       logger.error(`Failed to route to Tech Lead: ${error}`, "whatsapp");
-      await this.sendMessage(from, "❌ Erro ao processar sua mensagem. Tente novamente.").catch(() => {});
+      await this.sendMessage(from, "❌ Failed to process your message. Please try again.").catch(() => {});
     }
   }
 
@@ -442,7 +501,7 @@ export class WhatsAppService {
       } else if (data.status === "failed" || data.status === "cancelled") {
         eventBus.off("task:status", handler);
         clearTimeout(timeout);
-        this.sendMessage(replyTo, "❌ A tarefa falhou durante o processamento. O time vai investigar.").catch(() => {});
+        this.sendMessage(replyTo, "❌ The task failed during processing. The team will investigate.").catch(() => {});
       }
     };
 
@@ -451,7 +510,7 @@ export class WhatsAppService {
     // Timeout after 10 minutes
     const timeout = setTimeout(() => {
       eventBus.off("task:status", handler);
-      this.sendMessage(replyTo, "⏱️ A tarefa está demorando mais do que o esperado. Você pode acompanhar pelo painel web.").catch(() => {});
+      this.sendMessage(replyTo, "⏱️ The task is taking longer than expected. You can follow the progress on the web dashboard.").catch(() => {});
     }, 10 * 60 * 1000);
 
     return () => {
@@ -469,11 +528,11 @@ export class WhatsAppService {
         .where(eq(schema.tasks.id, taskId)).get();
       if (!task) return;
 
-      let reply = task.result || "✅ Tarefa processada.";
+      let reply = task.result || "✅ Task processed.";
 
       // Truncate for WhatsApp (max ~4000 chars)
       if (reply.length > 4000) {
-        reply = reply.slice(0, 3950) + "\n\n... (resposta truncada, veja o painel web para detalhes)";
+        reply = reply.slice(0, 3950) + "\n\n... (response truncated, see web dashboard for details)";
       }
 
       await this.sendMessage(to, reply);
@@ -491,6 +550,124 @@ export class WhatsAppService {
     } catch (error) {
       logger.error(`Failed to send task result via WhatsApp: ${error}`, "whatsapp");
     }
+  }
+
+  // ─── Task Watcher (Real-time Status via WhatsApp) ───────────────────
+
+  private setupTaskWatcherListeners(): void {
+    // Listen for task status changes
+    eventBus.on("task:status", (data: { taskId: string; status: string; agentId?: string }) => {
+      const watcher = this.taskWatchers.get(data.taskId);
+      if (!watcher) return;
+
+      const emoji = STATUS_EMOJI[data.status] ?? "▪️";
+      const msg = `${emoji} *Status update:* \`${watcher.taskTitle}\`\n\n` +
+        `Status changed to: *${data.status}*`;
+
+      this.sendMessage(watcher.whatsappNumber, msg).catch((err) => {
+        logger.warn(`Failed to send status update to watcher: ${err}`, "whatsapp");
+      });
+
+      // Auto-cleanup on terminal states
+      if (["done", "failed", "cancelled"].includes(data.status)) {
+        const finalEmoji = data.status === "done" ? "✅" : data.status === "failed" ? "💥" : "❌";
+        this.sendMessage(
+          watcher.whatsappNumber,
+          `${finalEmoji} Task *${watcher.taskTitle}* is now *${data.status}*. Real-time tracking stopped.`,
+        ).catch(() => {});
+        this.taskWatchers.delete(data.taskId);
+        logger.info(`Task watcher removed for ${data.taskId} (terminal: ${data.status})`, "whatsapp");
+      }
+    });
+
+    // Listen for workflow phase changes (more granular)
+    eventBus.on("workflow:phase", (data: {
+      taskId: string;
+      phase: string;
+      agentName?: string;
+      detail?: string;
+    }) => {
+      const watcher = this.taskWatchers.get(data.taskId);
+      if (!watcher) return;
+
+      const phaseLabels: Record<string, string> = {
+        tech_lead_triage: "🔍 Tech Lead analyzing...",
+        architect_planning: "📐 Architect creating plan...",
+        split_task_dispatch: "🔀 Splitting into subtasks...",
+        dev_execution: "💻 Developer implementing...",
+        qa_review: "🧪 QA reviewing...",
+        dev_fix: "🔧 Developer fixing issues...",
+        tech_lead_fix_plan: "📋 Tech Lead creating fix plan...",
+        completed: "🏁 Workflow completed!",
+      };
+
+      const label = phaseLabels[data.phase] ?? `⚙️ ${data.phase}`;
+      const agent = data.agentName ? ` (${data.agentName})` : "";
+      const msg = `🔄 *${watcher.taskTitle}*\n${label}${agent}`;
+
+      this.sendMessage(watcher.whatsappNumber, msg).catch((err) => {
+        logger.warn(`Failed to send workflow phase to watcher: ${err}`, "whatsapp");
+      });
+    });
+  }
+
+  /**
+   * Offer real-time tracking after a task is created via WhatsApp.
+   */
+  private async offerTaskTracking(
+    whatsappNumber: string,
+    taskId: string,
+    taskTitle: string,
+  ): Promise<void> {
+    this.pendingTrackConfirmations.set(whatsappNumber, taskId);
+
+    // Store title temporarily for when they confirm
+    this.pendingTrackConfirmations.set(`title:${taskId}`, taskTitle);
+
+    await this.sendMessage(
+      whatsappNumber,
+      `📡 *Would you like to receive real-time updates for this task?*\n\n` +
+      `Reply *yes* to get status notifications via WhatsApp, or *no* to skip.`,
+    );
+
+    // Auto-expire the confirmation after 2 minutes
+    setTimeout(() => {
+      if (this.pendingTrackConfirmations.get(whatsappNumber) === taskId) {
+        this.pendingTrackConfirmations.delete(whatsappNumber);
+        this.pendingTrackConfirmations.delete(`title:${taskId}`);
+      }
+    }, 2 * 60 * 1000);
+  }
+
+  /**
+   * Check if incoming message is a response to a tracking confirmation.
+   * Returns true if handled (caller should skip normal routing).
+   */
+  private handleTrackConfirmation(from: string, text: string): boolean {
+    const taskId = this.pendingTrackConfirmations.get(from);
+    if (!taskId) return false;
+
+    const lower = text.trim().toLowerCase();
+    const isYes = ["yes", "y", "sim", "s", "si", "ok", "👍"].includes(lower);
+    const isNo = ["no", "n", "não", "nao", "nope", "👎"].includes(lower);
+
+    if (!isYes && !isNo) return false; // Not a clear answer, let normal routing handle it
+
+    const taskTitle = this.pendingTrackConfirmations.get(`title:${taskId}`) ?? taskId.slice(0, 8);
+
+    // Cleanup
+    this.pendingTrackConfirmations.delete(from);
+    this.pendingTrackConfirmations.delete(`title:${taskId}`);
+
+    if (isYes) {
+      this.taskWatchers.set(taskId, { whatsappNumber: from, taskId, taskTitle });
+      this.sendMessage(from, `✅ Real-time tracking enabled for *${taskTitle}*.\n\nYou'll receive updates as the task progresses. Send /unwatch to stop.`).catch(() => {});
+      logger.info(`Task watcher registered: ${taskId} → ${from}`, "whatsapp");
+    } else {
+      this.sendMessage(from, `👌 No problem. You can always check the task status later.`).catch(() => {});
+    }
+
+    return true;
   }
 
   // ─── Connection Management ──────────────────────────────────────────
@@ -583,7 +760,7 @@ export class WhatsAppService {
 
     if (blocks.length === 0) {
       return {
-        content: `[Mensagem do tipo ${msg.type} recebida]`,
+        content: `[Message of type ${msg.type} received]`,
         textForLog,
       };
     }

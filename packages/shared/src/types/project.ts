@@ -6,15 +6,11 @@ export interface Project {
   icon: string | null;
   description: string | null;
   status: "active" | "archived";
+  githubUrl: string | null;
+  githubOwner: string | null;
+  githubRepo: string | null;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface ScannedProject {
-  name: string;
-  path: string;
-  stack: string[];
-  icon: string;
 }
 
 export interface GitHubRepo {

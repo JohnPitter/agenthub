@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Bot, Wifi, WifiOff, Loader2, Eye, EyeOff, RefreshCw, ExternalLink } from "lucide-react";
 import { api } from "../../lib/utils";
 import { getSocket } from "../../lib/socket";
@@ -13,6 +14,7 @@ interface IntegrationStatusEvent {
 }
 
 export function TelegramConfig() {
+  const { t } = useTranslation();
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [botToken, setBotToken] = useState("");
@@ -51,7 +53,7 @@ export function TelegramConfig() {
       }
       if (data.status === "error") {
         setLoading(false);
-        setError("Falha na conexão. Verifique o token.");
+        setError(t("telegram.connFailed"));
       }
     };
 
@@ -63,11 +65,11 @@ export function TelegramConfig() {
 
   const handleConnect = async () => {
     if (!activeProjectId) {
-      setError("Selecione um projeto primeiro");
+      setError(t("integrationErrors.selectProjectFirst"));
       return;
     }
     if (!botToken.trim()) {
-      setError("Token do bot é obrigatório");
+      setError(t("telegram.tokenRequired"));
       return;
     }
 
@@ -88,7 +90,7 @@ export function TelegramConfig() {
       setStatus(data.status);
       setIntegrationId(data.integrationId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao conectar");
+      setError(err instanceof Error ? err.message : t("telegram.connectError"));
       setLoading(false);
     }
   };
@@ -107,17 +109,17 @@ export function TelegramConfig() {
       setStatus("disconnected");
       setIntegrationId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao desconectar");
+      setError(err instanceof Error ? err.message : t("telegram.disconnectError"));
     } finally {
       setLoading(false);
     }
   };
 
   const statusConfig: Record<ConnectionStatus, { label: string; color: string; icon: typeof Wifi }> = {
-    disconnected: { label: "Desconectado", color: "text-neutral-fg3", icon: WifiOff },
-    connecting: { label: "Conectando...", color: "text-warning", icon: Loader2 },
-    connected: { label: "Conectado", color: "text-success", icon: Wifi },
-    error: { label: "Erro", color: "text-danger", icon: WifiOff },
+    disconnected: { label: t("whatsapp.disconnected"), color: "text-neutral-fg3", icon: WifiOff },
+    connecting: { label: t("common.loading"), color: "text-warning", icon: Loader2 },
+    connected: { label: t("whatsapp.connected"), color: "text-success", icon: Wifi },
+    error: { label: t("common.error"), color: "text-danger", icon: WifiOff },
   };
 
   const currentStatus = statusConfig[status];
@@ -132,8 +134,8 @@ export function TelegramConfig() {
             <Bot className="h-5 w-5 text-info" />
           </div>
           <div>
-            <h3 className="text-[14px] font-semibold text-neutral-fg1">Telegram</h3>
-            <p className="text-[12px] text-neutral-fg3">Conecte um bot do Telegram</p>
+            <h3 className="text-[14px] font-semibold text-neutral-fg1">{t("telegram.title")}</h3>
+            <p className="text-[12px] text-neutral-fg3">{t("telegram.desc")}</p>
           </div>
         </div>
 
@@ -147,7 +149,7 @@ export function TelegramConfig() {
       {(status === "disconnected" || status === "error") && (
         <div className="mb-6">
           <label className="block text-[12px] font-medium text-neutral-fg2 mb-2">
-            Bot Token
+            {t("telegram.botToken")}
           </label>
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -167,7 +169,7 @@ export function TelegramConfig() {
             </div>
           </div>
           <p className="mt-2 text-[11px] text-neutral-fg3">
-            Crie um bot com o{" "}
+            {t("telegram.createBotPrefix")}{" "}
             <a
               href="https://t.me/BotFather"
               target="_blank"
@@ -177,7 +179,7 @@ export function TelegramConfig() {
               @BotFather
               <ExternalLink className="h-3 w-3" />
             </a>
-            {" "}e cole o token aqui
+            {" "}{t("telegram.createBotSuffix")}
           </p>
         </div>
       )}
@@ -187,8 +189,8 @@ export function TelegramConfig() {
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-success/20 bg-success-light p-4">
           <Bot className="h-5 w-5 text-success" />
           <div>
-            <p className="text-[13px] font-medium text-success">Bot Telegram ativo</p>
-            <p className="text-[11px] text-neutral-fg3">Mensagens estão sendo recebidas pelo Team Lead</p>
+            <p className="text-[13px] font-medium text-success">{t("telegram.botActive")}</p>
+            <p className="text-[11px] text-neutral-fg3">{t("telegram.messagesReceived")}</p>
           </div>
         </div>
       )}
@@ -213,14 +215,14 @@ export function TelegramConfig() {
             ) : (
               <Bot className="h-4 w-4" />
             )}
-            Conectar Bot
+            {t("telegram.connectBot")}
           </button>
         ) : status === "connecting" ? (
           <button
             onClick={handleDisconnect}
             className="flex items-center gap-2 rounded-lg border border-stroke bg-neutral-bg1 px-5 py-2.5 text-[13px] font-medium text-neutral-fg2 hover:bg-neutral-bg-hover transition-colors"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
         ) : (
           <>
@@ -230,7 +232,7 @@ export function TelegramConfig() {
               className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger-light px-5 py-2.5 text-[13px] font-medium text-danger hover:bg-danger/20 transition-colors"
             >
               <WifiOff className="h-4 w-4" />
-              Desconectar
+              {t("whatsapp.disconnect")}
             </button>
             <button
               onClick={fetchStatus}

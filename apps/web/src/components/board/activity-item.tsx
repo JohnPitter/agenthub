@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Activity,
   CheckCircle2,
@@ -38,19 +39,20 @@ const ACTION_COLORS: Record<string, string> = {
   git_push: "var(--rt-info)",
 };
 
-function formatTimeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 5) return "agora";
-  if (seconds < 60) return `${seconds}s atras`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}min atras`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h atras`;
-}
-
 export function ActivityItem({ activity, agent }: ActivityItemProps) {
+  const { t } = useTranslation();
   const Icon = ACTION_ICONS[activity.action] || Activity;
   const backgroundColor = ACTION_COLORS[activity.action] || agent?.color || "#6366F1";
+
+  const formatTimeAgo = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 5) return t("timeAgo.now");
+    if (seconds < 60) return t("timeAgo.seconds", { count: seconds });
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return t("timeAgo.minutes", { count: minutes });
+    const hours = Math.floor(minutes / 60);
+    return t("timeAgo.hours", { count: hours });
+  };
 
   return (
     <div className="flex items-start gap-3 rounded-md border border-stroke p-3 animate-fade-up">
@@ -63,7 +65,7 @@ export function ActivityItem({ activity, agent }: ActivityItemProps) {
 
       <div className="min-w-0 flex-1">
         <p className="text-[12px] text-neutral-fg1">
-          <span className="font-semibold">{agent?.name ?? "Agent"}</span>
+          <span className="font-semibold">{agent?.name ?? t("chat.agent")}</span>
           {" \u2022 "}
           {activity.detail}
         </p>

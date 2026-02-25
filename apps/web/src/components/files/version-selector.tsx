@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { GitCommit, Clock, ChevronDown } from "lucide-react";
 import { api, formatRelativeTime, cn } from "../../lib/utils";
 
@@ -24,6 +25,7 @@ export function VersionSelector({
   onVersionSelect,
   label = "Select version",
 }: VersionSelectorProps) {
+  const { t } = useTranslation();
   const [commits, setCommits] = useState<GitCommitInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -63,7 +65,7 @@ export function VersionSelector({
           {selectedCommit
             ? `${selectedCommit.sha.slice(0, 7)} - ${selectedCommit.message.slice(0, 30)}${selectedCommit.message.length > 30 ? "..." : ""}`
             : selectedVersion === "working"
-            ? "Árvore de trabalho"
+            ? t("files.workingTree")
             : label}
         </span>
         <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
@@ -91,18 +93,18 @@ export function VersionSelector({
                 <div className="w-2 h-2 rounded-full bg-success" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-semibold text-neutral-fg1">Árvore de trabalho</div>
-                <div className="text-[10px] text-neutral-fg3">Alterações não salvas</div>
+                <div className="text-[11px] font-semibold text-neutral-fg1">{t("files.workingTree")}</div>
+                <div className="text-[10px] text-neutral-fg3">{t("files.unsavedChanges")}</div>
               </div>
             </button>
 
             {loading ? (
               <div className="px-3 py-4 text-center text-[11px] text-neutral-fg3">
-                Carregando commits...
+                {t("files.loadingCommits")}
               </div>
             ) : commits.length === 0 ? (
               <div className="px-3 py-4 text-center text-[11px] text-neutral-fg3">
-                Nenhum commit encontrado
+                {t("files.noCommitsFound")}
               </div>
             ) : (
               commits.map((commit) => (

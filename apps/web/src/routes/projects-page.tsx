@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
-  Search, Plus, Loader2, Check, Sparkles, FolderOpen, FolderPlus, ListTodo, Users,
-  ChevronLeft, ChevronRight, Github, Star, Lock, Globe, AlertTriangle,
+  Search, Plus, Loader2, Check, FolderOpen, FolderPlus, ListTodo, Users,
+  ChevronLeft, ChevronRight, Github, Star, Lock, Globe, AlertTriangle, ExternalLink,
 } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { api, formatRelativeTime } from "../lib/utils";
@@ -14,7 +14,11 @@ import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonCard } from "../components/ui/skeleton";
 import { AgentAvatar } from "../components/agents/agent-avatar";
 import { CreateProjectDialog } from "../components/projects/create-project-dialog";
-import type { Project, ScannedProject, GitHubRepo } from "@agenthub/shared";
+import type { Project, GitHubRepo } from "@agenthub/shared";
+
+interface EnrichedRepo extends GitHubRepo {
+  alreadyImported?: boolean;
+}
 
 interface ProjectStats {
   projectId: string;
@@ -29,7 +33,6 @@ interface StatsResponse {
 }
 
 const PROJECT_PAGE_SIZE = 12;
-const SCAN_PAGE_SIZE = 10;
 const REPO_PAGE_SIZE = 9;
 
 export function ProjectsPage() {
@@ -38,18 +41,13 @@ export function ProjectsPage() {
   const addProject = useWorkspaceStore((s) => s.addProject);
   const navigate = useNavigate();
 
-  const [workspacePath, setWorkspacePath] = useState("");
-  const [scanning, setScanning] = useState(false);
-  const [scannedProjects, setScannedProjects] = useState<ScannedProject[]>([]);
-  const [scanPage, setScanPage] = useState(0);
-
   const [projectSearch, setProjectSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<"all" | "active" | "archived">("all");
   const [projectPage, setProjectPage] = useState(0);
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
 
-  const [githubRepos, setGithubRepos] = useState<GitHubRepo[]>([]);
+  const [githubRepos, setGithubRepos] = useState<EnrichedRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [repoError, setRepoError] = useState(false);
   const [repoNeedsReauth, setRepoNeedsReauth] = useState(false);
@@ -72,7 +70,7 @@ export function ProjectsPage() {
     setLoadingRepos(true);
     setRepoError(false);
     setRepoNeedsReauth(false);
-    api<{ repos: GitHubRepo[] }>("/projects/github-repos")
+    api<{ repos: EnrichedRepo[] }>("/projects/github-repos")
       .then(({ repos }) => setGithubRepos(repos))
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : "";
@@ -95,64 +93,31 @@ export function ProjectsPage() {
     refreshPage();
   };
 
-  const handleScan = async () => {
-    if (!workspacePath.trim()) return;
-    setScanning(true);
-    try {
-      const { projects: scanned } = await api<{ projects: ScannedProject[] }>("/projects/scan", {
-        method: "POST",
-        body: JSON.stringify({ workspacePath: workspacePath.trim() }),
-      });
-      setScannedProjects(scanned);
-      setScanPage(0);
-    } catch {
-      // scan failed silently
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const handleAddProject = async (scanned: ScannedProject) => {
-    try {
-      const { project } = await api<{ project: Project }>("/projects", {
-        method: "POST",
-        body: JSON.stringify({
-          name: scanned.name,
-          path: scanned.path,
-          stack: scanned.stack,
-          icon: scanned.icon,
-        }),
-      });
-      addProject(project);
-      setStatsKey((k) => k + 1);
-      setScannedProjects((prev) => prev.filter((p) => p.path !== scanned.path));
-    } catch {
-      // add failed silently
-    }
-  };
-
   const handleImportRepo = async (repo: GitHubRepo) => {
     setImportingRepo(repo.id);
     try {
-      const { project } = await api<{ project: Project }>("/projects", {
+      const { project } = await api<{ project: Project }>("/projects/import", {
         method: "POST",
         body: JSON.stringify({
-          name: repo.name,
-          path: repo.clone_url,
-          stack: repo.language ? [repo.language] : [],
+          owner: repo.owner.login,
+          repo: repo.name,
+          cloneUrl: repo.clone_url,
+          htmlUrl: repo.html_url,
           description: repo.description,
         }),
       });
       addProject(project);
       setStatsKey((k) => k + 1);
+      // Mark as imported in the local list
+      setGithubRepos((prev) =>
+        prev.map((r) => (r.id === repo.id ? { ...r, alreadyImported: true } : r)),
+      );
     } catch {
       // import failed silently
     } finally {
       setImportingRepo(null);
     }
   };
-
-  const existingPaths = new Set(projects.map((p) => p.path));
 
   // Filtered & paginated projects
   const filteredProjects = projects.filter((p) => {
@@ -174,109 +139,19 @@ export function ProjectsPage() {
     <div className="flex h-full flex-col">
       <CommandBar
         actions={
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={workspacePath}
-              onChange={(e) => setWorkspacePath(e.target.value)}
-              placeholder={t("dashboard.workspacePath")}
-              className="w-64 input-fluent text-[13px]"
-              onKeyDown={(e) => e.key === "Enter" && handleScan()}
-            />
-            <button
-              onClick={handleScan}
-              disabled={scanning || !workspacePath.trim()}
-              className="btn-primary flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white disabled:opacity-40"
-            >
-              {scanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              Scan
-            </button>
-            <button
-              onClick={() => setShowCreateDialog(true)}
-              className="btn-primary flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
-            >
-              <FolderPlus className="h-3.5 w-3.5" />
-              {t("createProject.button")}
-            </button>
-          </div>
+          <button
+            onClick={() => setShowCreateDialog(true)}
+            className="btn-primary flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+            {t("createProject.button")}
+          </button>
         }
       >
         <span className="text-[13px] font-semibold text-neutral-fg1">
           {t("projects.projectCount", { count: projects.length })}
         </span>
       </CommandBar>
-
-      {/* Scanned results banner */}
-      {scannedProjects.length > 0 && (() => {
-        const totalPages = Math.ceil(scannedProjects.length / SCAN_PAGE_SIZE);
-        const pageItems = scannedProjects.slice(scanPage * SCAN_PAGE_SIZE, (scanPage + 1) * SCAN_PAGE_SIZE);
-        return (
-          <div className="border-b border-stroke bg-success-light px-8 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="h-3.5 w-3.5 text-success-dark" />
-                <span className="text-[12px] font-semibold text-success-dark">
-                  {t("dashboard.projectsFound", { count: scannedProjects.length })}
-                </span>
-              </div>
-              {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-medium text-success-dark">
-                    {t("dashboard.pageOf", { current: scanPage + 1, total: totalPages })}
-                  </span>
-                  <button
-                    onClick={() => setScanPage((p) => Math.max(0, p - 1))}
-                    disabled={scanPage === 0}
-                    className="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-bg1 text-neutral-fg2 hover:bg-neutral-bg-hover disabled:opacity-30 transition-colors"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setScanPage((p) => Math.min(totalPages - 1, p + 1))}
-                    disabled={scanPage >= totalPages - 1}
-                    className="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-bg1 text-neutral-fg2 hover:bg-neutral-bg-hover disabled:opacity-30 transition-colors"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              {pageItems.map((scanned) => {
-                const alreadyAdded = existingPaths.has(scanned.path);
-                return (
-                  <div
-                    key={scanned.path}
-                    className="flex items-center justify-between rounded-md bg-neutral-bg1 px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-light text-[11px] font-semibold text-brand">
-                        {scanned.icon}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-neutral-fg1">{scanned.name}</p>
-                        <p className="truncate text-[11px] text-neutral-fg3">{scanned.stack.join(" · ")}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleAddProject(scanned)}
-                      disabled={alreadyAdded}
-                      className={cn(
-                        "ml-3 flex shrink-0 items-center gap-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                        alreadyAdded
-                          ? "bg-success-light text-success-dark"
-                          : "btn-primary text-white",
-                      )}
-                    >
-                      {alreadyAdded ? <><Check className="h-3 w-3" /> {t("dashboard.added")}</> : <><Plus className="h-3 w-3" /> {t("common.add")}</>}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto p-10">
@@ -326,7 +201,7 @@ export function ProjectsPage() {
                 {pageProjects.map((project, i) => {
                   const projectStat = stats.projectStats?.find((ps) => ps.projectId === project.id);
                   const stack: string[] = project.stack
-                    ? typeof project.stack === "string" ? JSON.parse(project.stack) : project.stack
+                    ? typeof project.stack === "string" ? JSON.parse(project.stack as string) : project.stack
                     : [];
                   const icon = getStackIcon(stack);
                   const agents = projectStat?.agents ?? [];
@@ -348,9 +223,14 @@ export function ProjectsPage() {
                           <h4 className="text-[13px] font-semibold text-neutral-fg1 truncate group-hover:text-brand transition-colors">
                             {project.name}
                           </h4>
-                          {stack.length > 0 && (
+                          {project.githubOwner && project.githubRepo ? (
+                            <p className="text-[10px] text-neutral-fg3 truncate flex items-center gap-1">
+                              <Github className="h-2.5 w-2.5 shrink-0" />
+                              {project.githubOwner}/{project.githubRepo}
+                            </p>
+                          ) : stack.length > 0 ? (
                             <p className="text-[10px] text-neutral-fg3 truncate">{stack.slice(0, 3).join(" · ")}</p>
-                          )}
+                          ) : null}
                         </div>
                         {project.status && (
                           <span className={cn(
@@ -365,6 +245,20 @@ export function ProjectsPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* GitHub link */}
+                      {project.githubUrl && (
+                        <a
+                          href={project.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 text-[10px] text-neutral-fg3 hover:text-brand transition-colors"
+                        >
+                          <ExternalLink className="h-2.5 w-2.5" />
+                          {t("projects.viewOnGithub")}
+                        </a>
+                      )}
 
                       {/* Stats row */}
                       <div className="flex items-center gap-4 text-[11px]">
@@ -436,7 +330,7 @@ export function ProjectsPage() {
               <EmptyState
                 icon={FolderOpen}
                 title={t("projects.noProjects")}
-                description={t("dashboard.scanToStart")}
+                description={t("projects.importOrCreate")}
               />
             </div>
           )}
@@ -447,7 +341,7 @@ export function ProjectsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <Github className="h-5 w-5 text-neutral-fg2" />
-              <h3 className="section-heading !mb-0">{t("dashboard.githubRepos")}</h3>
+              <h3 className="section-heading !mb-0">{t("projects.importFromGithub")}</h3>
             </div>
             {githubRepos.length > 0 && (
               <div className="flex items-center gap-2">
@@ -456,7 +350,7 @@ export function ProjectsPage() {
                   type="text"
                   value={repoSearch}
                   onChange={(e) => { setRepoSearch(e.target.value); setRepoPage(0); }}
-                  placeholder={t("dashboard.searchRepo")}
+                  placeholder={t("projects.searchRepos")}
                   className="w-48 input-fluent text-[12px]"
                 />
               </div>
@@ -477,8 +371,8 @@ export function ProjectsPage() {
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {pageRepos.map((repo) => {
-                    const alreadyImported = projects.some(
-                      (p) => p.path === repo.clone_url || p.name === repo.name,
+                    const alreadyImported = repo.alreadyImported || projects.some(
+                      (p) => p.githubUrl === repo.html_url,
                     );
                     return (
                       <div key={repo.id} className="card-glow p-4 flex flex-col gap-3">
@@ -529,11 +423,11 @@ export function ProjectsPage() {
                           )}
                         >
                           {alreadyImported ? (
-                            <><Check className="h-3 w-3" /> {t("dashboard.imported")}</>
+                            <><Check className="h-3 w-3" /> {t("projects.alreadyImported")}</>
                           ) : importingRepo === repo.id ? (
-                            <><Loader2 className="h-3 w-3 animate-spin" /> {t("dashboard.importing")}</>
+                            <><Loader2 className="h-3 w-3 animate-spin" /> {t("projects.cloning")}</>
                           ) : (
-                            <><Plus className="h-3 w-3" /> {t("dashboard.import")}</>
+                            <><Plus className="h-3 w-3" /> {t("projects.importFromGithub")}</>
                           )}
                         </button>
                       </div>

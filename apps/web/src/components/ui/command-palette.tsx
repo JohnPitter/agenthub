@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Search, Folder, CheckSquare, Users, Layout, ArrowRight } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useTasks } from "../../hooks/use-tasks";
 import { cn } from "../../lib/utils";
-import type { Project, Agent, Task } from "@agenthub/shared";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -19,12 +19,8 @@ interface CommandItem {
   action: () => void;
 }
 
-const NAVIGATION_ITEMS = [
-  { id: "dashboard", label: "Dashboard", path: "/" },
-  { id: "settings", label: "Configurações", path: "/settings" },
-];
-
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const projects = useWorkspaceStore((s) => s.projects);
   const agents = useWorkspaceStore((s) => s.agents);
@@ -85,7 +81,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     });
 
     // Navigation
-    NAVIGATION_ITEMS.forEach((navItem) => {
+    const navItems = [
+      { id: "dashboard", label: t("nav.dashboard"), path: "/" },
+      { id: "projects", label: t("nav.projects"), path: "/projects" },
+      { id: "analytics", label: t("nav.analytics"), path: "/analytics" },
+      { id: "settings", label: t("nav.settings"), path: "/settings" },
+    ];
+    navItems.forEach((navItem) => {
       items.push({
         id: `nav-${navItem.id}`,
         type: "navigation",
@@ -161,10 +163,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   if (!open) return null;
 
   const GROUP_CONFIG = {
-    project: { label: "Projetos", icon: Folder, color: "text-brand" },
-    task: { label: "Tasks", icon: CheckSquare, color: "text-success" },
-    agent: { label: "Agentes", icon: Users, color: "text-purple" },
-    navigation: { label: "Navegação", icon: Layout, color: "text-info" },
+    project: { label: t("nav.projects"), icon: Folder, color: "text-brand" },
+    task: { label: t("nav.tasks"), icon: CheckSquare, color: "text-success" },
+    agent: { label: t("nav.agents"), icon: Users, color: "text-purple" },
+    navigation: { label: t("commandPalette.navigation"), icon: Layout, color: "text-info" },
   };
 
   let globalIndex = 0;
@@ -186,7 +188,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar projetos, tasks, agentes..."
+            placeholder={t("commandPalette.searchPlaceholder")}
             className="flex-1 text-[14px] text-neutral-fg1 placeholder-neutral-fg-disabled outline-none bg-transparent"
           />
         </div>
@@ -196,7 +198,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           {filteredCommands.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6">
               <Search className="h-10 w-10 text-neutral-fg-disabled mb-3" />
-              <p className="text-[13px] text-neutral-fg3">Nenhum resultado encontrado</p>
+              <p className="text-[13px] text-neutral-fg3">{t("common.noResults")}</p>
             </div>
           ) : (
             <>
@@ -252,13 +254,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         {/* Footer */}
         <div className="flex items-center justify-center gap-4 border-t border-stroke2 px-4 py-2 bg-neutral-bg-hover">
           <span className="text-[10px] text-neutral-fg-disabled">
-            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">Esc</kbd> para fechar
+            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">Esc</kbd> {t("commandPalette.toClose")}
           </span>
           <span className="text-[10px] text-neutral-fg-disabled">
-            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">↑↓</kbd> para navegar
+            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">↑↓</kbd> {t("commandPalette.toNavigate")}
           </span>
           <span className="text-[10px] text-neutral-fg-disabled">
-            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">Enter</kbd> para selecionar
+            <kbd className="rounded bg-neutral-bg1 px-1.5 py-0.5 border border-stroke text-neutral-fg3">Enter</kbd> {t("commandPalette.toSelect")}
           </span>
         </div>
       </div>

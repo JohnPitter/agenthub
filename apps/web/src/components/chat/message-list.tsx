@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import { MessageBubble } from "./message-bubble";
 import { TypingIndicator } from "./typing-indicator";
@@ -14,6 +15,7 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, onLoadMore, onReply, onOpenThread }: MessageListProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
@@ -54,7 +56,7 @@ export function MessageList({ messages, onLoadMore, onReply, onOpenThread }: Mes
             {isLoadingMessages ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              "Carregar anteriores"
+              t("chat.loadMore")
             )}
           </button>
         </div>
@@ -67,10 +69,10 @@ export function MessageList({ messages, onLoadMore, onReply, onOpenThread }: Mes
             <span className="text-[20px]">💬</span>
           </div>
           <p className="text-[13px] font-medium text-neutral-fg2">
-            Nenhuma mensagem ainda
+            {t("chat.noMessages")}
           </p>
           <p className="mt-1 text-[12px] text-neutral-fg3">
-            Envie uma mensagem para comecar
+            {t("chat.sendMessage")}
           </p>
         </div>
       )}

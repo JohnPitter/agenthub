@@ -36,19 +36,19 @@ function truncate(text: string, maxLen: number): string {
 
 function truncateMessage(msg: string): string {
   if (msg.length <= MAX_MSG_LENGTH) return msg;
-  return msg.slice(0, MAX_MSG_LENGTH - 60) + "\n\n_... (truncado, veja o painel web)_";
+  return msg.slice(0, MAX_MSG_LENGTH - 60) + "\n\n_... (truncated, see web dashboard)_";
 }
 
 function formatDate(date: Date | null | undefined): string {
   if (!date) return "N/A";
   const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  return d.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
 // ─── Public Functions ────────────────────────────────────────────────
 
 /**
- * Lista projetos disponíveis.
+ * List available projects.
  */
 export async function listProjects(): Promise<string> {
   try {
@@ -59,10 +59,10 @@ export async function listProjects(): Promise<string> {
     }).from(schema.projects).all();
 
     if (projects.length === 0) {
-      return "\u{1F4C1} Nenhum projeto encontrado.";
+      return "\u{1F4C1} No projects found.";
     }
 
-    let msg = `\u{1F4C1} *Projetos disponíveis* (${projects.length})\n\n`;
+    let msg = `\u{1F4C1} *Available projects* (${projects.length})\n\n`;
     for (let i = 0; i < projects.length; i++) {
       const p = projects[i];
       msg += `*${i + 1}.* ${p.name}\n`;
@@ -70,17 +70,17 @@ export async function listProjects(): Promise<string> {
       if (p.description) msg += `   _${truncate(p.description, 80)}_\n`;
       msg += "\n";
     }
-    msg += "Para criar uma task, me diga o número ou nome do projeto.";
+    msg += "To create a task, tell me the project number or name.";
 
     return truncateMessage(msg);
   } catch (error) {
     logger.error(`whatsapp-ops listProjects error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao listar projetos. Tente novamente.";
+    return "\u{274C} Failed to list projects. Please try again.";
   }
 }
 
 /**
- * Lista tasks de um projeto, agrupadas por status.
+ * List tasks for a project, grouped by status.
  */
 export async function listTasks(projectId: string, statusFilter?: string): Promise<string> {
   try {
@@ -105,8 +105,8 @@ export async function listTasks(projectId: string, statusFilter?: string): Promi
       .all();
 
     if (allTasks.length === 0) {
-      const filter = statusFilter ? ` com status *${statusFilter}*` : "";
-      return `\u{1F4CB} *${project?.name || "Projeto"}*\n\nNenhuma task encontrada${filter}.`;
+      const filter = statusFilter ? ` with status *${statusFilter}*` : "";
+      return `\u{1F4CB} *${project?.name || "Project"}*\n\nNo tasks found${filter}.`;
     }
 
     // Build agent name map using Set for O(1) lookups
@@ -138,7 +138,7 @@ export async function listTasks(projectId: string, statusFilter?: string): Promi
       "created", "blocked", "failed", "done", "cancelled",
     ];
 
-    let msg = `\u{1F4CA} *${project?.name || "Projeto"}* \u{2014} Tasks (${allTasks.length})\n`;
+    let msg = `\u{1F4CA} *${project?.name || "Project"}* \u{2014} Tasks (${allTasks.length})\n`;
 
     for (const status of statusOrder) {
       const tasks = grouped.get(status);
@@ -156,19 +156,19 @@ export async function listTasks(projectId: string, statusFilter?: string): Promi
       }
 
       if (tasks.length > 10) {
-        msg += `  _... e mais ${tasks.length - 10}_\n`;
+        msg += `  _... and ${tasks.length - 10} more_\n`;
       }
     }
 
     return truncateMessage(msg);
   } catch (error) {
     logger.error(`whatsapp-ops listTasks error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao listar tasks. Tente novamente.";
+    return "\u{274C} Failed to list tasks. Please try again.";
   }
 }
 
 /**
- * Detalhe de uma task por ID.
+ * Get task details by ID.
  */
 export async function getTaskDetail(taskId: string): Promise<string> {
   try {
@@ -176,10 +176,10 @@ export async function getTaskDetail(taskId: string): Promise<string> {
       .where(eq(schema.tasks.id, taskId)).get();
 
     if (!task) {
-      return `\u{274C} Task \`${taskId}\` nao encontrada.`;
+      return `\u{274C} Task \`${taskId}\` not found.`;
     }
 
-    let agentName = "Nenhum";
+    let agentName = "None";
     if (task.assignedAgentId) {
       const agent = await db.select({ name: schema.agents.name })
         .from(schema.agents)
@@ -194,43 +194,43 @@ export async function getTaskDetail(taskId: string): Promise<string> {
     let msg = `\u{1F4C4} *Task:* ${task.title}\n\n`;
     msg += `\u{1F194} *ID:* \`${task.id}\`\n`;
     msg += `${emoji} *Status:* ${task.status}\n`;
-    msg += `${pEmoji} *Prioridade:* ${task.priority}\n`;
-    msg += `\u{1F916} *Agente:* ${agentName}\n`;
+    msg += `${pEmoji} *Priority:* ${task.priority}\n`;
+    msg += `\u{1F916} *Agent:* ${agentName}\n`;
 
     if (task.category) {
-      msg += `\u{1F3F7} *Categoria:* ${task.category}\n`;
+      msg += `\u{1F3F7} *Category:* ${task.category}\n`;
     }
     if (task.branch) {
       msg += `\u{1F33F} *Branch:* \`${task.branch}\`\n`;
     }
 
     if (task.description) {
-      msg += `\n\u{1F4DD} *Descricao:*\n${truncate(task.description, 500)}\n`;
+      msg += `\n\u{1F4DD} *Description:*\n${truncate(task.description, 500)}\n`;
     }
 
     if (task.result) {
-      msg += `\n\u{1F4AC} *Resultado:*\n${truncate(task.result, 800)}\n`;
+      msg += `\n\u{1F4AC} *Result:*\n${truncate(task.result, 800)}\n`;
     }
 
-    msg += `\n\u{1F552} *Criada:* ${formatDate(task.createdAt)}\n`;
-    msg += `\u{1F504} *Atualizada:* ${formatDate(task.updatedAt)}\n`;
+    msg += `\n\u{1F552} *Created:* ${formatDate(task.createdAt)}\n`;
+    msg += `\u{1F504} *Updated:* ${formatDate(task.updatedAt)}\n`;
     if (task.completedAt) {
-      msg += `\u{2705} *Concluida:* ${formatDate(task.completedAt)}\n`;
+      msg += `\u{2705} *Completed:* ${formatDate(task.completedAt)}\n`;
     }
 
     if (task.costUsd) {
-      msg += `\u{1F4B0} *Custo:* $${task.costUsd}\n`;
+      msg += `\u{1F4B0} *Cost:* $${task.costUsd}\n`;
     }
 
     return truncateMessage(msg);
   } catch (error) {
     logger.error(`whatsapp-ops getTaskDetail error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao buscar detalhes da task. Tente novamente.";
+    return "\u{274C} Failed to get task details. Please try again.";
   }
 }
 
 /**
- * Cria uma nova task.
+ * Create a new task.
  */
 export async function createTask(
   projectId: string,
@@ -244,7 +244,7 @@ export async function createTask(
       .where(eq(schema.projects.id, projectId)).get();
 
     if (!project) {
-      return `\u{274C} Projeto \`${projectId}\` nao encontrado.`;
+      return `\u{274C} Project \`${projectId}\` not found.`;
     }
 
     const validPriorities = ["low", "medium", "high", "urgent"] as const;
@@ -276,21 +276,21 @@ export async function createTask(
 
     const pEmoji = PRIORITY_EMOJI[taskPriority] || "";
     return (
-      `\u{2705} *Task criada com sucesso!*\n\n` +
-      `\u{1F4CB} *Titulo:* ${title}\n` +
+      `\u{2705} *Task created successfully!*\n\n` +
+      `\u{1F4CB} *Title:* ${title}\n` +
       `\u{1F194} *ID:* \`${taskId}\`\n` +
-      `${pEmoji} *Prioridade:* ${taskPriority}\n` +
+      `${pEmoji} *Priority:* ${taskPriority}\n` +
       `\u{1F4CA} *Status:* created\n` +
-      (description ? `\u{1F4DD} *Descricao:* ${truncate(description, 200)}\n` : "")
+      (description ? `\u{1F4DD} *Description:* ${truncate(description, 200)}\n` : "")
     );
   } catch (error) {
     logger.error(`whatsapp-ops createTask error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao criar task. Tente novamente.";
+    return "\u{274C} Failed to create task. Please try again.";
   }
 }
 
 /**
- * Avanca status de uma task.
+ * Advance a task's status.
  */
 export async function advanceTaskStatus(taskId: string, newStatus: string): Promise<string> {
   try {
@@ -298,7 +298,7 @@ export async function advanceTaskStatus(taskId: string, newStatus: string): Prom
       .where(eq(schema.tasks.id, taskId)).get();
 
     if (!task) {
-      return `\u{274C} Task \`${taskId}\` nao encontrada.`;
+      return `\u{274C} Task \`${taskId}\` not found.`;
     }
 
     const currentStatus = task.status as TaskStatus;
@@ -307,16 +307,16 @@ export async function advanceTaskStatus(taskId: string, newStatus: string): Prom
     // Validate the target status is known
     const allowedTransitions = TASK_TRANSITIONS[currentStatus];
     if (!allowedTransitions) {
-      return `\u{274C} Status atual \`${currentStatus}\` nao reconhecido.`;
+      return `\u{274C} Current status \`${currentStatus}\` not recognized.`;
     }
 
     if (!allowedTransitions.includes(targetStatus)) {
       const options = allowedTransitions.length > 0
         ? allowedTransitions.map((s) => `\`${s}\``).join(", ")
-        : "nenhuma (status terminal)";
+        : "none (terminal status)";
       return (
-        `\u{26A0} Transicao invalida: *${currentStatus}* \u{2192} *${newStatus}*\n\n` +
-        `Transicoes permitidas de *${currentStatus}*:\n${options}`
+        `\u{26A0} Invalid transition: *${currentStatus}* \u{2192} *${newStatus}*\n\n` +
+        `Allowed transitions from *${currentStatus}*:\n${options}`
       );
     }
 
@@ -326,21 +326,21 @@ export async function advanceTaskStatus(taskId: string, newStatus: string): Prom
       const fromEmoji = STATUS_EMOJI[currentStatus] || "";
       const toEmoji = STATUS_EMOJI[targetStatus] || "";
       return (
-        `\u{2705} *Task atualizada!*\n\n` +
+        `\u{2705} *Task updated!*\n\n` +
         `\u{1F4CB} ${truncate(task.title, 60)}\n` +
         `${fromEmoji} ${currentStatus} \u{2192} ${toEmoji} ${targetStatus}`
       );
     }
 
-    return `\u{274C} Falha ao atualizar status da task. Verifique os logs.`;
+    return `\u{274C} Failed to update task status. Check the logs.`;
   } catch (error) {
     logger.error(`whatsapp-ops advanceTaskStatus error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao atualizar status. Tente novamente.";
+    return "\u{274C} Failed to update status. Please try again.";
   }
 }
 
 /**
- * Lista agentes e seus status (idle/running).
+ * List agents and their status (idle/running).
  */
 export async function listAgents(): Promise<string> {
   try {
@@ -349,10 +349,10 @@ export async function listAgents(): Promise<string> {
       .all();
 
     if (agents.length === 0) {
-      return "\u{1F916} Nenhum agente ativo encontrado.";
+      return "\u{1F916} No active agents found.";
     }
 
-    let msg = `\u{1F916} *Agentes Ativos* (${agents.length})\n\n`;
+    let msg = `\u{1F916} *Active Agents* (${agents.length})\n\n`;
 
     for (const agent of agents) {
       const status = agentManager.getAgentStatus(agent.id);
@@ -367,7 +367,7 @@ export async function listAgents(): Promise<string> {
         msg += ` | Task: \`${activeTask.slice(0, 8)}\``;
       }
       if (queueLen > 0) {
-        msg += ` | Fila: ${queueLen}`;
+        msg += ` | Queue: ${queueLen}`;
       }
       msg += "\n\n";
     }
@@ -375,12 +375,12 @@ export async function listAgents(): Promise<string> {
     return truncateMessage(msg);
   } catch (error) {
     logger.error(`whatsapp-ops listAgents error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao listar agentes. Tente novamente.";
+    return "\u{274C} Failed to list agents. Please try again.";
   }
 }
 
 /**
- * Overview do projeto (nome, stats, tasks por status).
+ * Project overview (name, stats, tasks by status).
  */
 export async function getProjectOverview(projectId: string): Promise<string> {
   try {
@@ -388,7 +388,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
       .where(eq(schema.projects.id, projectId)).get();
 
     if (!project) {
-      return `\u{274C} Projeto \`${projectId}\` nao encontrado.`;
+      return `\u{274C} Project \`${projectId}\` not found.`;
     }
 
     const allTasks = await db.select({
@@ -411,7 +411,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
       msg += `_${truncate(project.description, 100)}_\n`;
     }
     msg += `\n\u{1F4C1} *Path:* \`${project.path}\`\n`;
-    msg += `\u{1F4C8} *Total de tasks:* ${allTasks.length}\n\n`;
+    msg += `\u{1F4C8} *Total tasks:* ${allTasks.length}\n\n`;
 
     // Status breakdown
     const statusOrder = [
@@ -419,7 +419,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
       "created", "blocked", "failed", "done", "cancelled",
     ];
 
-    msg += `*Tasks por status:*\n`;
+    msg += `*Tasks by status:*\n`;
     for (const status of statusOrder) {
       const count = statusCounts.get(status);
       if (!count) continue;
@@ -429,7 +429,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
 
     // Priority breakdown
     if (allTasks.length > 0) {
-      msg += `\n*Tasks por prioridade:*\n`;
+      msg += `\n*Tasks by priority:*\n`;
       for (const p of ["urgent", "high", "medium", "low"]) {
         const count = priorityCounts.get(p);
         if (!count) continue;
@@ -443,7 +443,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
       .filter((s) => s.projectId === projectId);
 
     if (activeSessions.length > 0) {
-      msg += `\n\u{1F916} *Agentes trabalhando:* ${activeSessions.length}\n`;
+      msg += `\n\u{1F916} *Agents working:* ${activeSessions.length}\n`;
       for (const s of activeSessions) {
         const agent = await db.select({ name: schema.agents.name })
           .from(schema.agents)
@@ -458,12 +458,12 @@ export async function getProjectOverview(projectId: string): Promise<string> {
     return truncateMessage(msg);
   } catch (error) {
     logger.error(`whatsapp-ops getProjectOverview error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao buscar overview do projeto. Tente novamente.";
+    return "\u{274C} Failed to get project overview. Please try again.";
   }
 }
 
 /**
- * Atribui uma task a um agente (dispara o workflow).
+ * Assign a task to an agent (triggers the workflow).
  */
 export async function assignTaskToAgent(taskId: string, agentName?: string): Promise<string> {
   try {
@@ -471,16 +471,16 @@ export async function assignTaskToAgent(taskId: string, agentName?: string): Pro
       .where(eq(schema.tasks.id, taskId)).get();
 
     if (!task) {
-      return `\u{274C} Task \`${taskId}\` nao encontrada.`;
+      return `\u{274C} Task \`${taskId}\` not found.`;
     }
 
     // If no agent name given, auto-assign
     if (!agentName) {
       await agentManager.autoAssignTask(taskId);
       return (
-        `\u{2705} *Task atribuida automaticamente!*\n\n` +
+        `\u{2705} *Task auto-assigned!*\n\n` +
         `\u{1F4CB} ${truncate(task.title, 60)}\n` +
-        `O sistema escolheu o melhor agente disponivel.`
+        `The system chose the best available agent.`
       );
     }
 
@@ -495,8 +495,8 @@ export async function assignTaskToAgent(taskId: string, agentName?: string): Pro
     if (!agent) {
       const available = agents.map((a) => `\u{2022} ${a.name} (_${a.role}_)`).join("\n");
       return (
-        `\u{274C} Agente *${agentName}* nao encontrado.\n\n` +
-        `*Agentes disponiveis:*\n${available}`
+        `\u{274C} Agent *${agentName}* not found.\n\n` +
+        `*Available agents:*\n${available}`
       );
     }
 
@@ -505,18 +505,18 @@ export async function assignTaskToAgent(taskId: string, agentName?: string): Pro
     await agentManager.assignTask(taskId, agent.id);
 
     let msg =
-      `\u{2705} *Task atribuida!*\n\n` +
+      `\u{2705} *Task assigned!*\n\n` +
       `\u{1F4CB} ${truncate(task.title, 60)}\n` +
-      `\u{1F916} *Agente:* ${agent.name} (_${agent.role}_)\n`;
+      `\u{1F916} *Agent:* ${agent.name} (_${agent.role}_)\n`;
 
     if (isBusy) {
       const queueLen = agentManager.getQueueLength(agent.id);
-      msg += `\n\u{26A0} ${agent.name} esta ocupado. Task adicionada a fila (posicao ${queueLen}).`;
+      msg += `\n\u{26A0} ${agent.name} is busy. Task added to queue (position ${queueLen}).`;
     }
 
     return msg;
   } catch (error) {
     logger.error(`whatsapp-ops assignTaskToAgent error: ${error}`, "whatsapp-ops");
-    return "\u{274C} Erro ao atribuir task. Tente novamente.";
+    return "\u{274C} Failed to assign task. Please try again.";
   }
 }

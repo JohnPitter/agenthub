@@ -185,7 +185,7 @@ router.get("/usage/summary", async (req, res) => {
       const agent = agentMap.get(agentId);
       return {
         agentId,
-        agentName: agent?.name ?? "Desconhecido",
+        agentName: agent?.name ?? "Unknown",
         model: agent?.model ?? "unknown",
         cost: data.cost,
         tasks: data.tasks,
@@ -374,7 +374,7 @@ router.get("/usage/connection", async (_req, res) => {
       subscriptionType: null,
       tokenSource: null,
       apiKeySource: null,
-      error: "Claude Code CLI não está conectado",
+      error: "Claude Code CLI is not connected",
     });
   }
 });
@@ -546,7 +546,7 @@ router.get("/usage/analytics", async (req, res) => {
         .filter((r) => r.agentId)
         .map((r) => ({
           agentId: r.agentId,
-          agentName: r.agentName ?? "Desconhecido",
+          agentName: r.agentName ?? "Unknown",
           agentColor: r.agentColor ?? null,
           totalCost: parseFloat(String(r.totalCost)) || 0,
           totalTokens: Number(r.totalTokens) || 0,

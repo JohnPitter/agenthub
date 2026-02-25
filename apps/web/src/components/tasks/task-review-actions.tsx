@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckCircle2, X } from "lucide-react";
 import { TaskRejectDialog } from "./task-reject-dialog";
 import type { Task } from "@agenthub/shared";
@@ -10,6 +11,7 @@ interface TaskReviewActionsProps {
 }
 
 export function TaskReviewActions({ task, onApprove, onReject }: TaskReviewActionsProps) {
+  const { t } = useTranslation();
   const [showReject, setShowReject] = useState(false);
 
   return (
@@ -23,7 +25,7 @@ export function TaskReviewActions({ task, onApprove, onReject }: TaskReviewActio
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-success-light px-3 py-1.5 text-[11px] font-semibold text-success transition-all hover:bg-success hover:text-white"
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Aprovar
+          {t("tasks.approve")}
         </button>
         <button
           onClick={(e) => {
@@ -33,7 +35,7 @@ export function TaskReviewActions({ task, onApprove, onReject }: TaskReviewActio
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-danger-light px-3 py-1.5 text-[11px] font-semibold text-danger transition-all hover:bg-danger hover:text-white"
         >
           <X className="h-3.5 w-3.5" />
-          Rejeitar
+          {t("tasks.reject")}
         </button>
       </div>
 

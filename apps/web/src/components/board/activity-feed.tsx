@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Zap, Clock } from "lucide-react";
 import { ActivityItem } from "./activity-item";
 import type { Agent, BoardActivityEvent } from "@agenthub/shared";
@@ -9,6 +10,7 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ activities, agents }: ActivityFeedProps) {
+  const { t } = useTranslation();
   const feedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,7 +24,7 @@ export function ActivityFeed({ activities, agents }: ActivityFeedProps) {
       <div className="mb-3 flex items-center gap-2">
         <Zap className="h-4 w-4 text-brand" />
         <h3 className="text-[13px] font-semibold text-neutral-fg1">
-          Atividades Recentes
+          {t("board.recentActivities")}
         </h3>
       </div>
 
@@ -31,7 +33,7 @@ export function ActivityFeed({ activities, agents }: ActivityFeedProps) {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <Clock className="mb-2 h-8 w-8 text-neutral-fg-disabled" />
             <p className="text-[12px] text-neutral-fg3">
-              Aguardando atividades...
+              {t("board.waitingActivities")}
             </p>
           </div>
         ) : (

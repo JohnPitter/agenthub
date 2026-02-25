@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Send } from "lucide-react";
 import type { Agent } from "@agenthub/shared";
 
@@ -8,6 +9,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ onSend, agents }: ChatInputProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -46,7 +48,7 @@ export function ChatInput({ onSend, agents }: ChatInputProps) {
           onChange={(e) => setSelectedAgent(e.target.value)}
           className="w-full rounded-md border border-stroke bg-neutral-bg1 px-3 py-2 text-[12px] text-neutral-fg2 outline-none transition-colors focus:border-brand"
         >
-          <option value="">Tech Lead (padrao)</option>
+          <option value="">{t("chat.defaultAgent")}</option>
           {activeAgents.map((agent) => (
             <option key={agent.id} value={agent.id}>
               {agent.name}
@@ -62,7 +64,7 @@ export function ChatInput({ onSend, agents }: ChatInputProps) {
           value={message}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Digite sua mensagem..."
+          placeholder={t("chat.placeholder")}
           className="max-h-[120px] flex-1 resize-none rounded-lg border border-stroke bg-neutral-bg1 px-3 py-2.5 text-[13px] text-neutral-fg1 outline-none transition-colors placeholder:text-neutral-fg-disabled focus:border-brand focus:ring-2 focus:ring-brand-light"
           rows={1}
         />

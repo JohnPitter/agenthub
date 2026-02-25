@@ -1,9 +1,11 @@
-import { readdirSync, statSync, existsSync, readFileSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
-import type { ScannedProject } from "@agenthub/shared";
-import { getStackIcon } from "@agenthub/shared";
 
-function detectStack(projectPath: string): string[] {
+/**
+ * Detect the tech stack of a project by checking for common config files.
+ * Returns an array of technology identifiers (e.g., ["nodejs", "react", "typescript"]).
+ */
+export function detectStack(projectPath: string): string[] {
   const stack: string[] = [];
 
   try {
@@ -33,41 +35,8 @@ function detectStack(projectPath: string): string[] {
     if (files.includes("pom.xml") || files.includes("build.gradle")) stack.push("java");
     if (files.some((f) => f.endsWith(".sln") || f.endsWith(".csproj"))) stack.push("dotnet");
   } catch {
-    // Ignore read errors
+    // Ignore read errors for inaccessible directories
   }
 
   return stack;
-}
-
-export function scanWorkspace(workspacePath: string): ScannedProject[] {
-  if (!existsSync(workspacePath)) {
-    throw new Error("Path not found");
-  }
-
-  const entries = readdirSync(workspacePath);
-  const projects: ScannedProject[] = [];
-
-  for (const entry of entries) {
-    const fullPath = join(workspacePath, entry);
-
-    try {
-      const stat = statSync(fullPath);
-      if (!stat.isDirectory()) continue;
-      if (entry.startsWith(".") || entry === "node_modules") continue;
-
-      const stack = detectStack(fullPath);
-      if (stack.length > 0) {
-        projects.push({
-          name: entry,
-          path: fullPath,
-          stack,
-          icon: getStackIcon(stack),
-        });
-      }
-    } catch {
-      // Skip inaccessible directories
-    }
-  }
-
-  return projects.sort((a, b) => a.name.localeCompare(b.name));
 }

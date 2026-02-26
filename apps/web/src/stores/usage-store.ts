@@ -93,6 +93,23 @@ export interface CostTrendEntry {
   taskCount: number;
 }
 
+export interface GeminiQuotaBucket {
+  remainingFraction: number;
+  resetTime: string | null;
+  modelId: string | null;
+  tokenType: string | null;
+}
+
+export interface GeminiUsageData {
+  tier: string;
+  tierLabel: string;
+  project: string | null;
+  buckets: GeminiQuotaBucket[];
+  overallUtilization: number;
+  status: "ok" | "low" | "warning" | "over_limit";
+  queriedAt: string;
+}
+
 interface UsageState {
   summary: UsageSummary | null;
   account: AccountInfo | null;
@@ -112,6 +129,11 @@ interface UsageState {
   openaiUsage: Record<string, unknown> | null;
   openaiUsageFetched: boolean;
   openaiUsageLastFetched: number | null;
+  geminiConnection: { connected: boolean; source?: string; masked?: string; email?: string } | null;
+  geminiConnectionFetched: boolean;
+  geminiUsage: GeminiUsageData | null;
+  geminiUsageFetched: boolean;
+  geminiUsageLastFetched: number | null;
   // Analytics state
   costByAgent: CostByAgentEntry[];
   costByModel: CostByModelEntry[];
@@ -126,6 +148,8 @@ interface UsageState {
   fetchLimits: () => Promise<void>;
   fetchOpenAIConnection: () => Promise<void>;
   fetchOpenAIUsage: () => Promise<void>;
+  fetchGeminiConnection: () => Promise<void>;
+  fetchGeminiUsage: () => Promise<void>;
   fetchCostByAgent: (period?: string) => Promise<void>;
   fetchCostByModel: (period?: string) => Promise<void>;
   fetchCostTrend: (period?: string) => Promise<void>;
@@ -150,6 +174,11 @@ export const useUsageStore = create<UsageState>((set, get) => ({
   openaiUsage: null,
   openaiUsageFetched: false,
   openaiUsageLastFetched: null,
+  geminiConnection: null,
+  geminiConnectionFetched: false,
+  geminiUsage: null,
+  geminiUsageFetched: false,
+  geminiUsageLastFetched: null,
   // Analytics defaults
   costByAgent: [],
   costByModel: [],
@@ -195,6 +224,31 @@ export const useUsageStore = create<UsageState>((set, get) => ({
 
   fetchConnection: async () => {
     if (get().connectionFetched) return;
+    try {
+      // Try unified claude status endpoint first
+      const claudeStatus = await api<{ connected: boolean; source?: string; masked?: string; scope?: string }>("/claude/status");
+      if (claudeStatus.connected) {
+        set({
+          connection: {
+            connected: true,
+            email: null,
+            subscriptionType: null,
+            tokenSource: claudeStatus.source ?? null,
+            apiKeySource: claudeStatus.source === "env" ? "env" : claudeStatus.source === "db" ? "db" : null,
+          },
+          connectionFetched: true,
+        });
+        // Try to get richer info from SDK if available
+        try {
+          const sdkInfo = await api<ConnectionStatus>("/usage/connection");
+          if (sdkInfo.connected) {
+            set({ connection: sdkInfo });
+          }
+        } catch { /* SDK info is optional enrichment */ }
+        return;
+      }
+    } catch { /* fall through */ }
+    // Fallback to SDK-based connection check
     try {
       const connection = await api<ConnectionStatus>("/usage/connection");
       set({ connection, connectionFetched: true });
@@ -246,6 +300,27 @@ export const useUsageStore = create<UsageState>((set, get) => ({
       set({ openaiUsage: data, openaiUsageFetched: true, openaiUsageLastFetched: Date.now() });
     } catch {
       set({ openaiUsageFetched: true, openaiUsageLastFetched: Date.now() });
+    }
+  },
+
+  fetchGeminiConnection: async () => {
+    if (get().geminiConnectionFetched) return;
+    try {
+      const data = await api<{ connected: boolean; masked?: string; source?: string; email?: string }>("/gemini/status");
+      set({ geminiConnection: data, geminiConnectionFetched: true });
+    } catch {
+      set({ geminiConnection: { connected: false }, geminiConnectionFetched: true });
+    }
+  },
+
+  fetchGeminiUsage: async () => {
+    const { geminiUsageLastFetched } = get();
+    if (geminiUsageLastFetched && Date.now() - geminiUsageLastFetched < 120_000) return;
+    try {
+      const data = await api<GeminiUsageData>("/gemini/usage");
+      set({ geminiUsage: data, geminiUsageFetched: true, geminiUsageLastFetched: Date.now() });
+    } catch {
+      set({ geminiUsageFetched: true, geminiUsageLastFetched: Date.now() });
     }
   },
 

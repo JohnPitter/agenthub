@@ -330,6 +330,9 @@
   "providers": {
     "claude": "Claude (Anthropic)",
     "openai": "OpenAI",
+    "gemini": "Gemini (Google)",
+    "geminiInstructions": "Gemini CLIをインストールしてGoogleで認証してください",
+    "models": "モデル",
     "connectedVia": "{{method}}で接続済み",
     "notConnected": "未接続",
     "oauth": "OAuth",
@@ -356,10 +359,17 @@
     "expired": "期限切れ",
     "resetsAt": "リセット",
     "rateLimitReached": "レート制限に達しました",
+    "noUsageData": "使用データなし — タスクごとに追跡",
     "email": "メール",
     "extraUsage": "追加使用量",
     "disconnectError": "切断に失敗しました",
-    "connectError": "接続に失敗しました"
+    "connectError": "接続に失敗しました",
+    "used": "使用済み",
+    "perModel": "モデル別",
+    "loadingUsage": "使用量を読み込み中...",
+    "connectWithClaude": "Claudeで接続",
+    "connectWithOpenAI": "OpenAIで接続",
+    "connectWithGoogle": "Googleで接続"
   },
   "auth": {
     "loginTitle": "AgentHub にログイン",
@@ -1093,6 +1103,7 @@
     "connect": "接続する",
     "currentSession": "現在のセッション",
     "weekly": "週間",
-    "session": "セッション"
+    "session": "セッション",
+    "quota": "クォータ"
   }
 }

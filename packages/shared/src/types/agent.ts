@@ -11,7 +11,7 @@ export type AgentRole =
 
 export type AgentModel = string;
 
-export type ModelProvider = "claude" | "openai";
+export type ModelProvider = "claude" | "openai" | "gemini";
 
 export const OPENAI_MODELS = [
   { id: "gpt-5.3-codex", label: "GPT-5.3 Codex", provider: "openai" as const },
@@ -35,11 +35,24 @@ export const CLAUDE_MODELS = [
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", provider: "claude" as const },
 ] as const;
 
-export const ALL_MODELS = [...CLAUDE_MODELS, ...OPENAI_MODELS] as const;
+export const GEMINI_MODELS = [
+  { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (High)", provider: "gemini" as const },
+  { id: "gemini-3-pro-preview", label: "Gemini 3 Pro", provider: "gemini" as const },
+  { id: "gemini-3-flash-preview", label: "Gemini 3 Flash", provider: "gemini" as const },
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "gemini" as const },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "gemini" as const },
+  { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite", provider: "gemini" as const },
+  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "gemini" as const },
+] as const;
+
+export const ALL_MODELS = [...CLAUDE_MODELS, ...OPENAI_MODELS, ...GEMINI_MODELS] as const;
 
 export function getModelProvider(model: string): ModelProvider {
   if (model.startsWith("gpt-") || model.startsWith("o3") || model.startsWith("o4") || model.startsWith("codex")) {
     return "openai";
+  }
+  if (model.startsWith("gemini-")) {
+    return "gemini";
   }
   return "claude";
 }

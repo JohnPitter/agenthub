@@ -8,6 +8,8 @@ import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { Agent, AgentRole } from "@agenthub/shared";
 import { agentMemory } from "./agent-memory.js";
+import { safeDecrypt } from "../lib/encryption.js";
+import { getClaudeOAuthToken } from "../services/claude-oauth.js";
 
 export interface SessionConfig {
   agent: Agent;
@@ -107,6 +109,15 @@ export class AgentSession {
       taskId,
     });
 
+    // Resolve Claude API key: env → OAuth → DB
+    const envOverrides: Record<string, string | undefined> = {};
+    if (!process.env.ANTHROPIC_API_KEY) {
+      const resolvedKey = await this.resolveClaudeApiKey();
+      if (resolvedKey) {
+        envOverrides.ANTHROPIC_API_KEY = resolvedKey;
+      }
+    }
+
     try {
       const conversation = query({
         prompt,
@@ -118,6 +129,7 @@ export class AgentSession {
           permissionMode: agent.permissionMode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits",
           maxThinkingTokens: agent.maxThinkingTokens ?? undefined,
           abortController: this.abortController,
+          ...(Object.keys(envOverrides).length > 0 ? { env: { ...process.env, ...envOverrides } } : {}),
         },
       });
 
@@ -309,5 +321,38 @@ export class AgentSession {
 
   get isRunning() {
     return this.running;
+  }
+
+  private async resolveClaudeApiKey(): Promise<string | null> {
+    // 1. Try OAuth token
+    try {
+      const oauthToken = await getClaudeOAuthToken();
+      if (oauthToken) {
+        logger.debug("Using Claude OAuth token", "agent-session");
+        return oauthToken;
+      }
+    } catch {
+      // Fall through
+    }
+
+    // 2. Try DB integrations
+    try {
+      const row = await db.select()
+        .from(schema.integrations)
+        .where(eq(schema.integrations.type, "claude" as "whatsapp"))
+        .get();
+
+      if (row?.credentials) {
+        const key = safeDecrypt(row.credentials);
+        if (key) {
+          logger.debug("Using Claude API key from DB", "agent-session");
+          return key;
+        }
+      }
+    } catch {
+      // Fall through
+    }
+
+    return null;
   }
 }

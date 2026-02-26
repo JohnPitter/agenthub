@@ -330,6 +330,9 @@
   "providers": {
     "claude": "Claude (Anthropic)",
     "openai": "OpenAI",
+    "gemini": "Gemini (Google)",
+    "geminiInstructions": "Instale o Gemini CLI e autentique com o Google",
+    "models": "modelos",
     "connectedVia": "Conectado via {{method}}",
     "notConnected": "Não conectado",
     "oauth": "OAuth",
@@ -356,10 +359,17 @@
     "expired": "Expirada",
     "resetsAt": "Reseta em",
     "rateLimitReached": "Limite de uso atingido",
+    "noUsageData": "Sem dados de uso — uso rastreado por tarefa",
     "email": "Email",
     "extraUsage": "Uso Extra",
     "disconnectError": "Falha ao desconectar",
-    "connectError": "Falha ao conectar"
+    "connectError": "Falha ao conectar",
+    "used": "utilizado",
+    "perModel": "Por modelo",
+    "loadingUsage": "Carregando uso...",
+    "connectWithClaude": "Conectar com Claude",
+    "connectWithOpenAI": "Conectar com OpenAI",
+    "connectWithGoogle": "Conectar com Google"
   },
   "auth": {
     "loginTitle": "Entrar no AgentHub",
@@ -1093,6 +1103,7 @@
     "connect": "Conectar",
     "currentSession": "Sessão atual",
     "weekly": "Semanal",
-    "session": "Sessão"
+    "session": "Sessão",
+    "quota": "Cota"
   }
 }

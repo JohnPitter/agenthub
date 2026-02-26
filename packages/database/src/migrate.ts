@@ -245,6 +245,13 @@ async function migrate() {
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_docs_parent ON docs(parent_id)`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_projects_github ON projects(github_owner, github_repo)`);
 
+  // Performance indexes for common query patterns
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned_agent ON tasks(assigned_agent_id)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_task_id)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_tasks_status_agent ON tasks(status, assigned_agent_id)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_integrations_project_type ON integrations(project_id, type)`);
+  await client.execute(`CREATE INDEX IF NOT EXISTS idx_task_logs_task_action ON task_logs(task_id, action)`);
+
   console.log("Migration completed successfully.");
   process.exit(0);
 }

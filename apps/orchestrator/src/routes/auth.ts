@@ -12,6 +12,7 @@ import { authMiddleware } from "../middleware/auth.js";
 import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
+import { env } from "../lib/env.js";
 
 export const authRouter: ReturnType<typeof Router> = Router();
 
@@ -43,7 +44,7 @@ authRouter.get("/github/callback", async (req, res) => {
     res.cookie("agenthub_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: "/",
     });
@@ -55,6 +56,33 @@ authRouter.get("/github/callback", async (req, res) => {
     res.redirect("/login?error=auth_failed");
   }
 });
+
+// Dev-only login — set DEV_AUTH=true to enable (never in production)
+if (env.DEV_AUTH) {
+  logger.info("DEV_AUTH enabled — /api/auth/dev-login available", "auth");
+  authRouter.get("/dev-login", async (_req, res) => {
+    const existing = await db.select().from(schema.users).get();
+    if (!existing) {
+      await db.insert(schema.users).values({
+        id: "dev-user",
+        githubId: 0,
+        login: "dev",
+        name: "Dev User",
+        email: "dev@localhost",
+        avatarUrl: "",
+      }).onConflictDoNothing();
+    }
+    const userId = existing?.id ?? "dev-user";
+    const token = signJWT({ userId, githubId: 0, login: "dev" });
+    res.cookie("agenthub_token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+    res.redirect("/dashboard");
+  });
+}
 
 // Logout — clear cookie
 authRouter.post("/logout", (_req, res) => {

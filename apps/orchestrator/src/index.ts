@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import { createServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import { projectsRouter } from "./routes/projects";
@@ -17,7 +18,7 @@ import { memoriesRouter } from "./routes/memories.js";
 import { devServerRouter } from "./routes/dev-server.js";
 import { devServerManager } from "./processes/dev-server-manager.js";
 import { setupSocketHandlers } from "./realtime/socket-handler";
-import { securityHeaders } from "./middleware/security-headers.js";
+import { healthRouter } from "./routes/health.js";
 import { requestLogger } from "./middleware/request-logger";
 import { authLimiter, apiLimiter } from "./middleware/rate-limiter";
 import { errorHandler } from "./middleware/error-handler";
@@ -26,13 +27,17 @@ import { authRouter } from "./routes/auth.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { verifyJWT } from "./services/auth-service.js";
 import { logger } from "./lib/logger";
+import { env } from "./lib/env.js";
 import { restoreWhatsAppSessions } from "./integrations/whatsapp-service.js";
 import { taskTimeoutManager } from "./tasks/task-lifecycle";
 import { taskWatcher } from "./tasks/task-watcher.js";
 import { docsRouter } from "./routes/docs.js";
 import { docsGeneratorRouter } from "./routes/docs-generator.js";
 import { openaiRouter } from "./routes/openai.js";
+import { geminiRouter } from "./routes/gemini.js";
 import { codexOAuthRouter, codexCallbackRouter } from "./routes/codex-oauth.js";
+import { claudeOAuthRouter, claudeCallbackRouter } from "./routes/claude-oauth.js";
+import { geminiOAuthRouter, geminiCallbackRouter } from "./routes/gemini-oauth.js";
 import { workflowsRouter } from "./routes/workflows.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { teamsRouter } from "./routes/teams.js";
@@ -42,20 +47,36 @@ import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/share
 import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 
-const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
+const { PORT, CORS_ORIGINS } = env;
 
 const app = express();
 
 // Middleware stack
-app.use(securityHeaders);
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "wss:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Allow Monaco Editor workers
+}));
+app.use(cors({ origin: CORS_ORIGINS, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(requestLogger);
 
+// Public health check (before auth)
+app.use(healthRouter);
+
 // Public auth routes (stricter rate limit)
 app.use("/api/auth", authLimiter, authRouter);
 app.use("/callback", codexCallbackRouter); // PUBLIC — OpenAI OAuth redirect
+app.use("/callback/claude", claudeCallbackRouter); // PUBLIC — Claude OAuth redirect
+app.use("/callback/gemini", geminiCallbackRouter); // PUBLIC — Gemini OAuth redirect
 
 // Auth middleware for all other API routes
 app.use("/api", authMiddleware);
@@ -71,6 +92,9 @@ app.use("/api", pullRequestsRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/openai", openaiRouter);
 app.use("/api/openai", codexOAuthRouter);
+app.use("/api/claude", claudeOAuthRouter);
+app.use("/api/gemini", geminiRouter);
+app.use("/api/gemini", geminiOAuthRouter);
 app.use("/api/workflows", workflowsRouter);
 
 // All other API routes
@@ -91,18 +115,13 @@ app.use("/api/teams", teamsRouter);
 app.use("/api/skills", skillsRouter);
 app.use("/api/agents", agentSkillsRouter);
 
-// Health check
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: Date.now() });
-});
-
 // Global error handler (must be last)
 app.use(errorHandler);
 
 // HTTP + Socket.io server
 const httpServer = createServer(app);
 const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
-  cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"] },
+  cors: { origin: CORS_ORIGINS, methods: ["GET", "POST"] },
   transports: ["websocket", "polling"],
 });
 
@@ -112,7 +131,9 @@ io.use((socket, next) => {
   const match = cookie.match(/agenthub_token=([^;]+)/);
   if (!match) return next(new Error("Authentication required"));
   try {
-    verifyJWT(match[1]);
+    const payload = verifyJWT(match[1]);
+    socket.data.userId = payload.userId;
+    socket.data.login = payload.login;
     next();
   } catch {
     next(new Error("Invalid token"));
@@ -160,20 +181,26 @@ httpServer.listen(PORT, async () => {
 });
 
 // Graceful shutdown
-process.on("SIGINT", () => {
-  logger.info("SIGINT received, shutting down gracefully", "server");
+function gracefulShutdown(signal: string) {
+  logger.info(`${signal} received, shutting down gracefully`, "server");
   taskTimeoutManager.stop();
   taskWatcher.stop();
   devServerManager.stopAll();
-  process.exit(0);
-});
 
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received, shutting down gracefully", "server");
-  taskTimeoutManager.stop();
-  taskWatcher.stop();
-  devServerManager.stopAll();
-  process.exit(0);
-});
+  // Close HTTP + Socket.io servers, wait up to 30s for active connections to drain
+  io.close();
+  httpServer.close(() => {
+    logger.info("All connections closed, exiting", "server");
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    logger.warn("Graceful shutdown timeout (30s), forcing exit", "server");
+    process.exit(1);
+  }, 30_000).unref();
+}
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 
 export { io };

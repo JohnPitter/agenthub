@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { db } from "@agenthub/database";
 import { schema } from "@agenthub/database";
@@ -6,8 +5,9 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { encrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
+import { env } from "../lib/env.js";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? crypto.randomBytes(32).toString("hex");
+const JWT_SECRET = env.JWT_SECRET;
 const JWT_EXPIRES_IN = "30m";
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID ?? "";

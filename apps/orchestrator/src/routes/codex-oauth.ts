@@ -11,6 +11,7 @@ import {
   extractAccountId,
 } from "../services/codex-oauth.js";
 import { logger } from "../lib/logger.js";
+import { env } from "../lib/env.js";
 
 // Protected routes (behind authMiddleware)
 export const codexOAuthRouter: ReturnType<typeof Router> = Router();
@@ -149,19 +150,19 @@ codexCallbackRouter.get("/", async (req, res) => {
 
     if (error) {
       logger.warn(`OAuth callback error: ${error}`, "codex-oauth");
-      res.redirect("/settings?openai_oauth=error");
+      res.redirect(`${env.FRONTEND_ORIGIN}/settings?openai_oauth=error`);
       return;
     }
 
     if (!code || !state || !pendingOAuth) {
       logger.warn("OAuth callback missing code/state or no pending flow", "codex-oauth");
-      res.redirect("/settings?openai_oauth=error");
+      res.redirect(`${env.FRONTEND_ORIGIN}/settings?openai_oauth=error`);
       return;
     }
 
     if (state !== pendingOAuth.state) {
       logger.warn("OAuth callback state mismatch", "codex-oauth");
-      res.redirect("/settings?openai_oauth=error");
+      res.redirect(`${env.FRONTEND_ORIGIN}/settings?openai_oauth=error`);
       return;
     }
 
@@ -173,10 +174,10 @@ codexCallbackRouter.get("/", async (req, res) => {
 
     pendingOAuth = null;
     logger.info("Codex OAuth flow completed successfully", "codex-oauth");
-    res.redirect("/settings?openai_oauth=success");
+    res.redirect(`${env.FRONTEND_ORIGIN}/settings?openai_oauth=success`);
   } catch (err) {
     logger.error(`OAuth callback failed: ${err}`, "codex-oauth");
     pendingOAuth = null;
-    res.redirect("/settings?openai_oauth=error");
+    res.redirect(`${env.FRONTEND_ORIGIN}/settings?openai_oauth=error`);
   }
 });

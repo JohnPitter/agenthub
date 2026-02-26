@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderOpen, Palette, Info, ExternalLink, Plug, User, ChevronDown, ChevronUp, Check, CheckCircle2, XCircle, RefreshCw, Cpu, Eye, EyeOff, Loader2, Trash2, Globe, Zap } from "lucide-react";
+import { FolderOpen, Palette, Info, ExternalLink, Plug, User, ChevronDown, ChevronUp, Check, CheckCircle2, RefreshCw, Cpu, Eye, EyeOff, Loader2, Trash2, Globe, Zap } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { cn } from "../lib/utils";
 import { WhatsAppConfig } from "../components/integrations/whatsapp-config";
@@ -14,7 +14,7 @@ import { useUsageStore } from "../stores/usage-store";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../lib/agent-avatar";
 import { api } from "../lib/utils";
 import { SkillList } from "../components/skills/skill-list";
-import { CLAUDE_MODELS } from "@agenthub/shared";
+import { CLAUDE_MODELS, GEMINI_MODELS } from "@agenthub/shared";
 
 const LOCALE_CURRENCY: Record<string, string> = {
   "pt-BR": "BRL",
@@ -351,13 +351,22 @@ function OpenAIUsageBars({ usage }: { usage: Record<string, unknown> }) {
 
 function ProvidersSection() {
   const { t } = useTranslation();
-  const connection = useUsageStore((s) => s.connection);
-  const account = useUsageStore((s) => s.account);
   const limits = useUsageStore((s) => s.limits);
-  const fetchConnection = useUsageStore((s) => s.fetchConnection);
-  const fetchAccount = useUsageStore((s) => s.fetchAccount);
   const fetchLimits = useUsageStore((s) => s.fetchLimits);
-  const [claudeChecking, setClaudeChecking] = useState(false);
+
+  // Claude state
+  const [claudeStatus, setClaudeStatus] = useState<{
+    connected: boolean; source?: string; masked?: string; scope?: string;
+    email?: string; plan?: string; tokenSource?: string;
+  } | null>(null);
+  const [claudeLoading, setClaudeLoading] = useState(true);
+  const [claudeApiKey, setClaudeApiKey] = useState("");
+  const [claudeShowKey, setClaudeShowKey] = useState(false);
+  const [claudeSaving, setClaudeSaving] = useState(false);
+  const [claudeError, setClaudeError] = useState<string | null>(null);
+  const [claudeSuccess, setClaudeSuccess] = useState(false);
+  const [showClaudeKeyInput, setShowClaudeKeyInput] = useState(false);
+  const [claudeOAuthLoading, setClaudeOAuthLoading] = useState(false);
 
   // OpenAI state
   const [openaiStatus, setOpenaiStatus] = useState<{
@@ -372,15 +381,32 @@ function ProvidersSection() {
   const [openaiError, setOpenaiError] = useState<string | null>(null);
   const [openaiSuccess, setOpenaiSuccess] = useState(false);
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [openaiOAuthLoading, setOpenaiOAuthLoading] = useState(false);
+
+  // Gemini state
+  const [geminiStatus, setGeminiStatus] = useState<{
+    connected: boolean; source?: string; masked?: string; email?: string;
+  } | null>(null);
+  const [geminiLoading, setGeminiLoading] = useState(true);
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [geminiShowKey, setGeminiShowKey] = useState(false);
+  const [geminiSaving, setGeminiSaving] = useState(false);
+  const [geminiError, setGeminiError] = useState<string | null>(null);
+  const [geminiSuccess, setGeminiSuccess] = useState(false);
+  const [showGeminiKeyInput, setShowGeminiKeyInput] = useState(false);
+  const [geminiOAuthLoading, setGeminiOAuthLoading] = useState(false);
+
+  const geminiUsage = useUsageStore((s) => s.geminiUsage);
+  const fetchGeminiUsageAction = useUsageStore((s) => s.fetchGeminiUsage);
 
   useEffect(() => {
-    fetchConnection();
-    fetchAccount();
     fetchLimits();
+    fetchClaudeStatus();
     fetchOpenAIStatus();
-  }, [fetchConnection, fetchAccount, fetchLimits]);
+    fetchGeminiStatus();
+  }, [fetchLimits]);
 
-  // Detect OAuth callback success via URL param
+  // Detect OAuth callback success via URL params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("openai_oauth") === "success") {
@@ -390,8 +416,93 @@ function ProvidersSection() {
       window.history.replaceState({}, "", "/settings");
       setOpenaiError(t("providers.oauthError"));
     }
+    if (params.get("claude_oauth") === "success") {
+      window.history.replaceState({}, "", "/settings");
+      fetchClaudeStatus();
+      setClaudeSuccess(true);
+      setTimeout(() => setClaudeSuccess(false), 3000);
+    } else if (params.get("claude_oauth") === "error") {
+      window.history.replaceState({}, "", "/settings");
+      setClaudeError(t("providers.oauthError"));
+    }
+    if (params.get("gemini_oauth") === "success") {
+      window.history.replaceState({}, "", "/settings");
+      fetchGeminiStatus();
+      setGeminiSuccess(true);
+      setTimeout(() => setGeminiSuccess(false), 3000);
+    } else if (params.get("gemini_oauth") === "error") {
+      window.history.replaceState({}, "", "/settings");
+      setGeminiError(t("providers.oauthError"));
+    }
   }, [t]);
 
+  // ---- Claude handlers ----
+  const fetchClaudeStatus = async () => {
+    setClaudeLoading(true);
+    try {
+      const data = await api<{ connected: boolean; source?: string; masked?: string; scope?: string; email?: string; plan?: string; tokenSource?: string }>("/claude/status");
+      setClaudeStatus(data);
+      if (data.connected) {
+        fetchLimits();
+      }
+    } catch {
+      setClaudeStatus({ connected: false });
+    } finally {
+      setClaudeLoading(false);
+    }
+  };
+
+  const handleClaudeOAuth = async () => {
+    setClaudeOAuthLoading(true);
+    setClaudeError(null);
+    try {
+      const { authUrl } = await api<{ authUrl: string }>("/claude/oauth/start");
+      window.location.href = authUrl;
+    } catch (err) {
+      setClaudeError(err instanceof Error ? err.message : t("providers.oauthError"));
+    } finally {
+      setClaudeOAuthLoading(false);
+    }
+  };
+
+  const handleClaudeApiKey = async () => {
+    if (!claudeApiKey.trim()) return;
+    setClaudeSaving(true);
+    setClaudeError(null);
+    try {
+      const data = await api<{ connected: boolean; masked?: string; error?: string }>("/claude/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: claudeApiKey.trim() }),
+      });
+      if (data.connected) {
+        setClaudeStatus({ connected: true, masked: data.masked, source: "db" });
+        setClaudeApiKey("");
+        setClaudeSuccess(true);
+        setShowClaudeKeyInput(false);
+        setTimeout(() => setClaudeSuccess(false), 3000);
+      } else {
+        setClaudeError(data.error ?? t("providers.connectError"));
+      }
+    } catch (err) {
+      setClaudeError(err instanceof Error ? err.message : t("providers.connectError"));
+    } finally {
+      setClaudeSaving(false);
+    }
+  };
+
+  const handleClaudeDisconnect = async () => {
+    try {
+      await api("/claude/disconnect", { method: "POST" });
+      setClaudeStatus({ connected: false });
+      setClaudeApiKey("");
+      useUsageStore.setState({ limits: null, limitsFetched: false, limitsLastFetched: null });
+    } catch {
+      setClaudeError(t("providers.disconnectError"));
+    }
+  };
+
+  // ---- OpenAI handlers ----
   const fetchOpenAIUsage = async () => {
     try {
       const data = await api<Record<string, unknown>>("/openai/oauth/usage");
@@ -409,12 +520,11 @@ function ProvidersSection() {
       if (oauthData.connected) {
         setOpenaiStatus(oauthData);
         setOpenaiLoading(false);
-        fetchOpenAIUsage(); // fetch usage in background
+        fetchOpenAIUsage();
         return;
       }
     } catch { /* fall through */ }
     try {
-      // Check API key / env
       const data = await api<{ connected: boolean; masked?: string; source?: string }>("/openai/status");
       setOpenaiStatus(data);
     } catch {
@@ -424,27 +534,16 @@ function ProvidersSection() {
     }
   };
 
-  const handleClaudeRecheck = async () => {
-    setClaudeChecking(true);
-    useUsageStore.setState({ connectionFetched: false, accountFetched: false, limitsLastFetched: null });
-    await Promise.all([fetchConnection(), fetchAccount(), fetchLimits()]);
-    setClaudeChecking(false);
-  };
-
-  const handleClaudeDisconnect = async () => {
+  const handleOpenAIOAuth = async () => {
+    setOpenaiOAuthLoading(true);
+    setOpenaiError(null);
     try {
-      await api("/usage/disconnect", { method: "POST" });
-      useUsageStore.setState({
-        connection: { connected: false, email: null, subscriptionType: null, tokenSource: null, apiKeySource: null },
-        account: null,
-        limits: null,
-        connectionFetched: false,
-        accountFetched: false,
-        limitsFetched: false,
-        limitsLastFetched: null,
-      });
-    } catch {
-      // silently fail
+      const { authUrl } = await api<{ authUrl: string }>("/openai/oauth/start");
+      window.location.href = authUrl;
+    } catch (err) {
+      setOpenaiError(err instanceof Error ? err.message : t("providers.oauthError"));
+    } finally {
+      setOpenaiOAuthLoading(false);
     }
   };
 
@@ -488,21 +587,88 @@ function ProvidersSection() {
     }
   };
 
-  const claudeConnected = connection?.connected ?? false;
-  const claudeEmail = connection?.email ?? account?.email;
-  const claudePlan = connection?.subscriptionType ?? account?.subscriptionType;
-  const claudeTokenSource = connection?.tokenSource ?? account?.tokenSource;
+  const fetchGeminiStatus = async () => {
+    setGeminiLoading(true);
+    try {
+      // Check OAuth browser flow first
+      const oauthData = await api<{ connected: boolean; source?: string; email?: string; scope?: string }>("/gemini/oauth/connection");
+      if (oauthData.connected) {
+        setGeminiStatus(oauthData);
+        setGeminiLoading(false);
+        fetchGeminiUsageAction();
+        return;
+      }
+    } catch { /* fall through */ }
+    try {
+      const data = await api<{ connected: boolean; masked?: string; source?: string; email?: string }>("/gemini/status");
+      setGeminiStatus(data);
+      if (data.connected && data.source === "oauth") {
+        fetchGeminiUsageAction();
+      }
+    } catch {
+      setGeminiStatus({ connected: false });
+    } finally {
+      setGeminiLoading(false);
+    }
+  };
 
-  const planLabel = claudePlan
-    ? claudePlan.toLowerCase().includes("max_20x") || claudePlan.toLowerCase().includes("20x") ? "Max 20x"
-    : claudePlan.toLowerCase().includes("max_5x") || claudePlan.toLowerCase().includes("5x") ? "Max 5x"
-    : claudePlan.toLowerCase().includes("max") ? "Max"
-    : claudePlan.toLowerCase().includes("enterprise") ? "Enterprise"
-    : claudePlan.toLowerCase().includes("team") ? "Team"
-    : claudePlan.toLowerCase().includes("pro") ? "Pro"
-    : claudePlan.toLowerCase().includes("free") ? "Free"
-    : claudePlan
-    : null;
+  const handleGeminiOAuth = async () => {
+    setGeminiOAuthLoading(true);
+    setGeminiError(null);
+    try {
+      const { authUrl } = await api<{ authUrl: string }>("/gemini/oauth/start");
+      window.location.href = authUrl;
+    } catch (err) {
+      setGeminiError(err instanceof Error ? err.message : t("providers.oauthError"));
+    } finally {
+      setGeminiOAuthLoading(false);
+    }
+  };
+
+  const handleGeminiApiKey = async () => {
+    if (!geminiApiKey.trim()) return;
+    setGeminiSaving(true);
+    setGeminiError(null);
+    try {
+      const data = await api<{ connected: boolean; masked?: string; error?: string }>("/gemini/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: geminiApiKey.trim() }),
+      });
+      if (data.connected) {
+        setGeminiStatus({ connected: true, masked: data.masked, source: "db" });
+        setGeminiApiKey("");
+        setGeminiSuccess(true);
+        setShowGeminiKeyInput(false);
+        setTimeout(() => setGeminiSuccess(false), 3000);
+      } else {
+        setGeminiError(data.error ?? t("providers.connectError"));
+      }
+    } catch (err) {
+      setGeminiError(err instanceof Error ? err.message : t("providers.connectError"));
+    } finally {
+      setGeminiSaving(false);
+    }
+  };
+
+  const handleGeminiDisconnect = async () => {
+    try {
+      if (geminiStatus?.source === "oauth") {
+        await api("/gemini/oauth/disconnect", { method: "POST" });
+      } else {
+        await api("/gemini/disconnect", { method: "POST" });
+      }
+      setGeminiStatus({ connected: false });
+      setGeminiApiKey("");
+    } catch {
+      setGeminiError(t("providers.disconnectError"));
+    }
+  };
+
+  const claudeConnected = claudeStatus?.connected ?? false;
+  const claudeIsOAuth = claudeStatus?.source === "oauth" || claudeStatus?.source === "cli_oauth";
+  const claudeIsCli = claudeStatus?.source === "cli" || claudeStatus?.source === "cli_oauth";
+  const claudeIsEnv = claudeStatus?.source === "env";
 
   const openaiConnected = openaiStatus?.connected ?? false;
   const openaiIsOAuth = openaiStatus?.source === "oauth";
@@ -521,6 +687,55 @@ function ProvidersSection() {
     ? new Date(openaiStatus.subscriptionActiveUntil) > new Date()
     : false;
 
+  const geminiConnected = geminiStatus?.connected ?? false;
+  const geminiIsEnv = geminiStatus?.source === "env";
+  const geminiIsOAuth = geminiStatus?.source === "oauth";
+
+  // Helper: render a provider row card (horizontal layout: info left, usage right)
+  const renderProviderCard = (config: {
+    name: string;
+    connected: boolean;
+    loading?: boolean;
+    borderColor: string;
+    statusIcon: React.ReactNode;
+    badge?: React.ReactNode;
+    details: React.ReactNode;
+    usage: React.ReactNode;
+    actions: React.ReactNode;
+  }) => (
+    <div className={cn("card-glow border-2 overflow-hidden", config.borderColor)}>
+      <div className="flex flex-col lg:flex-row">
+        {/* Left: Info */}
+        <div className="flex-1 p-6 flex flex-col min-w-0">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {config.statusIcon}
+              <div>
+                <p className="text-[14px] font-semibold text-neutral-fg1">{config.name}</p>
+                <p className={cn("text-[11px]", config.connected ? "text-success" : "text-neutral-fg3")}>
+                  {config.loading ? t("common.loading") : config.connected ? t("settings.connected") : t("providers.notConnected")}
+                </p>
+              </div>
+            </div>
+            {config.badge}
+          </div>
+          {/* Details */}
+          {config.details}
+          {/* Actions */}
+          <div className="mt-auto">{config.actions}</div>
+        </div>
+        {/* Right: Usage */}
+        {config.connected && (
+          <div className="lg:w-[320px] shrink-0 border-t lg:border-t-0 lg:border-l border-stroke2 bg-neutral-bg3/20 p-6 flex flex-col">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-3">{t("providers.usageLimits")}</p>
+            {config.usage}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-6 animate-fade-up">
       <div>
@@ -528,199 +743,162 @@ function ProvidersSection() {
         <p className="text-[12px] text-neutral-fg3 mb-6">{t("settings.aiProvidersDesc")}</p>
       </div>
 
-      {/* Two provider cards side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* ---- Claude (Anthropic) Card ---- */}
-        <div className={cn(
-          "card-glow p-6 border-2 flex flex-col",
-          claudeConnected ? "border-success/30" : "border-danger/30",
-        )}>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {claudeConnected ? (
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10">
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                </div>
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-danger/10">
-                  <XCircle className="h-5 w-5 text-danger" />
-                </div>
-              )}
-              <div>
-                <p className="text-[14px] font-semibold text-neutral-fg1">{t("providers.claude")}</p>
-                <p className={cn("text-[11px]", claudeConnected ? "text-success" : "text-danger")}>
-                  {claudeConnected ? t("settings.connected") : t("settings.disconnected")}
-                </p>
-              </div>
-            </div>
-            {planLabel && (
-              <span className="rounded-md bg-brand-light px-2 py-0.5 text-[10px] font-bold text-brand uppercase tracking-wider">
-                {planLabel}
-              </span>
-            )}
-          </div>
+      {/* Provider cards — stacked vertically */}
+      <div className="flex flex-col gap-4">
 
-          {/* Details */}
-          {claudeConnected && (
+        {/* ---- Claude (Anthropic) ---- */}
+        {renderProviderCard({
+          name: t("providers.claude"),
+          connected: claudeConnected,
+          loading: claudeLoading,
+          borderColor: claudeConnected ? "border-success/30" : "border-stroke",
+          statusIcon: claudeConnected
+            ? <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10"><CheckCircle2 className="h-5 w-5 text-success" /></div>
+            : <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-bg3"><Cpu className="h-5 w-5 text-neutral-fg3" /></div>,
+          badge: claudeStatus?.plan ? <span className="rounded-md bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand uppercase tracking-wider">{claudeStatus.plan}</span> : undefined,
+          details: claudeConnected ? (
             <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
-              {claudeEmail && (
+              {claudeStatus?.email && (
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-neutral-fg3">{t("providers.email")}</span>
-                  <span className="text-[11px] font-medium text-neutral-fg1 truncate ml-2">{claudeEmail}</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 truncate ml-2">{claudeStatus.email}</span>
                 </div>
               )}
-              {claudeTokenSource && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
-                  <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
-                    {claudeTokenSource === "claude_ai_oauth" ? t("providers.oauth")
-                      : claudeTokenSource === "api_key" ? t("providers.apiKey")
-                      : claudeTokenSource === "env" ? t("providers.envVar")
-                      : claudeTokenSource}
-                  </span>
-                </div>
-              )}
-              {planLabel && (
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
+                  {claudeIsOAuth ? t("providers.oauth") : claudeIsEnv ? t("providers.envVar") : claudeIsCli ? "Claude Code CLI" : t("providers.apiKey")}
+                </span>
+              </div>
+              {claudeStatus?.plan && (
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-neutral-fg3">{t("providers.plan")}</span>
-                  <span className="text-[11px] font-medium text-neutral-fg1">
-                    Claude {planLabel}
-                  </span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 capitalize">{claudeStatus.plan}</span>
+                </div>
+              )}
+              {claudeStatus?.masked && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.apiKey")}</span>
+                  <span className="text-[11px] font-mono text-neutral-fg-disabled">{claudeStatus.masked}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-neutral-fg3">{t("openai.availableModels")}</span>
-                <span className="text-[11px] font-medium text-neutral-fg1">{CLAUDE_MODELS.map((m) => m.label.replace("Claude ", "")).join(", ")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1">{CLAUDE_MODELS.length} {t("providers.models")}</span>
               </div>
             </div>
-          )}
-
-          {/* Usage bars */}
-          {claudeConnected && limits && (
-            <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3 mb-1">{t("providers.usageLimits")}</p>
+          ) : null,
+          usage: claudeConnected && limits ? (
+            <div className="flex flex-col gap-3">
               {limits.fiveHour && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] text-neutral-fg2">{t("providers.session")}</span>
-                    <span className={cn("text-[10px] font-semibold tabular-nums", limits.fiveHour.utilization >= 80 ? "text-danger" : "text-neutral-fg1")}>
-                      {Math.round(limits.fiveHour.utilization)}%
-                    </span>
+                    <span className={cn("text-[10px] font-semibold tabular-nums", limits.fiveHour.utilization >= 80 ? "text-danger" : "text-neutral-fg1")}>{Math.round(limits.fiveHour.utilization)}%</span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
                     <div className={cn("h-full rounded-full transition-all duration-500", limits.fiveHour.utilization >= 80 ? "bg-danger" : "bg-brand")} style={{ width: `${Math.min(100, limits.fiveHour.utilization)}%` }} />
                   </div>
-                  {limits.fiveHour.resetsAt && (
-                    <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
-                      {t("providers.resetsAt")} {new Date(limits.fiveHour.resetsAt).toLocaleString()}
-                    </p>
-                  )}
+                  {limits.fiveHour.resetsAt && <p className="text-[9px] text-neutral-fg-disabled mt-0.5">{t("providers.resetsAt")} {new Date(limits.fiveHour.resetsAt).toLocaleString()}</p>}
                 </div>
               )}
               {limits.sevenDay && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] text-neutral-fg2">{t("providers.weekly")}</span>
-                    <span className={cn("text-[10px] font-semibold tabular-nums", limits.sevenDay.utilization >= 80 ? "text-danger" : "text-neutral-fg1")}>
-                      {Math.round(limits.sevenDay.utilization)}%
-                    </span>
+                    <span className={cn("text-[10px] font-semibold tabular-nums", limits.sevenDay.utilization >= 80 ? "text-danger" : "text-neutral-fg1")}>{Math.round(limits.sevenDay.utilization)}%</span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
                     <div className={cn("h-full rounded-full transition-all duration-500", limits.sevenDay.utilization >= 80 ? "bg-danger" : "bg-purple")} style={{ width: `${Math.min(100, limits.sevenDay.utilization)}%` }} />
                   </div>
-                  {limits.sevenDay.resetsAt && (
-                    <p className="text-[9px] text-neutral-fg-disabled mt-0.5">
-                      {t("providers.resetsAt")} {new Date(limits.sevenDay.resetsAt).toLocaleString()}
-                    </p>
-                  )}
+                  {limits.sevenDay.resetsAt && <p className="text-[9px] text-neutral-fg-disabled mt-0.5">{t("providers.resetsAt")} {new Date(limits.sevenDay.resetsAt).toLocaleString()}</p>}
                 </div>
               )}
               {limits.extraUsage?.isEnabled && (
-                <div className="mt-1 pt-2 border-t border-stroke2/50">
+                <div className="pt-2 border-t border-stroke2/50">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] text-neutral-fg2">{t("providers.extraUsage")}</span>
-                    <span className={cn("text-[10px] font-semibold tabular-nums", (limits.extraUsage.utilization ?? 0) >= 80 ? "text-danger" : "text-neutral-fg1")}>
-                      {formatCurrency(limits.extraUsage.usedCredits)} / {formatCurrency(limits.extraUsage.monthlyLimit)}
-                    </span>
+                    <span className={cn("text-[10px] font-semibold tabular-nums", (limits.extraUsage.utilization ?? 0) >= 80 ? "text-danger" : "text-neutral-fg1")}>{formatCurrency(limits.extraUsage.usedCredits)} / {formatCurrency(limits.extraUsage.monthlyLimit)}</span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
-                    <div
-                      className={cn("h-full rounded-full transition-all duration-500", (limits.extraUsage.utilization ?? 0) >= 80 ? "bg-danger" : "bg-amber-500")}
-                      style={{ width: `${Math.min(100, limits.extraUsage.utilization ?? 0)}%` }}
-                    />
+                    <div className={cn("h-full rounded-full transition-all duration-500", (limits.extraUsage.utilization ?? 0) >= 80 ? "bg-danger" : "bg-amber-500")} style={{ width: `${Math.min(100, limits.extraUsage.utilization ?? 0)}%` }} />
                   </div>
                 </div>
               )}
             </div>
-          )}
-
-          {/* Action */}
-          <div className="mt-auto">
-            {claudeConnected ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleClaudeRecheck}
-                  disabled={claudeChecking}
-                  className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all disabled:opacity-50 justify-center"
-                >
-                  <RefreshCw className={cn("h-3.5 w-3.5", claudeChecking && "animate-spin")} />
-                  {t("providers.recheck")}
-                </button>
-                <button
-                  onClick={handleClaudeDisconnect}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-danger bg-danger/10 border border-danger/20 hover:bg-danger/20 transition-all justify-center"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {t("providers.disconnect")}
-                </button>
-              </div>
-            ) : (
-              <div className="card-glow p-4 bg-neutral-bg3/30">
-                <p className="text-[11px] text-neutral-fg3 leading-relaxed">
-                  {t("providers.claudeInstructions")}
-                </p>
-                <p className="text-[11px] text-neutral-fg-disabled mt-2">
-                  <code className="rounded bg-neutral-bg3 px-1.5 py-0.5 text-[10px] font-mono text-brand">npm i -g @anthropic-ai/claude-code && claude</code>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ---- OpenAI Card ---- */}
-        <div className={cn(
-          "card-glow p-6 border-2 flex flex-col",
-          openaiConnected ? "border-success/30" : "border-stroke",
-        )}>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {openaiConnected ? (
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10">
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                </div>
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-bg3">
-                  <Cpu className="h-5 w-5 text-neutral-fg3" />
+          ) : claudeConnected ? <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p> : <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>,
+          actions: claudeConnected && !claudeIsEnv && !claudeIsCli ? (
+            <div className="flex gap-2">
+              <button onClick={() => fetchClaudeStatus()} disabled={claudeLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
+                <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", claudeLoading && "animate-spin")} />
+                {t("providers.recheck")}
+              </button>
+              <button onClick={handleClaudeDisconnect} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-danger bg-danger/10 border border-danger/20 hover:bg-danger/20 transition-all justify-center">
+                <Trash2 className="h-3.5 w-3.5" />
+                {t("providers.disconnect")}
+              </button>
+            </div>
+          ) : claudeConnected && (claudeIsEnv || claudeIsCli) ? (
+            <div className="flex gap-2">
+              <button onClick={() => fetchClaudeStatus()} disabled={claudeLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
+                <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", claudeLoading && "animate-spin")} />
+                {t("providers.recheck")}
+              </button>
+            </div>
+          ) : !claudeConnected ? (
+            <div className="flex flex-col gap-3">
+              {/* OAuth Button */}
+              <button
+                onClick={handleClaudeOAuth}
+                disabled={claudeOAuthLoading}
+                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-brand hover:bg-brand-hover transition-all w-full justify-center disabled:opacity-50"
+              >
+                {claudeOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                {t("providers.connectWithClaude")}
+              </button>
+              {/* Recheck */}
+              <button onClick={() => fetchClaudeStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("providers.recheck")}
+              </button>
+              {/* API key fallback */}
+              <button onClick={() => setShowClaudeKeyInput(!showClaudeKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
+                {showClaudeKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {t("providers.apiKeyFallback")}
+              </button>
+              {showClaudeKeyInput && (
+                <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input type={claudeShowKey ? "text" : "password"} value={claudeApiKey} onChange={(e) => { setClaudeApiKey(e.target.value); setClaudeError(null); }} placeholder="sk-ant-..." className="w-full input-fluent pr-10 text-[12px]" />
+                      <button type="button" onClick={() => setClaudeShowKey(!claudeShowKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
+                        {claudeShowKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    <button onClick={handleClaudeApiKey} disabled={!claudeApiKey.trim() || claudeSaving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
+                      {claudeSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      {t("settings.connect")}
+                    </button>
+                  </div>
                 </div>
               )}
-              <div>
-                <p className="text-[14px] font-semibold text-neutral-fg1">{t("providers.openai")}</p>
-                <p className={cn("text-[11px]", openaiConnected ? "text-success" : "text-neutral-fg3")}>
-                  {openaiLoading ? t("common.loading") : openaiConnected ? t("settings.connected") : t("providers.notConnected")}
-                </p>
-              </div>
+              {claudeError && <p className="text-[11px] text-danger">{claudeError}</p>}
+              {claudeSuccess && <p className="text-[11px] text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />{t("providers.oauthSuccess")}</p>}
             </div>
-            {openaiPlanLabel && (
-              <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
-                {openaiPlanLabel}
-              </span>
-            )}
-          </div>
+          ) : null,
+        })}
 
-          {/* Connected details */}
-          {openaiConnected && (
+        {/* ---- OpenAI ---- */}
+        {renderProviderCard({
+          name: t("providers.openai"),
+          connected: openaiConnected,
+          loading: openaiLoading,
+          borderColor: openaiConnected ? "border-success/30" : "border-stroke",
+          statusIcon: openaiConnected
+            ? <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10"><CheckCircle2 className="h-5 w-5 text-success" /></div>
+            : <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-bg3"><Cpu className="h-5 w-5 text-neutral-fg3" /></div>,
+          badge: openaiPlanLabel ? <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500 uppercase tracking-wider">{openaiPlanLabel}</span> : undefined,
+          details: openaiConnected ? (
             <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
               {openaiStatus?.email && (
                 <div className="flex items-center justify-between">
@@ -730,140 +908,265 @@ function ProvidersSection() {
               )}
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
-                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
-                  {openaiIsOAuth ? t("providers.oauth") : openaiIsEnv ? t("providers.envVar") : t("providers.apiKey")}
-                </span>
+                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">{openaiIsOAuth ? t("providers.oauth") : openaiIsEnv ? t("providers.envVar") : t("providers.apiKey")}</span>
               </div>
-              {openaiStatus?.masked && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-neutral-fg3">{t("providers.apiKey")}</span>
-                  <span className="text-[11px] font-mono text-neutral-fg-disabled">{openaiStatus.masked}</span>
-                </div>
-              )}
               {openaiStatus?.planType && (
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-neutral-fg3">{t("providers.plan")}</span>
-                  <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
-                    ChatGPT {openaiPlanLabel}
-                  </span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 capitalize">ChatGPT {openaiPlanLabel}</span>
                 </div>
               )}
               {openaiStatus?.subscriptionActiveUntil && (
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-neutral-fg3">{t("providers.subscriptionStatus")}</span>
                   <span className={cn("text-[11px] font-medium", openaiSubscriptionActive ? "text-success" : "text-danger")}>
-                    {openaiSubscriptionActive
-                      ? `${t("providers.activeUntil")} ${new Date(openaiStatus.subscriptionActiveUntil).toLocaleDateString()}`
-                      : t("providers.expired")}
+                    {openaiSubscriptionActive ? `${t("providers.activeUntil")} ${new Date(openaiStatus.subscriptionActiveUntil).toLocaleDateString()}` : t("providers.expired")}
                   </span>
                 </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-neutral-fg3">{t("openai.availableModels")}</span>
-                <span className="text-[11px] font-medium text-neutral-fg1">GPT-5.3 Codex, GPT-5.2, o3, o4-mini</span>
+                <span className="text-[11px] font-medium text-neutral-fg1">4 {t("providers.models")}</span>
               </div>
             </div>
-          )}
-
-          {/* OpenAI Usage bars */}
-          {openaiConnected && openaiIsOAuth && openaiUsage && (
-            <OpenAIUsageBars usage={openaiUsage} />
-          )}
-
-          {/* Actions */}
-          <div className="mt-auto flex flex-col gap-3">
-            {openaiConnected && !openaiIsEnv ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => fetchOpenAIStatus()}
-                  disabled={openaiLoading}
-                  className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50"
-                >
-                  <RefreshCw className={cn("h-3.5 w-3.5", openaiLoading && "animate-spin")} />
-                  {t("providers.recheck")}
-                </button>
-                <button
-                  onClick={handleOpenAIDisconnect}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-danger bg-danger/10 border border-danger/20 hover:bg-danger/20 transition-all justify-center"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {t("providers.disconnect")}
-                </button>
-              </div>
-            ) : !openaiConnected ? (
-              <>
-                {/* Codex CLI instructions */}
-                <div className="card-glow p-4 bg-neutral-bg3/30">
-                  <p className="text-[11px] text-neutral-fg3 leading-relaxed mb-2">
-                    {t("providers.codexInstructions")}
-                  </p>
-                  <p className="text-[11px] text-neutral-fg-disabled">
-                    <code className="rounded bg-neutral-bg3 px-1.5 py-0.5 text-[10px] font-mono text-brand">npm i -g @openai/codex && codex login</code>
-                  </p>
-                </div>
-
-                {/* Recheck after CLI login */}
-                <button
-                  onClick={() => fetchOpenAIStatus()}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  {t("providers.recheck")}
-                </button>
-
-                {/* API key fallback */}
-                <button
-                  onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                  className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center"
-                >
-                  {showApiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  {t("providers.apiKeyFallback")}
-                </button>
-
-                {showApiKeyInput && (
-                  <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <input
-                          type={showKey ? "text" : "password"}
-                          value={apiKey}
-                          onChange={(e) => { setApiKey(e.target.value); setOpenaiError(null); }}
-                          placeholder="sk-..."
-                          className="w-full input-fluent pr-10 text-[12px]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowKey(!showKey)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors"
-                        >
-                          {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        </button>
-                      </div>
-                      <button
-                        onClick={handleOpenAIApiKey}
-                        disabled={!apiKey.trim() || saving}
-                        className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5"
-                      >
-                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                        {t("settings.connect")}
-                      </button>
+          ) : null,
+          usage: openaiIsOAuth && openaiUsage ? (() => {
+            const wham = openaiUsage as unknown as WhamUsage;
+            const rl = wham.rate_limit;
+            if (!rl) return <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>;
+            return (
+              <div className="flex flex-col gap-3">
+                {rl.primary_window && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-neutral-fg2">{t("providers.session")}</span>
+                      <span className={cn("text-[10px] font-semibold tabular-nums", rl.primary_window.used_percent >= 80 ? "text-danger" : "text-neutral-fg1")}>{Math.round(rl.primary_window.used_percent)}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+                      <div className={cn("h-full rounded-full transition-all duration-500", rl.primary_window.used_percent >= 80 ? "bg-danger" : "bg-emerald-500")} style={{ width: `${Math.min(100, rl.primary_window.used_percent)}%` }} />
                     </div>
                   </div>
                 )}
+                {rl.secondary_window && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-neutral-fg2">{t("providers.weekly")}</span>
+                      <span className={cn("text-[10px] font-semibold tabular-nums", rl.secondary_window.used_percent >= 80 ? "text-danger" : "text-neutral-fg1")}>{Math.round(rl.secondary_window.used_percent)}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+                      <div className={cn("h-full rounded-full transition-all duration-500", rl.secondary_window.used_percent >= 80 ? "bg-danger" : "bg-teal-500")} style={{ width: `${Math.min(100, rl.secondary_window.used_percent)}%` }} />
+                    </div>
+                  </div>
+                )}
+                {rl.limit_reached && <p className="text-[10px] text-danger font-medium mt-1">{t("providers.rateLimitReached")}</p>}
+              </div>
+            );
+          })() : <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>,
+          actions: openaiConnected && !openaiIsEnv ? (
+            <div className="flex gap-2">
+              <button onClick={() => fetchOpenAIStatus()} disabled={openaiLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
+                <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", openaiLoading && "animate-spin")} />
+                {t("providers.recheck")}
+              </button>
+              <button onClick={handleOpenAIDisconnect} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-danger bg-danger/10 border border-danger/20 hover:bg-danger/20 transition-all justify-center">
+                <Trash2 className="h-3.5 w-3.5" />
+                {t("providers.disconnect")}
+              </button>
+            </div>
+          ) : !openaiConnected ? (
+            <div className="flex flex-col gap-3">
+              {/* OAuth Button */}
+              <button
+                onClick={handleOpenAIOAuth}
+                disabled={openaiOAuthLoading}
+                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-all w-full justify-center disabled:opacity-50"
+              >
+                {openaiOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                {t("providers.connectWithOpenAI")}
+              </button>
+              {/* Recheck */}
+              <button onClick={() => fetchOpenAIStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("providers.recheck")}
+              </button>
+              {/* API key fallback */}
+              <button onClick={() => setShowApiKeyInput(!showApiKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
+                {showApiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {t("providers.apiKeyFallback")}
+              </button>
+              {showApiKeyInput && (
+                <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input type={showKey ? "text" : "password"} value={apiKey} onChange={(e) => { setApiKey(e.target.value); setOpenaiError(null); }} placeholder="sk-..." className="w-full input-fluent pr-10 text-[12px]" />
+                      <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
+                        {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    <button onClick={handleOpenAIApiKey} disabled={!apiKey.trim() || saving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      {t("settings.connect")}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {openaiError && <p className="text-[11px] text-danger">{openaiError}</p>}
+              {openaiSuccess && <p className="text-[11px] text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />{t("providers.oauthSuccess")}</p>}
+            </div>
+          ) : null,
+        })}
 
-                {openaiError && (
-                  <p className="text-[11px] text-danger">{openaiError}</p>
-                )}
-                {openaiSuccess && (
-                  <p className="text-[11px] text-success flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    {t("providers.oauthSuccess")}
-                  </p>
-                )}
-              </>
-            ) : null}
-          </div>
-        </div>
+        {/* ---- Gemini (Google) ---- */}
+        {renderProviderCard({
+          name: t("providers.gemini"),
+          connected: geminiConnected,
+          loading: geminiLoading,
+          borderColor: geminiConnected ? "border-success/30" : "border-stroke",
+          statusIcon: geminiConnected
+            ? <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10"><CheckCircle2 className="h-5 w-5 text-success" /></div>
+            : <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-bg3"><Cpu className="h-5 w-5 text-neutral-fg3" /></div>,
+          badge: geminiUsage ? <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-500 uppercase tracking-wider">{geminiUsage.tierLabel}</span> : undefined,
+          details: geminiConnected ? (
+            <div className="flex flex-col gap-2 pt-3 border-t border-stroke2 mb-4">
+              {geminiStatus?.email && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.email")}</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1 truncate ml-2">{geminiStatus.email}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">{geminiIsOAuth ? t("providers.oauth") : geminiIsEnv ? t("providers.envVar") : t("providers.apiKey")}</span>
+              </div>
+              {geminiStatus?.masked && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.apiKey")}</span>
+                  <span className="text-[11px] font-mono text-neutral-fg-disabled">{geminiStatus.masked}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-neutral-fg3">{t("openai.availableModels")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1">{GEMINI_MODELS.length} {t("providers.models")}</span>
+              </div>
+              {geminiUsage && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-neutral-fg3">{t("providers.plan")}</span>
+                  <span className="text-[11px] font-medium text-neutral-fg1">{geminiUsage.tierLabel}</span>
+                </div>
+              )}
+            </div>
+          ) : null,
+          usage: geminiConnected && geminiUsage ? (
+            <div className="flex flex-col gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-neutral-fg2">{t("usage.quota")}</span>
+                  <span className={cn(
+                    "text-[10px] font-semibold tabular-nums",
+                    geminiUsage.overallUtilization >= 80 ? "text-danger" : "text-neutral-fg1"
+                  )}>
+                    {Math.round(geminiUsage.overallUtilization)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-neutral-bg1 overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      geminiUsage.overallUtilization >= 90 ? "bg-danger" : geminiUsage.overallUtilization >= 75 ? "bg-warning" : "bg-blue-500"
+                    )}
+                    style={{ width: `${Math.min(100, geminiUsage.overallUtilization)}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[9px] text-neutral-fg-disabled">
+                    {Math.round((1 - (geminiUsage.buckets[0]?.remainingFraction ?? 0)) * 100)}% {t("providers.used")}
+                  </span>
+                  {geminiUsage.buckets[0]?.resetTime && (
+                    <span className="text-[9px] text-neutral-fg-disabled">
+                      {t("providers.resetsAt")} {new Date(geminiUsage.buckets[0].resetTime).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {geminiUsage.buckets.length > 1 && (
+                <div className="border-t border-stroke2 pt-2">
+                  <p className="text-[9px] font-medium text-neutral-fg3 mb-1.5">{t("providers.perModel")}</p>
+                  {geminiUsage.buckets.map((bucket, i) => (
+                    <div key={i} className="flex items-center justify-between py-0.5">
+                      <span className="text-[9px] text-neutral-fg-disabled truncate mr-2">{bucket.modelId ?? `Bucket ${i + 1}`}</span>
+                      <span className={cn(
+                        "text-[9px] font-semibold tabular-nums",
+                        (1 - bucket.remainingFraction) * 100 >= 80 ? "text-danger" : "text-neutral-fg2"
+                      )}>
+                        {Math.round((1 - bucket.remainingFraction) * 100)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : geminiConnected ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-fg3" />
+              <p className="text-[11px] text-neutral-fg-disabled">{t("providers.loadingUsage")}</p>
+            </div>
+          ) : (
+            <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>
+          ),
+          actions: geminiConnected && !geminiIsEnv ? (
+            <div className="flex gap-2">
+              <button onClick={() => fetchGeminiStatus()} disabled={geminiLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
+                <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", geminiLoading && "animate-spin")} />
+                {t("providers.recheck")}
+              </button>
+              <button onClick={handleGeminiDisconnect} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-danger bg-danger/10 border border-danger/20 hover:bg-danger/20 transition-all justify-center">
+                <Trash2 className="h-3.5 w-3.5" />
+                {t("providers.disconnect")}
+              </button>
+            </div>
+          ) : !geminiConnected ? (
+            <div className="flex flex-col gap-3">
+              {/* OAuth Button */}
+              <button
+                onClick={handleGeminiOAuth}
+                disabled={geminiOAuthLoading}
+                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all w-full justify-center disabled:opacity-50"
+              >
+                {geminiOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+                {t("providers.connectWithGoogle")}
+              </button>
+              {/* Recheck */}
+              <button onClick={() => fetchGeminiStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("providers.recheck")}
+              </button>
+              {/* API key fallback */}
+              <button onClick={() => setShowGeminiKeyInput(!showGeminiKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
+                {showGeminiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {t("providers.apiKeyFallback")}
+              </button>
+              {showGeminiKeyInput && (
+                <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input type={geminiShowKey ? "text" : "password"} value={geminiApiKey} onChange={(e) => { setGeminiApiKey(e.target.value); setGeminiError(null); }} placeholder="AIza..." className="w-full input-fluent pr-10 text-[12px]" />
+                      <button type="button" onClick={() => setGeminiShowKey(!geminiShowKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
+                        {geminiShowKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    <button onClick={handleGeminiApiKey} disabled={!geminiApiKey.trim() || geminiSaving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
+                      {geminiSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      {t("settings.connect")}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {geminiError && <p className="text-[11px] text-danger">{geminiError}</p>}
+              {geminiSuccess && <p className="text-[11px] text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />{t("providers.oauthSuccess")}</p>}
+            </div>
+          ) : null,
+        })}
+
       </div>
     </div>
   );
@@ -1121,7 +1424,7 @@ export function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">{t("settings.agentSdk")}</dt>
-                    <dd className="text-[13px] font-semibold text-neutral-fg1">Claude + OpenAI</dd>
+                    <dd className="text-[13px] font-semibold text-neutral-fg1">Claude + OpenAI + Gemini</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">{t("settings.database")}</dt>

@@ -22,4 +22,20 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-ui": ["zustand", "clsx", "class-variance-authority", "tailwind-merge", "lucide-react"],
+          "vendor-i18n": ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+          "vendor-socket": ["socket.io-client"],
+          "vendor-markdown": ["react-markdown", "remark-gfm"],
+          "vendor-dnd": ["@dnd-kit/core", "@dnd-kit/sortable", "@dnd-kit/utilities"],
+          "vendor-recharts": ["recharts"],
+        },
+      },
+    },
+  },
 });

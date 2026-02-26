@@ -13,6 +13,8 @@ import { safeDecrypt } from "../lib/encryption";
 import { agentManager } from "../agents/agent-manager";
 import { eventBus } from "../realtime/event-bus";
 import { docGenerator } from "../agents/doc-generator.js";
+import { validate } from "../middleware/validate.js";
+import { createTaskSchema, updateTaskSchema } from "../schemas/task-schemas.js";
 
 const gitService = new GitService();
 const githubService = new GitHubService();
@@ -82,7 +84,7 @@ tasksRouter.get("/:id", async (req, res) => {
 });
 
 // POST /api/tasks
-tasksRouter.post("/", async (req, res) => {
+tasksRouter.post("/", validate(createTaskSchema), async (req, res) => {
   const { projectId, title, description, priority, category, assignedAgentId, parentTaskId } = req.body;
 
   const task = {
@@ -115,7 +117,7 @@ tasksRouter.get("/:id/subtasks", async (req, res) => {
 });
 
 // PATCH /api/tasks/:id
-tasksRouter.patch("/:id", async (req, res) => {
+tasksRouter.patch("/:id", validate(updateTaskSchema), async (req, res) => {
   // Pre-flight: validate tech_lead exists before allowing "assigned" transition
   let techLeadId: string | null = null;
   if (req.body.status === "assigned") {

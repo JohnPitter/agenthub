@@ -6,6 +6,7 @@ import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
 import { AgentSession } from "./agent-session";
 import { OpenAISession } from "./openai-session";
+import { GeminiSession } from "./gemini-session";
 import { transitionTask, logTaskAction } from "../tasks/task-lifecycle";
 import { eventBus } from "../realtime/event-bus";
 import { logger } from "../lib/logger";
@@ -21,7 +22,7 @@ import { workflowExecutor } from "../workflows/workflow-executor.js";
 const gitService = new GitService();
 
 interface ActiveSession {
-  session: AgentSession | OpenAISession;
+  session: AgentSession | OpenAISession | GeminiSession;
   agentId: string;
   taskId: string;
   projectId: string;
@@ -1360,9 +1361,17 @@ class AgentManager {
     };
 
     const provider = getModelProvider(agent.model);
-    const session = provider === "openai"
-      ? new OpenAISession(sessionConfig)
-      : new AgentSession(sessionConfig);
+    let session: AgentSession | OpenAISession | GeminiSession;
+    switch (provider) {
+      case "openai":
+        session = new OpenAISession(sessionConfig);
+        break;
+      case "gemini":
+        session = new GeminiSession(sessionConfig);
+        break;
+      default:
+        session = new AgentSession(sessionConfig);
+    }
 
     this.activeSessions.set(taskId, {
       session,
@@ -1380,7 +1389,7 @@ class AgentManager {
     });
   }
 
-  private async executeSession(taskId: string, agentId: string, session: AgentSession | OpenAISession) {
+  private async executeSession(taskId: string, agentId: string, session: AgentSession | OpenAISession | GeminiSession) {
     try {
       const result = await session.execute();
 
@@ -1691,6 +1700,10 @@ class AgentManager {
 
   getActiveTaskForAgent(agentId: string): string | null {
     return this.agentToTask.get(agentId) ?? null;
+  }
+
+  getActiveSessionCount(): number {
+    return this.activeSessions.size;
   }
 
   getActiveSessions(): { taskId: string; agentId: string; projectId: string }[] {

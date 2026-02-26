@@ -4,7 +4,7 @@ import { X, Brain, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../../lib/agent-avatar";
 import type { Agent, AgentModel, AgentRole, PermissionMode, Skill } from "@agenthub/shared";
-import { DEFAULT_SOULS, OPENAI_MODELS, CLAUDE_MODELS } from "@agenthub/shared";
+import { DEFAULT_SOULS, OPENAI_MODELS, CLAUDE_MODELS, GEMINI_MODELS } from "@agenthub/shared";
 import { api } from "../../lib/utils";
 
 interface AgentConfigDialogProps {
@@ -23,6 +23,11 @@ const OPENAI_MODEL_OPTIONS: { value: string; label: string }[] = OPENAI_MODELS.m
   label: m.label,
 }));
 
+const GEMINI_MODEL_OPTIONS: { value: string; label: string }[] = GEMINI_MODELS.map((m) => ({
+  value: m.id,
+  label: m.label,
+}));
+
 const PERMISSION_MODE_VALUES: PermissionMode[] = ["default", "acceptEdits", "bypassPermissions"];
 
 const LEVEL_VALUES: Agent["level"][] = ["junior", "pleno", "senior", "especialista", "arquiteto"];
@@ -32,17 +37,24 @@ const ALL_TOOLS = ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task", "Web
 export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogProps) {
   const { t } = useTranslation();
   const [openaiConnected, setOpenaiConnected] = useState(false);
+  const [geminiConnected, setGeminiConnected] = useState(false);
 
   useEffect(() => {
     fetch("/api/openai/status", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setOpenaiConnected(data.connected === true))
       .catch(() => {});
+    fetch("/api/gemini/status", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => setGeminiConnected(data.connected === true))
+      .catch(() => {});
   }, []);
 
-  const modelOptions = openaiConnected
-    ? [...CLAUDE_MODEL_OPTIONS, ...OPENAI_MODEL_OPTIONS]
-    : CLAUDE_MODEL_OPTIONS;
+  const modelOptions = [
+    ...CLAUDE_MODEL_OPTIONS,
+    ...(openaiConnected ? OPENAI_MODEL_OPTIONS : []),
+    ...(geminiConnected ? GEMINI_MODEL_OPTIONS : []),
+  ];
 
   const parsedTools: string[] = typeof agent.allowedTools === "string"
     ? JSON.parse(agent.allowedTools)
@@ -252,6 +264,13 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               {openaiConnected && (
                 <optgroup label="OpenAI">
                   {OPENAI_MODEL_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </optgroup>
+              )}
+              {geminiConnected && (
+                <optgroup label="Gemini (Google)">
+                  {GEMINI_MODEL_OPTIONS.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </optgroup>

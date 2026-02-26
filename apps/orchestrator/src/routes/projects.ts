@@ -16,6 +16,8 @@ import { detectStack } from "../lib/detect-stack.js";
 import { GitService } from "../git/git-service.js";
 import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
+import { validate } from "../middleware/validate.js";
+import { createProjectSchema, importProjectSchema } from "../schemas/project-schemas.js";
 
 const git = new GitService();
 const REPOS_DIR = join(homedir(), ".agenthub", "repos");
@@ -154,7 +156,7 @@ projectsRouter.get("/github-repos", async (req, res) => {
 
 // POST /api/projects/create — create a new GitHub repository + clone
 // MUST be registered before /:id to avoid Express matching "create" as an id param
-projectsRouter.post("/create", async (req, res) => {
+projectsRouter.post("/create", validate(createProjectSchema), async (req, res) => {
   try {
     const { name, description, isPrivate } = req.body;
 
@@ -232,7 +234,7 @@ projectsRouter.post("/create", async (req, res) => {
 
 // POST /api/projects/import — import an existing GitHub repository
 // MUST be registered before /:id
-projectsRouter.post("/import", async (req, res) => {
+projectsRouter.post("/import", validate(importProjectSchema), async (req, res) => {
   try {
     const { owner, repo, cloneUrl, htmlUrl, description } = req.body;
 

@@ -14,16 +14,19 @@
     "@agenthub/shared": "workspace:*",
     "@anthropic-ai/claude-agent-sdk": "^0.2.42",
     "@anthropic-ai/sdk": "^0.74.0",
+    "@google/genai": "^1.42.0",
     "@wppconnect-team/wppconnect": "^1.38.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.39.0",
     "express": "^5.0.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "nanoid": "^5.1.0",
     "openai": "^6.22.0",
     "socket.io": "^4.8.0",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@libsql/client": "^0.14.0",

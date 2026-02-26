@@ -132,30 +132,49 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
   const limits = useUsageStore((s) => s.limits);
   const openaiConnection = useUsageStore((s) => s.openaiConnection);
   const openaiUsage = useUsageStore((s) => s.openaiUsage);
+  const geminiConnection = useUsageStore((s) => s.geminiConnection);
+  const geminiUsage = useUsageStore((s) => s.geminiUsage);
+  const fetchGeminiUsage = useUsageStore((s) => s.fetchGeminiUsage);
   const fetchAccount = useUsageStore((s) => s.fetchAccount);
   const fetchConnection = useUsageStore((s) => s.fetchConnection);
   const fetchLimits = useUsageStore((s) => s.fetchLimits);
   const fetchOpenAIConnection = useUsageStore((s) => s.fetchOpenAIConnection);
   const fetchOpenAIUsage = useUsageStore((s) => s.fetchOpenAIUsage);
+  const fetchGeminiConnection = useUsageStore((s) => s.fetchGeminiConnection);
 
   useEffect(() => {
     fetchAccount();
     fetchConnection();
     fetchLimits();
     fetchOpenAIConnection();
-    fetchOpenAIUsage();
+    fetchGeminiConnection();
     const interval = setInterval(() => {
-      useUsageStore.setState({ limitsLastFetched: null, openaiUsageLastFetched: null });
+      const state = useUsageStore.getState();
+      useUsageStore.setState({ limitsLastFetched: null, openaiUsageLastFetched: null, geminiUsageLastFetched: null });
       fetchLimits();
-      fetchOpenAIUsage();
+      if (state.openaiConnection?.connected) state.fetchOpenAIUsage();
+      if (state.geminiConnection?.connected) state.fetchGeminiUsage();
     }, 120_000);
     return () => clearInterval(interval);
-  }, [fetchAccount, fetchConnection, fetchLimits, fetchOpenAIConnection, fetchOpenAIUsage]);
+  }, [fetchAccount, fetchConnection, fetchLimits, fetchOpenAIConnection, fetchGeminiConnection]);
+
+  useEffect(() => {
+    if (openaiConnection?.connected && openaiConnection.source === "oauth") {
+      fetchOpenAIUsage();
+    }
+  }, [openaiConnection, fetchOpenAIUsage]);
+
+  useEffect(() => {
+    if (geminiConnection?.connected && geminiConnection.source === "oauth") {
+      fetchGeminiUsage();
+    }
+  }, [geminiConnection, fetchGeminiUsage]);
 
   const connectionLoading = !useUsageStore((s) => s.connectionFetched);
   const accountLoading = !useUsageStore((s) => s.accountFetched);
   const limitsLoading = !useUsageStore((s) => s.limitsFetched);
   const openaiLoading = !useUsageStore((s) => s.openaiConnectionFetched);
+  const geminiLoading = !useUsageStore((s) => s.geminiConnectionFetched);
 
   const connected = connection?.connected ?? false;
   const plan = detectPlan(account?.subscriptionType ?? connection?.subscriptionType);
@@ -377,6 +396,49 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
               </div>
             );
           })()}
+        </div>
+      ) : null}
+
+      {/* Gemini section */}
+      {geminiLoading ? (
+        <div className="mt-2.5 pt-2.5 border-t border-stroke2 animate-pulse">
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="h-3.5 w-3.5 rounded-full bg-neutral-bg1" />
+            <div className="h-3 w-14 rounded bg-neutral-bg1" />
+          </div>
+        </div>
+      ) : geminiConnection?.connected ? (
+        <div className="mt-2.5 pt-2.5 border-t border-stroke2">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" strokeWidth={2} />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Gemini</span>
+            </div>
+            {geminiUsage ? (
+              <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-bold text-blue-500 uppercase tracking-wider">
+                {geminiUsage.tierLabel}
+              </span>
+            ) : (
+              <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-bold text-blue-500 uppercase tracking-wider">
+                {geminiConnection.source === "oauth" ? "OAuth" : geminiConnection.source === "env" ? "Env" : "API"}
+              </span>
+            )}
+          </div>
+          {geminiConnection.email && (
+            <p className="text-[10px] text-neutral-fg-disabled truncate mb-2">
+              {geminiConnection.email}
+            </p>
+          )}
+          {geminiUsage ? (
+            <div className="flex flex-col gap-2.5">
+              <UsageBar
+                label={t("usage.quota")}
+                utilization={geminiUsage.overallUtilization}
+                resetsAt={geminiUsage.buckets[0]?.resetTime ?? null}
+                color="bg-blue-500"
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

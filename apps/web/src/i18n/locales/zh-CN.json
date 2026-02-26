@@ -330,6 +330,9 @@
   "providers": {
     "claude": "Claude (Anthropic)",
     "openai": "OpenAI",
+    "gemini": "Gemini (Google)",
+    "geminiInstructions": "安装 Gemini CLI 并使用 Google 账号认证",
+    "models": "个模型",
     "connectedVia": "通过 {{method}} 连接",
     "notConnected": "未连接",
     "oauth": "OAuth",
@@ -356,10 +359,17 @@
     "expired": "已过期",
     "resetsAt": "重置时间",
     "rateLimitReached": "已达到使用限制",
+    "noUsageData": "暂无使用数据 — 按任务追踪使用量",
     "email": "邮箱",
     "extraUsage": "额外用量",
     "disconnectError": "断开连接失败",
-    "connectError": "连接失败"
+    "connectError": "连接失败",
+    "used": "已使用",
+    "perModel": "按模型",
+    "loadingUsage": "加载用量...",
+    "connectWithClaude": "通过 Claude 连接",
+    "connectWithOpenAI": "通过 OpenAI 连接",
+    "connectWithGoogle": "通过 Google 连接"
   },
   "auth": {
     "loginTitle": "登录 AgentHub",
@@ -1093,6 +1103,7 @@
     "connect": "连接",
     "currentSession": "当前会话",
     "weekly": "每周",
-    "session": "会话"
+    "session": "会话",
+    "quota": "配额"
   }
 }

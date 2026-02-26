@@ -12,7 +12,7 @@ export type * from "./types/team";
 export type * from "./types/skill";
 
 // Runtime values from types (constants + functions)
-export { OPENAI_MODELS, CLAUDE_MODELS, ALL_MODELS, getModelProvider } from "./types/agent";
+export { OPENAI_MODELS, CLAUDE_MODELS, GEMINI_MODELS, ALL_MODELS, getModelProvider } from "./types/agent";
 
 // Constants
 export { DEFAULT_AGENTS, type AgentBlueprint } from "./constants/agents";

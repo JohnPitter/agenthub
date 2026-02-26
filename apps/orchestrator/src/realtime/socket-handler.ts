@@ -24,8 +24,33 @@ export function setupSocketHandlers(
   io.on("connection", (socket) => {
     logger.info(`Client connected: ${socket.id}`, "socket");
 
-    // Join project room
-    socket.on("project:select", ({ projectId }) => {
+    // Join project room (with ownership verification)
+    socket.on("project:select", async ({ projectId }) => {
+      // Leave previous project rooms
+      for (const room of socket.rooms) {
+        if (room.startsWith("project:")) socket.leave(room);
+      }
+
+      // Verify project access — check team membership if project has a team
+      const project = await db.select({ id: schema.projects.id, teamId: schema.projects.teamId }).from(schema.projects).where(eq(schema.projects.id, projectId)).get();
+      if (!project) {
+        logger.warn(`Socket ${socket.id} tried to join non-existent project ${projectId}`, "socket");
+        return;
+      }
+
+      if (project.teamId) {
+        const userId = socket.data?.userId;
+        if (userId) {
+          const member = await db.select({ id: schema.teamMembers.id }).from(schema.teamMembers)
+            .where(and(eq(schema.teamMembers.teamId, project.teamId), eq(schema.teamMembers.userId, userId)))
+            .get();
+          if (!member) {
+            logger.warn(`Socket ${socket.id} (user ${userId}) not a member of team ${project.teamId}`, "socket");
+            return;
+          }
+        }
+      }
+
       socket.join(`project:${projectId}`);
       logger.debug(`Socket ${socket.id} joined project:${projectId}`, "socket");
     });

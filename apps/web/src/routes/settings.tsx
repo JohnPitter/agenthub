@@ -515,18 +515,23 @@ function ProvidersSection() {
   const fetchOpenAIStatus = async () => {
     setOpenaiLoading(true);
     try {
-      // Check OAuth first
+      // Unified status endpoint (priority: CLI → ENV → DB → OAuth)
+      const data = await api<{ connected: boolean; masked?: string; source?: string; email?: string; planType?: string; subscriptionActiveUntil?: string }>("/openai/status");
+      if (data.connected) {
+        setOpenaiStatus(data);
+        if (data.source === "cli" || data.source === "oauth") fetchOpenAIUsage();
+        setOpenaiLoading(false);
+        return;
+      }
+      // If status says disconnected, check OAuth browser flow as last resort
       const oauthData = await api<{ connected: boolean; source?: string; email?: string; planType?: string; subscriptionActiveUntil?: string }>("/openai/oauth/connection");
       if (oauthData.connected) {
         setOpenaiStatus(oauthData);
-        setOpenaiLoading(false);
         fetchOpenAIUsage();
+        setOpenaiLoading(false);
         return;
       }
-    } catch { /* fall through */ }
-    try {
-      const data = await api<{ connected: boolean; masked?: string; source?: string }>("/openai/status");
-      setOpenaiStatus(data);
+      setOpenaiStatus({ connected: false });
     } catch {
       setOpenaiStatus({ connected: false });
     } finally {
@@ -590,21 +595,23 @@ function ProvidersSection() {
   const fetchGeminiStatus = async () => {
     setGeminiLoading(true);
     try {
-      // Check OAuth browser flow first
+      // Unified status endpoint (priority: CLI → ENV → DB → OAuth)
+      const data = await api<{ connected: boolean; masked?: string; source?: string; email?: string }>("/gemini/status");
+      if (data.connected) {
+        setGeminiStatus(data);
+        if (data.source === "cli" || data.source === "oauth") fetchGeminiUsageAction();
+        setGeminiLoading(false);
+        return;
+      }
+      // If status says disconnected, check OAuth browser flow as last resort
       const oauthData = await api<{ connected: boolean; source?: string; email?: string; scope?: string }>("/gemini/oauth/connection");
       if (oauthData.connected) {
         setGeminiStatus(oauthData);
-        setGeminiLoading(false);
         fetchGeminiUsageAction();
+        setGeminiLoading(false);
         return;
       }
-    } catch { /* fall through */ }
-    try {
-      const data = await api<{ connected: boolean; masked?: string; source?: string; email?: string }>("/gemini/status");
-      setGeminiStatus(data);
-      if (data.connected && data.source === "oauth") {
-        fetchGeminiUsageAction();
-      }
+      setGeminiStatus({ connected: false });
     } catch {
       setGeminiStatus({ connected: false });
     } finally {
@@ -666,13 +673,16 @@ function ProvidersSection() {
   };
 
   const claudeConnected = claudeStatus?.connected ?? false;
-  const claudeIsOAuth = claudeStatus?.source === "oauth" || claudeStatus?.source === "cli_oauth";
-  const claudeIsCli = claudeStatus?.source === "cli" || claudeStatus?.source === "cli_oauth";
+  const claudeIsOAuth = claudeStatus?.source === "oauth";
+  const claudeIsCli = claudeStatus?.source === "cli";
   const claudeIsEnv = claudeStatus?.source === "env";
+  const claudeIsAutoDetected = claudeIsCli || claudeIsEnv; // Can't disconnect these
 
   const openaiConnected = openaiStatus?.connected ?? false;
   const openaiIsOAuth = openaiStatus?.source === "oauth";
+  const openaiIsCli = openaiStatus?.source === "cli";
   const openaiIsEnv = openaiStatus?.source === "env";
+  const openaiIsAutoDetected = openaiIsCli || openaiIsEnv;
 
   const openaiPlanLabel = openaiStatus?.planType
     ? openaiStatus.planType.toLowerCase().includes("pro") ? "Pro"
@@ -690,6 +700,8 @@ function ProvidersSection() {
   const geminiConnected = geminiStatus?.connected ?? false;
   const geminiIsEnv = geminiStatus?.source === "env";
   const geminiIsOAuth = geminiStatus?.source === "oauth";
+  const geminiIsCli = geminiStatus?.source === "cli";
+  const geminiIsAutoDetected = geminiIsCli || geminiIsEnv;
 
   // Helper: render a provider row card (horizontal layout: info left, usage right)
   const renderProviderCard = (config: {
@@ -767,7 +779,7 @@ function ProvidersSection() {
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
                 <span className="text-[11px] font-medium text-neutral-fg1 capitalize">
-                  {claudeIsOAuth ? t("providers.oauth") : claudeIsEnv ? t("providers.envVar") : claudeIsCli ? "Claude Code CLI" : t("providers.apiKey")}
+                  {claudeIsCli ? "Claude Code CLI" : claudeIsEnv ? t("providers.envVar") : claudeIsOAuth ? t("providers.oauth") : t("providers.apiKey")}
                 </span>
               </div>
               {claudeStatus?.plan && (
@@ -827,7 +839,7 @@ function ProvidersSection() {
               )}
             </div>
           ) : claudeConnected ? <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p> : <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>,
-          actions: claudeConnected && !claudeIsEnv && !claudeIsCli ? (
+          actions: claudeConnected && !claudeIsAutoDetected ? (
             <div className="flex gap-2">
               <button onClick={() => fetchClaudeStatus()} disabled={claudeLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
                 <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", claudeLoading && "animate-spin")} />
@@ -838,7 +850,7 @@ function ProvidersSection() {
                 {t("providers.disconnect")}
               </button>
             </div>
-          ) : claudeConnected && (claudeIsEnv || claudeIsCli) ? (
+          ) : claudeConnected && claudeIsAutoDetected ? (
             <div className="flex gap-2">
               <button onClick={() => fetchClaudeStatus()} disabled={claudeLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
                 <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", claudeLoading && "animate-spin")} />
@@ -847,40 +859,41 @@ function ProvidersSection() {
             </div>
           ) : !claudeConnected ? (
             <div className="flex flex-col gap-3">
-              {/* OAuth Button */}
-              <button
-                onClick={handleClaudeOAuth}
-                disabled={claudeOAuthLoading}
-                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-brand hover:bg-brand-hover transition-all w-full justify-center disabled:opacity-50"
-              >
-                {claudeOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                {t("providers.connectWithClaude")}
-              </button>
-              {/* Recheck */}
-              <button onClick={() => fetchClaudeStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
-                <RefreshCw className="h-3.5 w-3.5" />
-                {t("providers.recheck")}
-              </button>
-              {/* API key fallback */}
-              <button onClick={() => setShowClaudeKeyInput(!showClaudeKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
-                {showClaudeKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                {t("providers.apiKeyFallback")}
-              </button>
-              {showClaudeKeyInput && (
-                <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input type={claudeShowKey ? "text" : "password"} value={claudeApiKey} onChange={(e) => { setClaudeApiKey(e.target.value); setClaudeError(null); }} placeholder="sk-ant-..." className="w-full input-fluent pr-10 text-[12px]" />
-                      <button type="button" onClick={() => setClaudeShowKey(!claudeShowKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
-                        {claudeShowKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                    <button onClick={handleClaudeApiKey} disabled={!claudeApiKey.trim() || claudeSaving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
-                      {claudeSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                      {t("settings.connect")}
+              {/* API Key (primary method) */}
+              <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
+                <p className="text-[11px] text-neutral-fg3 mb-2">{t("providers.apiKeyLabel")}</p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input type={claudeShowKey ? "text" : "password"} value={claudeApiKey} onChange={(e) => { setClaudeApiKey(e.target.value); setClaudeError(null); }} placeholder="sk-ant-..." className="w-full input-fluent pr-10 text-[12px]" />
+                    <button type="button" onClick={() => setClaudeShowKey(!claudeShowKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
+                      {claudeShowKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
                   </div>
+                  <button onClick={handleClaudeApiKey} disabled={!claudeApiKey.trim() || claudeSaving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
+                    {claudeSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {t("settings.connect")}
+                  </button>
                 </div>
+              </div>
+              {/* Recheck CLI */}
+              <button onClick={() => fetchClaudeStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("providers.recheckCli")}
+              </button>
+              {/* OAuth (last resort) */}
+              <button onClick={() => setShowClaudeKeyInput(!showClaudeKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
+                {showClaudeKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {t("providers.oauthFallback")}
+              </button>
+              {showClaudeKeyInput && (
+                <button
+                  onClick={handleClaudeOAuth}
+                  disabled={claudeOAuthLoading}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-brand hover:bg-brand-hover transition-all w-full justify-center disabled:opacity-50"
+                >
+                  {claudeOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                  {t("providers.connectWithClaude")}
+                </button>
               )}
               {claudeError && <p className="text-[11px] text-danger">{claudeError}</p>}
               {claudeSuccess && <p className="text-[11px] text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />{t("providers.oauthSuccess")}</p>}
@@ -908,7 +921,7 @@ function ProvidersSection() {
               )}
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
-                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">{openaiIsOAuth ? t("providers.oauth") : openaiIsEnv ? t("providers.envVar") : t("providers.apiKey")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">{openaiIsCli ? "Codex CLI" : openaiIsEnv ? t("providers.envVar") : openaiIsOAuth ? t("providers.oauth") : t("providers.apiKey")}</span>
               </div>
               {openaiStatus?.planType && (
                 <div className="flex items-center justify-between">
@@ -930,7 +943,7 @@ function ProvidersSection() {
               </div>
             </div>
           ) : null,
-          usage: openaiIsOAuth && openaiUsage ? (() => {
+          usage: (openaiIsOAuth || openaiIsCli) && openaiUsage ? (() => {
             const wham = openaiUsage as unknown as WhamUsage;
             const rl = wham.rate_limit;
             if (!rl) return <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>;
@@ -962,7 +975,7 @@ function ProvidersSection() {
               </div>
             );
           })() : <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>,
-          actions: openaiConnected && !openaiIsEnv ? (
+          actions: openaiConnected && !openaiIsAutoDetected ? (
             <div className="flex gap-2">
               <button onClick={() => fetchOpenAIStatus()} disabled={openaiLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
                 <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", openaiLoading && "animate-spin")} />
@@ -973,42 +986,50 @@ function ProvidersSection() {
                 {t("providers.disconnect")}
               </button>
             </div>
-          ) : !openaiConnected ? (
-            <div className="flex flex-col gap-3">
-              {/* OAuth Button */}
-              <button
-                onClick={handleOpenAIOAuth}
-                disabled={openaiOAuthLoading}
-                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-all w-full justify-center disabled:opacity-50"
-              >
-                {openaiOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                {t("providers.connectWithOpenAI")}
-              </button>
-              {/* Recheck */}
-              <button onClick={() => fetchOpenAIStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
-                <RefreshCw className="h-3.5 w-3.5" />
+          ) : openaiConnected && openaiIsAutoDetected ? (
+            <div className="flex gap-2">
+              <button onClick={() => fetchOpenAIStatus()} disabled={openaiLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
+                <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", openaiLoading && "animate-spin")} />
                 {t("providers.recheck")}
               </button>
-              {/* API key fallback */}
-              <button onClick={() => setShowApiKeyInput(!showApiKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
-                {showApiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                {t("providers.apiKeyFallback")}
-              </button>
-              {showApiKeyInput && (
-                <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input type={showKey ? "text" : "password"} value={apiKey} onChange={(e) => { setApiKey(e.target.value); setOpenaiError(null); }} placeholder="sk-..." className="w-full input-fluent pr-10 text-[12px]" />
-                      <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
-                        {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                    <button onClick={handleOpenAIApiKey} disabled={!apiKey.trim() || saving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
-                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                      {t("settings.connect")}
+            </div>
+          ) : !openaiConnected ? (
+            <div className="flex flex-col gap-3">
+              {/* API Key (primary method) */}
+              <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
+                <p className="text-[11px] text-neutral-fg3 mb-2">{t("providers.apiKeyLabel")}</p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input type={showKey ? "text" : "password"} value={apiKey} onChange={(e) => { setApiKey(e.target.value); setOpenaiError(null); }} placeholder="sk-..." className="w-full input-fluent pr-10 text-[12px]" />
+                    <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
+                      {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
                   </div>
+                  <button onClick={handleOpenAIApiKey} disabled={!apiKey.trim() || saving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
+                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {t("settings.connect")}
+                  </button>
                 </div>
+              </div>
+              {/* Recheck CLI */}
+              <button onClick={() => fetchOpenAIStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("providers.recheckCli")}
+              </button>
+              {/* OAuth (last resort) */}
+              <button onClick={() => setShowApiKeyInput(!showApiKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
+                {showApiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {t("providers.oauthFallback")}
+              </button>
+              {showApiKeyInput && (
+                <button
+                  onClick={handleOpenAIOAuth}
+                  disabled={openaiOAuthLoading}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-all w-full justify-center disabled:opacity-50"
+                >
+                  {openaiOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                  {t("providers.connectWithOpenAI")}
+                </button>
               )}
               {openaiError && <p className="text-[11px] text-danger">{openaiError}</p>}
               {openaiSuccess && <p className="text-[11px] text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />{t("providers.oauthSuccess")}</p>}
@@ -1036,7 +1057,7 @@ function ProvidersSection() {
               )}
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-neutral-fg3">{t("providers.source")}</span>
-                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">{geminiIsOAuth ? t("providers.oauth") : geminiIsEnv ? t("providers.envVar") : t("providers.apiKey")}</span>
+                <span className="text-[11px] font-medium text-neutral-fg1 capitalize">{geminiIsCli ? "Gemini CLI" : geminiIsEnv ? t("providers.envVar") : geminiIsOAuth ? t("providers.oauth") : t("providers.apiKey")}</span>
               </div>
               {geminiStatus?.masked && (
                 <div className="flex items-center justify-between">
@@ -1113,7 +1134,7 @@ function ProvidersSection() {
           ) : (
             <p className="text-[11px] text-neutral-fg-disabled">{t("providers.noUsageData")}</p>
           ),
-          actions: geminiConnected && !geminiIsEnv ? (
+          actions: geminiConnected && !geminiIsAutoDetected ? (
             <div className="flex gap-2">
               <button onClick={() => fetchGeminiStatus()} disabled={geminiLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
                 <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", geminiLoading && "animate-spin")} />
@@ -1124,42 +1145,50 @@ function ProvidersSection() {
                 {t("providers.disconnect")}
               </button>
             </div>
-          ) : !geminiConnected ? (
-            <div className="flex flex-col gap-3">
-              {/* OAuth Button */}
-              <button
-                onClick={handleGeminiOAuth}
-                disabled={geminiOAuthLoading}
-                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all w-full justify-center disabled:opacity-50"
-              >
-                {geminiOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
-                {t("providers.connectWithGoogle")}
-              </button>
-              {/* Recheck */}
-              <button onClick={() => fetchGeminiStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
-                <RefreshCw className="h-3.5 w-3.5" />
+          ) : geminiConnected && geminiIsAutoDetected ? (
+            <div className="flex gap-2">
+              <button onClick={() => fetchGeminiStatus()} disabled={geminiLoading} className="flex-1 flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all justify-center disabled:opacity-50">
+                <RefreshCw className={cn("h-3.5 w-3.5 shrink-0", geminiLoading && "animate-spin")} />
                 {t("providers.recheck")}
               </button>
-              {/* API key fallback */}
-              <button onClick={() => setShowGeminiKeyInput(!showGeminiKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
-                {showGeminiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                {t("providers.apiKeyFallback")}
-              </button>
-              {showGeminiKeyInput && (
-                <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input type={geminiShowKey ? "text" : "password"} value={geminiApiKey} onChange={(e) => { setGeminiApiKey(e.target.value); setGeminiError(null); }} placeholder="AIza..." className="w-full input-fluent pr-10 text-[12px]" />
-                      <button type="button" onClick={() => setGeminiShowKey(!geminiShowKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
-                        {geminiShowKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                    <button onClick={handleGeminiApiKey} disabled={!geminiApiKey.trim() || geminiSaving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
-                      {geminiSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                      {t("settings.connect")}
+            </div>
+          ) : !geminiConnected ? (
+            <div className="flex flex-col gap-3">
+              {/* API Key (primary method) */}
+              <div className="rounded-lg border border-stroke bg-neutral-bg3/30 p-4">
+                <p className="text-[11px] text-neutral-fg3 mb-2">{t("providers.apiKeyLabel")}</p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input type={geminiShowKey ? "text" : "password"} value={geminiApiKey} onChange={(e) => { setGeminiApiKey(e.target.value); setGeminiError(null); }} placeholder="AIza..." className="w-full input-fluent pr-10 text-[12px]" />
+                    <button type="button" onClick={() => setGeminiShowKey(!geminiShowKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-fg3 hover:text-neutral-fg1 transition-colors">
+                      {geminiShowKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
                   </div>
+                  <button onClick={handleGeminiApiKey} disabled={!geminiApiKey.trim() || geminiSaving} className="btn-primary rounded-lg px-4 py-2 text-[12px] font-medium text-white disabled:opacity-50 flex items-center gap-1.5">
+                    {geminiSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {t("settings.connect")}
+                  </button>
                 </div>
+              </div>
+              {/* Recheck CLI */}
+              <button onClick={() => fetchGeminiStatus()} className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium text-neutral-fg2 bg-neutral-bg2 border border-stroke hover:bg-neutral-bg-hover transition-all w-full justify-center">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("providers.recheckCli")}
+              </button>
+              {/* OAuth (last resort) */}
+              <button onClick={() => setShowGeminiKeyInput(!showGeminiKeyInput)} className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors flex items-center gap-1 justify-center">
+                {showGeminiKeyInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {t("providers.oauthFallback")}
+              </button>
+              {showGeminiKeyInput && (
+                <button
+                  onClick={handleGeminiOAuth}
+                  disabled={geminiOAuthLoading}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all w-full justify-center disabled:opacity-50"
+                >
+                  {geminiOAuthLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+                  {t("providers.connectWithGoogle")}
+                </button>
               )}
               {geminiError && <p className="text-[11px] text-danger">{geminiError}</p>}
               {geminiSuccess && <p className="text-[11px] text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />{t("providers.oauthSuccess")}</p>}

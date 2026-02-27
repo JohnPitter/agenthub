@@ -19,12 +19,13 @@ export const codexOAuthRouter: ReturnType<typeof Router> = Router();
 // Public callback handler (no authMiddleware)
 export const codexCallbackRouter: ReturnType<typeof Router> = Router();
 
-// In-memory pending OAuth state (single-user desktop app)
-let pendingOAuth: { codeVerifier: string; state: string; redirectUri: string } | null = null;
+// In-memory pending OAuth state (includes userId for per-user credential storage)
+let pendingOAuth: { codeVerifier: string; state: string; redirectUri: string; userId: string } | null = null;
 
 // GET /api/openai/oauth/start — returns { authUrl } for frontend to window.open()
-codexOAuthRouter.get("/oauth/start", (_req, res) => {
+codexOAuthRouter.get("/oauth/start", async (req, res) => {
   try {
+    const userId = req.user!.userId;
     // Use http://localhost:3001/callback to match Codex CLI's registered redirect URIs
     const port = process.env.ORCHESTRATOR_PORT ?? "3001";
     const redirectUri = `http://localhost:${port}/callback`;
@@ -32,9 +33,9 @@ codexOAuthRouter.get("/oauth/start", (_req, res) => {
     const codeVerifier = generateCodeVerifier();
     const state = randomBytes(32).toString("base64url");
 
-    pendingOAuth = { codeVerifier, state, redirectUri };
+    pendingOAuth = { codeVerifier, state, redirectUri, userId };
 
-    const authUrl = buildAuthUrl(redirectUri, codeVerifier, state);
+    const authUrl = await buildAuthUrl(redirectUri, codeVerifier, state);
     logger.info("Codex OAuth flow started", "codex-oauth");
     res.json({ authUrl });
   } catch (err) {
@@ -43,16 +44,17 @@ codexOAuthRouter.get("/oauth/start", (_req, res) => {
   }
 });
 
-// GET /api/openai/oauth/connection — check connection status from ~/.codex/auth.json
-codexOAuthRouter.get("/oauth/connection", async (_req, res) => {
+// GET /api/openai/oauth/connection — check connection status
+codexOAuthRouter.get("/oauth/connection", async (req, res) => {
   try {
-    const token = await getCodexOAuthToken();
+    const userId = req.user!.userId;
+    const token = await getCodexOAuthToken(userId);
     if (!token) {
       res.json({ connected: false });
       return;
     }
 
-    const creds = await readCodexCredentials();
+    const creds = await readCodexCredentials(userId);
     const claims = creds?.id_token ? decodeJwtPayload(creds.id_token) : null;
 
     // Extract plan info from the id_token JWT "https://api.openai.com/auth" claim
@@ -73,10 +75,11 @@ codexOAuthRouter.get("/oauth/connection", async (_req, res) => {
   }
 });
 
-// POST /api/openai/oauth/disconnect — deletes ~/.codex/auth.json
-codexOAuthRouter.post("/oauth/disconnect", async (_req, res) => {
+// POST /api/openai/oauth/disconnect
+codexOAuthRouter.post("/oauth/disconnect", async (req, res) => {
   try {
-    await deleteCodexCredentials();
+    const userId = req.user!.userId;
+    await deleteCodexCredentials(userId);
     logger.info("Codex OAuth disconnected", "codex-oauth");
     res.json({ disconnected: true });
   } catch (err) {
@@ -97,19 +100,20 @@ function getDeviceId(): string {
 }
 
 // GET /api/openai/oauth/usage — proxy to chatgpt.com/backend-api/wham/usage
-codexOAuthRouter.get("/oauth/usage", async (_req, res) => {
+codexOAuthRouter.get("/oauth/usage", async (req, res) => {
   try {
     // Return cache if fresh
     if (codexUsageCache && Date.now() - codexUsageCache.fetchedAt < CODEX_USAGE_CACHE_TTL) {
       return res.json(codexUsageCache.data);
     }
 
-    const token = await getCodexOAuthToken();
+    const userId = req.user!.userId;
+    const token = await getCodexOAuthToken(userId);
     if (!token) {
       return res.status(424).json({ error: "openai_oauth_required" });
     }
 
-    const creds = await readCodexCredentials();
+    const creds = await readCodexCredentials(userId);
     const accountId = creds?.account_id ?? (creds?.id_token ? extractAccountId(creds.id_token) : null);
 
     const headers: Record<string, string> = {
@@ -170,6 +174,7 @@ codexCallbackRouter.get("/", async (req, res) => {
       code as string,
       pendingOAuth.redirectUri,
       pendingOAuth.codeVerifier,
+      pendingOAuth.userId,
     );
 
     pendingOAuth = null;

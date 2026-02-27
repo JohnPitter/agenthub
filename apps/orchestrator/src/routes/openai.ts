@@ -7,30 +7,40 @@ import { logger } from "../lib/logger.js";
 
 export const openaiRouter: ReturnType<typeof Router> = Router();
 
-// GET /api/openai/status — check if OpenAI is connected
-openaiRouter.get("/status", async (_req, res) => {
-  // Check env var first
+// ========== Status cache ==========
+const STATUS_TTL = 5 * 60 * 1000; // 5 min
+let openaiStatusCache: { data: Record<string, unknown>; ts: number } | null = null;
+
+function invalidateOpenaiStatusCache() {
+  openaiStatusCache = null;
+}
+
+async function resolveOpenaiStatus(): Promise<Record<string, unknown>> {
+  // 1. Check Codex CLI credentials (~/.codex/auth.json)
+  // No userId here — CLI tokens are global, not per-user
+  try {
+    const { getCodexOAuthToken, readCodexCredentials, decodeJwtPayload } = await import("../services/codex-oauth.js");
+    const cliToken = await getCodexOAuthToken();
+    if (cliToken) {
+      const creds = await readCodexCredentials();
+      const claims = creds?.id_token ? decodeJwtPayload(creds.id_token) : null;
+      return {
+        connected: true,
+        source: "cli",
+        email: (claims?.email as string) ?? null,
+      };
+    }
+  } catch {
+    // CLI not available — fall through
+  }
+
+  // 2. Check env var
   if (process.env.OPENAI_API_KEY) {
-    res.json({
+    return {
       connected: true,
       source: "env",
       masked: maskKey(process.env.OPENAI_API_KEY),
-    });
-    return;
-  }
-
-  // 2. Check OAuth (~/.codex/auth.json)
-  const { getCodexOAuthToken, readCodexCredentials, decodeJwtPayload } = await import("../services/codex-oauth.js");
-  const oauthToken = await getCodexOAuthToken();
-  if (oauthToken) {
-    const creds = await readCodexCredentials();
-    const claims = creds?.id_token ? decodeJwtPayload(creds.id_token) : null;
-    res.json({
-      connected: true,
-      source: "oauth",
-      email: (claims?.email as string) ?? null,
-    });
-    return;
+    };
   }
 
   // 3. Check integrations table (API key)
@@ -42,19 +52,33 @@ openaiRouter.get("/status", async (_req, res) => {
   if (row?.credentials) {
     try {
       const key = safeDecrypt(row.credentials);
-      res.json({
+      return {
         connected: true,
         source: "db",
         masked: maskKey(key),
         status: row.status,
-      });
+      };
     } catch (err) {
       logger.warn(`Failed to decrypt stored OpenAI key: ${err}`, "openai");
-      res.json({ connected: false, error: "Failed to decrypt stored key" });
     }
-  } else {
-    res.json({ connected: false });
   }
+
+  return { connected: false };
+}
+
+// GET /api/openai/status — cached, priority: CLI → ENV → DB → OAuth
+// Only caches connected=true results; disconnected always re-checks
+openaiRouter.get("/status", async (_req, res) => {
+  if (openaiStatusCache && Date.now() - openaiStatusCache.ts < STATUS_TTL) {
+    res.json(openaiStatusCache.data);
+    return;
+  }
+
+  const data = await resolveOpenaiStatus();
+  if (data.connected) {
+    openaiStatusCache = { data, ts: Date.now() };
+  }
+  res.json(data);
 });
 
 // POST /api/openai/connect — save API key
@@ -111,6 +135,7 @@ openaiRouter.post("/connect", async (req, res) => {
     });
   }
 
+  invalidateOpenaiStatusCache();
   logger.info("OpenAI API key connected successfully", "openai");
   res.json({ connected: true, masked: maskKey(apiKey) });
 });
@@ -120,6 +145,7 @@ openaiRouter.post("/disconnect", async (_req, res) => {
   await db.delete(schema.integrations)
     .where(eq(schema.integrations.type, "openai" as "whatsapp"));
 
+  invalidateOpenaiStatusCache();
   logger.info("OpenAI API key disconnected", "openai");
   res.json({ connected: false });
 });

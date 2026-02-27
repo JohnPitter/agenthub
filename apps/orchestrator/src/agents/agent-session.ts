@@ -109,12 +109,16 @@ export class AgentSession {
       taskId,
     });
 
-    // Resolve Claude API key: env → OAuth → DB
-    const envOverrides: Record<string, string | undefined> = {};
-    if (!process.env.ANTHROPIC_API_KEY) {
-      const resolvedKey = await this.resolveClaudeApiKey();
-      if (resolvedKey) {
-        envOverrides.ANTHROPIC_API_KEY = resolvedKey;
+    // Build clean env for the SDK subprocess
+    // Strip CLAUDECODE to prevent "nested session" rejection when orchestrator
+    // runs inside a Claude Code terminal session
+    const { CLAUDECODE: _, ...cleanEnv } = process.env;
+
+    // Resolve Claude auth: env → DB API key → CLI OAuth token
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+      const resolved = await this.resolveClaudeAuth();
+      if (resolved) {
+        (cleanEnv as Record<string, string>)[resolved.envVar] = resolved.value;
       }
     }
 
@@ -129,7 +133,7 @@ export class AgentSession {
           permissionMode: agent.permissionMode === "bypassPermissions" ? "bypassPermissions" : "acceptEdits",
           maxThinkingTokens: agent.maxThinkingTokens ?? undefined,
           abortController: this.abortController,
-          ...(Object.keys(envOverrides).length > 0 ? { env: { ...process.env, ...envOverrides } } : {}),
+          env: cleanEnv as Record<string, string>,
         },
       });
 
@@ -323,19 +327,18 @@ export class AgentSession {
     return this.running;
   }
 
-  private async resolveClaudeApiKey(): Promise<string | null> {
-    // 1. Try OAuth token
-    try {
-      const oauthToken = await getClaudeOAuthToken();
-      if (oauthToken) {
-        logger.debug("Using Claude OAuth token", "agent-session");
-        return oauthToken;
-      }
-    } catch {
-      // Fall through
+  private async resolveClaudeAuth(): Promise<{ envVar: string; value: string } | null> {
+    // Priority: ENV → DB API key → CLI OAuth token → null (SDK handles CLI auth)
+
+    // 1. Check env vars (already handled by caller, but double-check)
+    if (process.env.ANTHROPIC_API_KEY) {
+      return { envVar: "ANTHROPIC_API_KEY", value: process.env.ANTHROPIC_API_KEY };
+    }
+    if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+      return { envVar: "CLAUDE_CODE_OAUTH_TOKEN", value: process.env.CLAUDE_CODE_OAUTH_TOKEN };
     }
 
-    // 2. Try DB integrations
+    // 2. Try DB integrations (API key → ANTHROPIC_API_KEY)
     try {
       const row = await db.select()
         .from(schema.integrations)
@@ -346,13 +349,25 @@ export class AgentSession {
         const key = safeDecrypt(row.credentials);
         if (key) {
           logger.debug("Using Claude API key from DB", "agent-session");
-          return key;
+          return { envVar: "ANTHROPIC_API_KEY", value: key };
         }
       }
     } catch {
       // Fall through
     }
 
+    // 3. Try CLI OAuth token (~/.claude/.credentials.json → CLAUDE_CODE_OAUTH_TOKEN)
+    try {
+      const oauthToken = await getClaudeOAuthToken();
+      if (oauthToken) {
+        logger.debug("Using Claude OAuth token from CLI credentials", "agent-session");
+        return { envVar: "CLAUDE_CODE_OAUTH_TOKEN", value: oauthToken };
+      }
+    } catch {
+      // Fall through
+    }
+
+    // null = SDK will try its own CLI auth
     return null;
   }
 }

@@ -42,6 +42,7 @@ import { workflowsRouter } from "./routes/workflows.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { teamsRouter } from "./routes/teams.js";
 import { skillsRouter, agentSkillsRouter } from "./routes/skills.js";
+import { initDiscovery } from "./services/oauth-discovery.js";
 import { DEFAULT_AGENTS } from "@agenthub/shared";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 import { db, schema } from "@agenthub/database";
@@ -173,6 +174,11 @@ httpServer.listen(PORT, async () => {
   } catch (err) {
     logger.error(`Failed to sync default agent tools: ${err}`, "startup");
   }
+
+  // Auto-discover OAuth credentials from provider repos (fire-and-forget)
+  initDiscovery().catch((err) => {
+    logger.warn(`OAuth discovery failed: ${err}`, "oauth-discovery");
+  });
 
   // Auto-restore WhatsApp sessions (fire-and-forget)
   restoreWhatsAppSessions().catch((err) => {

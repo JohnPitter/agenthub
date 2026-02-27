@@ -17,21 +17,22 @@ export const geminiOAuthRouter: ReturnType<typeof Router> = Router();
 // Public callback handler (no authMiddleware)
 export const geminiCallbackRouter: ReturnType<typeof Router> = Router();
 
-// In-memory pending OAuth state (single-user desktop app)
-let pendingOAuth: { codeVerifier: string; state: string; redirectUri: string } | null = null;
+// In-memory pending OAuth state (includes userId for per-user credential storage)
+let pendingOAuth: { codeVerifier: string; state: string; redirectUri: string; userId: string } | null = null;
 
 // GET /api/gemini/oauth/start — returns { authUrl }
-geminiOAuthRouter.get("/oauth/start", (_req, res) => {
+geminiOAuthRouter.get("/oauth/start", async (req, res) => {
   try {
+    const userId = req.user!.userId;
     const port = process.env.ORCHESTRATOR_PORT ?? "3001";
     const redirectUri = `http://localhost:${port}/callback/gemini`;
 
     const codeVerifier = generateGeminiCodeVerifier();
     const state = randomBytes(32).toString("base64url");
 
-    pendingOAuth = { codeVerifier, state, redirectUri };
+    pendingOAuth = { codeVerifier, state, redirectUri, userId };
 
-    const authUrl = buildGeminiAuthUrl(redirectUri, codeVerifier, state);
+    const authUrl = await buildGeminiAuthUrl(redirectUri, codeVerifier, state);
     logger.info("Gemini OAuth flow started", "gemini-oauth");
     res.json({ authUrl });
   } catch (err) {
@@ -41,15 +42,16 @@ geminiOAuthRouter.get("/oauth/start", (_req, res) => {
 });
 
 // GET /api/gemini/oauth/connection — check OAuth connection status
-geminiOAuthRouter.get("/oauth/connection", async (_req, res) => {
+geminiOAuthRouter.get("/oauth/connection", async (req, res) => {
   try {
-    const token = await getGeminiOAuthToken();
+    const userId = req.user!.userId;
+    const token = await getGeminiOAuthToken(userId);
     if (!token) {
       res.json({ connected: false });
       return;
     }
 
-    const creds = await readGeminiCredentials();
+    const creds = await readGeminiCredentials(userId);
 
     // Fetch user email from Google
     let email: string | null = null;
@@ -77,10 +79,11 @@ geminiOAuthRouter.get("/oauth/connection", async (_req, res) => {
   }
 });
 
-// POST /api/gemini/oauth/disconnect — delete ~/.gemini/oauth_creds.json
-geminiOAuthRouter.post("/oauth/disconnect", async (_req, res) => {
+// POST /api/gemini/oauth/disconnect
+geminiOAuthRouter.post("/oauth/disconnect", async (req, res) => {
   try {
-    await deleteGeminiCredentials();
+    const userId = req.user!.userId;
+    await deleteGeminiCredentials(userId);
     logger.info("Gemini OAuth disconnected", "gemini-oauth");
     res.json({ disconnected: true });
   } catch (err) {
@@ -116,6 +119,7 @@ geminiCallbackRouter.get("/", async (req, res) => {
       code as string,
       pendingOAuth.redirectUri,
       pendingOAuth.codeVerifier,
+      pendingOAuth.userId,
     );
 
     pendingOAuth = null;

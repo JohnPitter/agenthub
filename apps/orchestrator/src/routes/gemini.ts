@@ -8,27 +8,25 @@ import { fetchGeminiUsage } from "../services/gemini-usage.js";
 
 export const geminiRouter: ReturnType<typeof Router> = Router();
 
-// GET /api/gemini/status — check if Gemini is connected
-geminiRouter.get("/status", async (_req, res) => {
-  // 1. Check env var
-  if (process.env.GEMINI_API_KEY) {
-    res.json({
-      connected: true,
-      source: "env",
-      masked: maskKey(process.env.GEMINI_API_KEY),
-    });
-    return;
-  }
+// ========== Status cache ==========
+const STATUS_TTL = 5 * 60 * 1000; // 5 min
+let geminiStatusCache: { data: Record<string, unknown>; ts: number } | null = null;
 
-  // 2. Check OAuth (~/.gemini/oauth_creds.json)
+function invalidateGeminiStatusCache() {
+  geminiStatusCache = null;
+}
+
+async function resolveGeminiStatus(): Promise<Record<string, unknown>> {
+  // 1. Check Gemini CLI credentials (~/.gemini/oauth_creds.json)
+  // No userId here — CLI tokens are global, not per-user
   try {
     const { getGeminiOAuthToken } = await import("../services/gemini-oauth.js");
-    const oauthToken = await getGeminiOAuthToken();
-    if (oauthToken) {
+    const cliToken = await getGeminiOAuthToken();
+    if (cliToken) {
       let email: string | null = null;
       try {
         const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${oauthToken}` },
+          headers: { Authorization: `Bearer ${cliToken}` },
           signal: AbortSignal.timeout(5_000),
         });
         if (userInfoRes.ok) {
@@ -37,15 +35,23 @@ geminiRouter.get("/status", async (_req, res) => {
         }
       } catch { /* ignore userinfo fetch failures */ }
 
-      res.json({
+      return {
         connected: true,
-        source: "oauth",
+        source: "cli",
         email,
-      });
-      return;
+      };
     }
   } catch {
-    // Fall through
+    // CLI not available — fall through
+  }
+
+  // 2. Check env var
+  if (process.env.GEMINI_API_KEY) {
+    return {
+      connected: true,
+      source: "env",
+      masked: maskKey(process.env.GEMINI_API_KEY),
+    };
   }
 
   // 3. Check integrations table (API key)
@@ -57,19 +63,33 @@ geminiRouter.get("/status", async (_req, res) => {
   if (row?.credentials) {
     try {
       const key = safeDecrypt(row.credentials);
-      res.json({
+      return {
         connected: true,
         source: "db",
         masked: maskKey(key),
         status: row.status,
-      });
+      };
     } catch (err) {
       logger.warn(`Failed to decrypt stored Gemini key: ${err}`, "gemini");
-      res.json({ connected: false, error: "Failed to decrypt stored key" });
     }
-  } else {
-    res.json({ connected: false });
   }
+
+  return { connected: false };
+}
+
+// GET /api/gemini/status — cached, priority: CLI → ENV → DB → OAuth
+// Only caches connected=true results; disconnected always re-checks
+geminiRouter.get("/status", async (_req, res) => {
+  if (geminiStatusCache && Date.now() - geminiStatusCache.ts < STATUS_TTL) {
+    res.json(geminiStatusCache.data);
+    return;
+  }
+
+  const data = await resolveGeminiStatus();
+  if (data.connected) {
+    geminiStatusCache = { data, ts: Date.now() };
+  }
+  res.json(data);
 });
 
 // POST /api/gemini/connect — save API key
@@ -126,6 +146,7 @@ geminiRouter.post("/connect", async (req, res) => {
     });
   }
 
+  invalidateGeminiStatusCache();
   logger.info("Gemini API key connected successfully", "gemini");
   res.json({ connected: true, masked: maskKey(apiKey.trim()) });
 });
@@ -135,6 +156,7 @@ geminiRouter.post("/disconnect", async (_req, res) => {
   await db.delete(schema.integrations)
     .where(eq(schema.integrations.type, "gemini" as "whatsapp"));
 
+  invalidateGeminiStatusCache();
   logger.info("Gemini API key disconnected", "gemini");
   res.json({ connected: false });
 });

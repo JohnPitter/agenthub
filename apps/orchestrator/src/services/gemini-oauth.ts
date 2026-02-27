@@ -1,20 +1,25 @@
 import { randomBytes, createHash } from "crypto";
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { homedir } from "os";
-import { join, dirname } from "path";
+import { dirname } from "path";
 import { logger } from "../lib/logger.js";
+import { discoverCredentials } from "./oauth-discovery.js";
+import { getUserOAuthPath, getLegacyOAuthPath } from "./oauth-paths.js";
 
-const CREDENTIALS_PATH = join(homedir(), ".gemini", "oauth_creds.json");
 const TOKEN_REFRESH_MARGIN = 5 * 60 * 1000; // 5 min before expiry
-
-// Gemini CLI OAuth client credentials — set via env vars (GEMINI_OAUTH_CLIENT_ID / GEMINI_OAUTH_CLIENT_SECRET)
-const GEMINI_OAUTH_CLIENT_ID = process.env.GEMINI_OAUTH_CLIENT_ID ?? "";
-const GEMINI_OAUTH_CLIENT_SECRET = process.env.GEMINI_OAUTH_CLIENT_SECRET ?? "";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_SCOPES = "openid email profile https://www.googleapis.com/auth/cloud-platform";
 
 let isRefreshing = false;
+
+async function getGeminiClientCredentials(): Promise<{ clientId: string; clientSecret: string }> {
+  const creds = await discoverCredentials("gemini");
+  return { clientId: creds.clientId, clientSecret: creds.clientSecret ?? "" };
+}
+
+function resolveCredPath(userId?: string): string {
+  return userId ? getUserOAuthPath(userId, "gemini") : getLegacyOAuthPath("gemini");
+}
 
 export interface GeminiCredentials {
   access_token: string;
@@ -25,31 +30,42 @@ export interface GeminiCredentials {
   expiry_date: number; // epoch ms
 }
 
-export async function readGeminiCredentials(): Promise<GeminiCredentials | null> {
-  try {
-    const raw = await readFile(CREDENTIALS_PATH, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return null;
+export async function readGeminiCredentials(userId?: string): Promise<GeminiCredentials | null> {
+  // Per-user: only their own path (no fallback to CLI credentials)
+  // No userId (agent sessions): legacy CLI path only
+  const paths = userId
+    ? [getUserOAuthPath(userId, "gemini")]
+    : [getLegacyOAuthPath("gemini")];
+
+  for (const credPath of paths) {
+    try {
+      const raw = await readFile(credPath, "utf-8");
+      return JSON.parse(raw);
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
-async function writeGeminiCredentials(creds: GeminiCredentials): Promise<void> {
-  const dir = dirname(CREDENTIALS_PATH);
-  await mkdir(dir, { recursive: true });
-  await writeFile(CREDENTIALS_PATH, JSON.stringify(creds, null, 2), "utf-8");
+async function writeGeminiCredentials(creds: GeminiCredentials, userId?: string): Promise<void> {
+  const credPath = resolveCredPath(userId);
+  await mkdir(dirname(credPath), { recursive: true });
+  await writeFile(credPath, JSON.stringify(creds, null, 2), "utf-8");
 }
 
-async function refreshGeminiToken(creds: GeminiCredentials): Promise<GeminiCredentials> {
+async function refreshGeminiToken(creds: GeminiCredentials, userId?: string): Promise<GeminiCredentials> {
   logger.info("Refreshing Gemini OAuth token", "gemini-oauth");
+
+  const { clientId, clientSecret } = await getGeminiClientCredentials();
 
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "refresh_token",
-      client_id: GEMINI_OAUTH_CLIENT_ID,
-      client_secret: GEMINI_OAUTH_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       refresh_token: creds.refresh_token,
     }),
   });
@@ -75,7 +91,7 @@ async function refreshGeminiToken(creds: GeminiCredentials): Promise<GeminiCrede
     id_token: data.id_token ?? creds.id_token,
   };
 
-  await writeGeminiCredentials(updated);
+  await writeGeminiCredentials(updated, userId);
   logger.info("Gemini OAuth token refreshed successfully", "gemini-oauth");
   return updated;
 }
@@ -84,23 +100,22 @@ async function refreshGeminiToken(creds: GeminiCredentials): Promise<GeminiCrede
  * Get a valid Gemini OAuth access token, auto-refreshing if expired.
  * Returns null if no credentials file exists.
  */
-export async function getGeminiOAuthToken(): Promise<string | null> {
+export async function getGeminiOAuthToken(userId?: string): Promise<string | null> {
   try {
-    const creds = await readGeminiCredentials();
+    const creds = await readGeminiCredentials(userId);
     if (!creds?.access_token) return null;
 
     const needsRefresh = creds.expiry_date && (creds.expiry_date - Date.now() < TOKEN_REFRESH_MARGIN);
     if (needsRefresh && creds.refresh_token) {
       if (isRefreshing) {
-        // Wait for ongoing refresh
         await new Promise((r) => setTimeout(r, 2000));
-        const fresh = await readGeminiCredentials();
+        const fresh = await readGeminiCredentials(userId);
         return fresh?.access_token ?? null;
       }
 
       isRefreshing = true;
       try {
-        const updated = await refreshGeminiToken(creds);
+        const updated = await refreshGeminiToken(creds, userId);
         return updated.access_token;
       } catch (err) {
         logger.warn(`Gemini token refresh failed: ${err instanceof Error ? err.message : "Unknown"}`, "gemini-oauth");
@@ -130,14 +145,15 @@ export function generateGeminiCodeChallenge(verifier: string): string {
   return base64url(createHash("sha256").update(verifier).digest());
 }
 
-export function buildGeminiAuthUrl(
+export async function buildGeminiAuthUrl(
   redirectUri: string,
   codeVerifier: string,
   state: string,
-): string {
+): Promise<string> {
+  const { clientId } = await getGeminiClientCredentials();
   const codeChallenge = generateGeminiCodeChallenge(codeVerifier);
   const params = new URLSearchParams({
-    client_id: GEMINI_OAUTH_CLIENT_ID,
+    client_id: clientId,
     response_type: "code",
     redirect_uri: redirectUri,
     scope: GOOGLE_SCOPES,
@@ -154,14 +170,17 @@ export async function exchangeGeminiCode(
   code: string,
   redirectUri: string,
   codeVerifier: string,
+  userId?: string,
 ): Promise<GeminiCredentials> {
+  const { clientId, clientSecret } = await getGeminiClientCredentials();
+
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "authorization_code",
-      client_id: GEMINI_OAUTH_CLIENT_ID,
-      client_secret: GEMINI_OAUTH_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       code,
       redirect_uri: redirectUri,
       code_verifier: codeVerifier,
@@ -191,15 +210,15 @@ export async function exchangeGeminiCode(
     id_token: data.id_token,
   };
 
-  await writeGeminiCredentials(creds);
-  logger.info("Gemini OAuth tokens saved to ~/.gemini/oauth_creds.json", "gemini-oauth");
+  await writeGeminiCredentials(creds, userId);
+  logger.info(`Gemini OAuth tokens saved for ${userId ? `user ${userId}` : "default"}`, "gemini-oauth");
   return creds;
 }
 
-export async function deleteGeminiCredentials(): Promise<void> {
+export async function deleteGeminiCredentials(userId?: string): Promise<void> {
   const { unlink } = await import("fs/promises");
   try {
-    await unlink(CREDENTIALS_PATH);
+    await unlink(resolveCredPath(userId));
   } catch {
     // File may not exist
   }

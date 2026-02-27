@@ -1,19 +1,66 @@
 import { randomBytes, createHash } from "crypto";
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { dirname } from "path";
 import { logger } from "../lib/logger.js";
+import { getUserOAuthPath, getLegacyOAuthPath } from "./oauth-paths.js";
 
 const CLAUDE_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const AUTH_URL = "https://claude.ai/oauth/authorize";
 const TOKEN_URL = "https://console.anthropic.com/v1/oauth/token";
 const SCOPES = "user:inference user:profile";
+const TOKEN_REFRESH_MARGIN = 10 * 60 * 1000; // 10 min before expiry
 
-// In-memory token storage (desktop app — single user)
-let storedCredentials: ClaudeOAuthCredentials | null = null;
+let isRefreshing = false;
 
 export interface ClaudeOAuthCredentials {
   access_token: string;
   refresh_token?: string;
   expires_at: number; // epoch ms
   scope: string;
+}
+
+function resolveCredPath(userId?: string): string {
+  return userId ? getUserOAuthPath(userId, "claude") : getLegacyOAuthPath("claude");
+}
+
+// File-based persistence (survives server restarts)
+export async function readClaudeCredentials(userId?: string): Promise<ClaudeOAuthCredentials | null> {
+  // Per-user: only their own path (no fallback to CLI credentials)
+  // No userId (agent sessions): legacy CLI path only
+  const paths = userId
+    ? [getUserOAuthPath(userId, "claude")]
+    : [getLegacyOAuthPath("claude")];
+
+  for (const credPath of paths) {
+    try {
+      const raw = await readFile(credPath, "utf-8");
+      const data = JSON.parse(raw);
+
+      // Claude CLI stores credentials nested under claudeAiOauth with camelCase
+      if (data.claudeAiOauth) {
+        return {
+          access_token: data.claudeAiOauth.accessToken,
+          refresh_token: data.claudeAiOauth.refreshToken,
+          expires_at: data.claudeAiOauth.expiresAt ?? 0,
+          scope: Array.isArray(data.claudeAiOauth.scopes)
+            ? data.claudeAiOauth.scopes.join(" ")
+            : "user:inference user:profile",
+        };
+      }
+
+      // Flat format (our own writes via OAuth browser flow)
+      return data;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function writeClaudeCredentials(creds: ClaudeOAuthCredentials, userId?: string): Promise<void> {
+  const credPath = resolveCredPath(userId);
+  await mkdir(dirname(credPath), { recursive: true });
+  await writeFile(credPath, JSON.stringify(creds, null, 2), "utf-8");
 }
 
 // PKCE helpers
@@ -52,6 +99,7 @@ export async function exchangeClaudeCode(
   redirectUri: string,
   codeVerifier: string,
   state: string,
+  userId?: string,
 ): Promise<ClaudeOAuthCredentials> {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
@@ -85,12 +133,12 @@ export async function exchangeClaudeCode(
     scope: data.scope ?? SCOPES,
   };
 
-  storedCredentials = creds;
-  logger.info("Claude OAuth tokens stored in memory", "claude-oauth");
+  await writeClaudeCredentials(creds, userId);
+  logger.info(`Claude OAuth tokens saved for ${userId ? `user ${userId}` : "default"}`, "claude-oauth");
   return creds;
 }
 
-async function refreshClaudeToken(creds: ClaudeOAuthCredentials): Promise<ClaudeOAuthCredentials> {
+async function refreshClaudeToken(creds: ClaudeOAuthCredentials, userId?: string): Promise<ClaudeOAuthCredentials> {
   if (!creds.refresh_token) {
     throw new Error("No refresh token available");
   }
@@ -126,48 +174,56 @@ async function refreshClaudeToken(creds: ClaudeOAuthCredentials): Promise<Claude
     scope: data.scope ?? creds.scope,
   };
 
-  storedCredentials = updated;
+  await writeClaudeCredentials(updated, userId);
   logger.info("Claude OAuth token refreshed successfully", "claude-oauth");
   return updated;
 }
-
-const TOKEN_REFRESH_MARGIN = 10 * 60 * 1000; // 10 min before expiry
-let isRefreshing = false;
 
 /**
  * Get a valid Claude OAuth access token, auto-refreshing if expired.
  * Returns null if no OAuth credentials exist.
  */
-export async function getClaudeOAuthToken(): Promise<string | null> {
-  if (!storedCredentials?.access_token) return null;
+export async function getClaudeOAuthToken(userId?: string): Promise<string | null> {
+  try {
+    const creds = await readClaudeCredentials(userId);
+    if (!creds?.access_token) return null;
 
-  const needsRefresh = storedCredentials.expires_at - Date.now() < TOKEN_REFRESH_MARGIN;
-  if (needsRefresh && storedCredentials.refresh_token) {
-    if (isRefreshing) {
-      await new Promise((r) => setTimeout(r, 2000));
-      return storedCredentials?.access_token ?? null;
+    const needsRefresh = creds.expires_at - Date.now() < TOKEN_REFRESH_MARGIN;
+    if (needsRefresh && creds.refresh_token) {
+      if (isRefreshing) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const fresh = await readClaudeCredentials(userId);
+        return fresh?.access_token ?? null;
+      }
+
+      isRefreshing = true;
+      try {
+        const updated = await refreshClaudeToken(creds, userId);
+        return updated.access_token;
+      } catch (err) {
+        logger.warn(`Claude token refresh failed: ${err instanceof Error ? err.message : "Unknown"}`, "claude-oauth");
+        return creds.access_token;
+      } finally {
+        isRefreshing = false;
+      }
     }
 
-    isRefreshing = true;
-    try {
-      const updated = await refreshClaudeToken(storedCredentials);
-      return updated.access_token;
-    } catch (err) {
-      logger.warn(`Claude token refresh failed: ${err instanceof Error ? err.message : "Unknown"}`, "claude-oauth");
-      return storedCredentials.access_token;
-    } finally {
-      isRefreshing = false;
-    }
+    return creds.access_token;
+  } catch {
+    return null;
   }
-
-  return storedCredentials.access_token;
 }
 
-export function getClaudeOAuthCredentials(): ClaudeOAuthCredentials | null {
-  return storedCredentials;
+export async function getClaudeOAuthCredentials(userId?: string): Promise<ClaudeOAuthCredentials | null> {
+  return readClaudeCredentials(userId);
 }
 
-export function clearClaudeOAuth(): void {
-  storedCredentials = null;
+export async function clearClaudeOAuth(userId?: string): Promise<void> {
+  const { unlink } = await import("fs/promises");
+  try {
+    await unlink(resolveCredPath(userId));
+  } catch {
+    // File may not exist
+  }
   logger.info("Claude OAuth credentials cleared", "claude-oauth");
 }

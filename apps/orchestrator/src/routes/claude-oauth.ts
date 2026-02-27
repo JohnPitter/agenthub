@@ -22,19 +22,20 @@ export const claudeOAuthRouter: ReturnType<typeof Router> = Router();
 // Public callback handler (no authMiddleware)
 export const claudeCallbackRouter: ReturnType<typeof Router> = Router();
 
-// In-memory pending OAuth state (single-user desktop app)
-let pendingOAuth: { codeVerifier: string; state: string; redirectUri: string } | null = null;
+// In-memory pending OAuth state (includes userId for per-user credential storage)
+let pendingOAuth: { codeVerifier: string; state: string; redirectUri: string; userId: string } | null = null;
 
 // GET /api/claude/oauth/start — returns { authUrl }
-claudeOAuthRouter.get("/oauth/start", (_req, res) => {
+claudeOAuthRouter.get("/oauth/start", (req, res) => {
   try {
+    const userId = req.user!.userId;
     const port = process.env.ORCHESTRATOR_PORT ?? "3001";
     const redirectUri = `http://localhost:${port}/callback/claude`;
 
     const codeVerifier = generateCodeVerifier();
     const state = randomBytes(32).toString("base64url");
 
-    pendingOAuth = { codeVerifier, state, redirectUri };
+    pendingOAuth = { codeVerifier, state, redirectUri, userId };
 
     const authUrl = buildClaudeAuthUrl(redirectUri, codeVerifier, state);
     logger.info("Claude OAuth flow started", "claude-oauth");
@@ -46,15 +47,16 @@ claudeOAuthRouter.get("/oauth/start", (_req, res) => {
 });
 
 // GET /api/claude/oauth/connection — check connection status
-claudeOAuthRouter.get("/oauth/connection", async (_req, res) => {
+claudeOAuthRouter.get("/oauth/connection", async (req, res) => {
   try {
-    const token = await getClaudeOAuthToken();
+    const userId = req.user!.userId;
+    const token = await getClaudeOAuthToken(userId);
     if (!token) {
       res.json({ connected: false });
       return;
     }
 
-    const creds = getClaudeOAuthCredentials();
+    const creds = await getClaudeOAuthCredentials(userId);
     res.json({
       connected: true,
       source: "oauth",
@@ -68,8 +70,9 @@ claudeOAuthRouter.get("/oauth/connection", async (_req, res) => {
 });
 
 // POST /api/claude/oauth/disconnect
-claudeOAuthRouter.post("/oauth/disconnect", (_req, res) => {
-  clearClaudeOAuth();
+claudeOAuthRouter.post("/oauth/disconnect", async (req, res) => {
+  const userId = req.user!.userId;
+  await clearClaudeOAuth(userId);
   res.json({ disconnected: true });
 });
 
@@ -101,9 +104,11 @@ claudeCallbackRouter.get("/", async (req, res) => {
       pendingOAuth.redirectUri,
       pendingOAuth.codeVerifier,
       pendingOAuth.state,
+      pendingOAuth.userId,
     );
 
     pendingOAuth = null;
+    invalidateClaudeStatusCache();
     logger.info("Claude OAuth flow completed successfully", "claude-oauth");
     res.redirect(`${env.FRONTEND_ORIGIN}/settings?claude_oauth=success`);
   } catch (err) {
@@ -113,56 +118,16 @@ claudeCallbackRouter.get("/", async (req, res) => {
   }
 });
 
-// ========== API Key routes ==========
+// ========== Status cache ==========
+const STATUS_TTL = 5 * 60 * 1000; // 5 min
+let claudeStatusCache: { data: Record<string, unknown>; ts: number } | null = null;
 
-// GET /api/claude/status — check if Claude is connected (env → OAuth → DB)
-claudeOAuthRouter.get("/status", async (_req, res) => {
-  // 1. Check env var
-  if (process.env.ANTHROPIC_API_KEY) {
-    res.json({
-      connected: true,
-      source: "env",
-      masked: maskKey(process.env.ANTHROPIC_API_KEY),
-    });
-    return;
-  }
+function invalidateClaudeStatusCache() {
+  claudeStatusCache = null;
+}
 
-  // 2. Check OAuth
-  try {
-    const token = await getClaudeOAuthToken();
-    if (token) {
-      const creds = getClaudeOAuthCredentials();
-      res.json({
-        connected: true,
-        source: "oauth",
-        scope: creds?.scope ?? null,
-      });
-      return;
-    }
-  } catch { /* fall through */ }
-
-  // 3. Check DB integrations
-  const row = await db.select()
-    .from(schema.integrations)
-    .where(eq(schema.integrations.type, "claude" as "whatsapp"))
-    .get();
-
-  if (row?.credentials) {
-    try {
-      const key = safeDecrypt(row.credentials);
-      res.json({
-        connected: true,
-        source: "db",
-        masked: maskKey(key),
-        status: row.status,
-      });
-      return;
-    } catch (err) {
-      logger.warn(`Failed to decrypt stored Claude key: ${err}`, "claude");
-    }
-  }
-
-  // 4. Check Claude Code CLI auth (SDK reads ~/.claude/ internally)
+async function resolveClaudeStatus(userId?: string): Promise<Record<string, unknown>> {
+  // 1. Check Claude Code CLI auth (SDK reads ~/.claude/ internally)
   try {
     const conversation = query({
       prompt: "Say OK",
@@ -172,20 +137,91 @@ claudeOAuthRouter.get("/status", async (_req, res) => {
     conversation.close();
 
     if (info.email || info.tokenSource) {
-      res.json({
+      return {
         connected: true,
-        source: info.tokenSource === "claude_ai_oauth" ? "cli_oauth" : "cli",
+        source: "cli",
         email: info.email ?? null,
         plan: info.subscriptionType ?? null,
         tokenSource: info.tokenSource ?? null,
-      });
-      return;
+      };
     }
   } catch {
-    // CLI not available — fall through
+    // SDK not available — fall through
   }
 
-  res.json({ connected: false });
+  // 1b. Check Claude CLI credentials file (~/.claude/credentials.json)
+  // No userId — CLI tokens are global, not per-user
+  try {
+    const cliToken = await getClaudeOAuthToken();
+    if (cliToken) {
+      return {
+        connected: true,
+        source: "cli",
+      };
+    }
+  } catch {
+    // CLI credentials not available — fall through
+  }
+
+  // 2. Check env var
+  if (process.env.ANTHROPIC_API_KEY) {
+    return {
+      connected: true,
+      source: "env",
+      masked: maskKey(process.env.ANTHROPIC_API_KEY),
+    };
+  }
+
+  // 3. Check DB integrations (API key)
+  const row = await db.select()
+    .from(schema.integrations)
+    .where(eq(schema.integrations.type, "claude" as "whatsapp"))
+    .get();
+
+  if (row?.credentials) {
+    try {
+      const key = safeDecrypt(row.credentials);
+      return {
+        connected: true,
+        source: "db",
+        masked: maskKey(key),
+        status: row.status,
+      };
+    } catch (err) {
+      logger.warn(`Failed to decrypt stored Claude key: ${err}`, "claude");
+    }
+  }
+
+  // 4. Check OAuth (last resort)
+  try {
+    const token = await getClaudeOAuthToken(userId);
+    if (token) {
+      const creds = await getClaudeOAuthCredentials(userId);
+      return {
+        connected: true,
+        source: "oauth",
+        scope: creds?.scope ?? null,
+      };
+    }
+  } catch { /* fall through */ }
+
+  return { connected: false };
+}
+
+// GET /api/claude/status — cached, priority: CLI → ENV → DB → OAuth
+// Only caches connected=true results; disconnected always re-checks
+claudeOAuthRouter.get("/status", async (req, res) => {
+  if (claudeStatusCache && Date.now() - claudeStatusCache.ts < STATUS_TTL) {
+    res.json(claudeStatusCache.data);
+    return;
+  }
+
+  const userId = req.user!.userId;
+  const data = await resolveClaudeStatus(userId);
+  if (data.connected) {
+    claudeStatusCache = { data, ts: Date.now() };
+  }
+  res.json(data);
 });
 
 // POST /api/claude/connect — save API key
@@ -253,17 +289,20 @@ claudeOAuthRouter.post("/connect", async (req, res) => {
     });
   }
 
+  invalidateClaudeStatusCache();
   logger.info("Claude API key connected successfully", "claude");
   res.json({ connected: true, masked: maskKey(apiKey.trim()) });
 });
 
 // POST /api/claude/disconnect — remove API key from DB
-claudeOAuthRouter.post("/disconnect", async (_req, res) => {
+claudeOAuthRouter.post("/disconnect", async (req, res) => {
+  const userId = req.user!.userId;
   // Clear both OAuth and DB
-  clearClaudeOAuth();
+  await clearClaudeOAuth(userId);
   await db.delete(schema.integrations)
     .where(eq(schema.integrations.type, "claude" as "whatsapp"));
 
+  invalidateClaudeStatusCache();
   logger.info("Claude disconnected", "claude");
   res.json({ connected: false });
 });

@@ -159,13 +159,13 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
   }, [fetchAccount, fetchConnection, fetchLimits, fetchOpenAIConnection, fetchGeminiConnection]);
 
   useEffect(() => {
-    if (openaiConnection?.connected && openaiConnection.source === "oauth") {
+    if (openaiConnection?.connected && (openaiConnection.source === "oauth" || openaiConnection.source === "cli")) {
       fetchOpenAIUsage();
     }
   }, [openaiConnection, fetchOpenAIUsage]);
 
   useEffect(() => {
-    if (geminiConnection?.connected && geminiConnection.source === "oauth") {
+    if (geminiConnection?.connected && (geminiConnection.source === "oauth" || geminiConnection.source === "cli")) {
       fetchGeminiUsage();
     }
   }, [geminiConnection, fetchGeminiUsage]);

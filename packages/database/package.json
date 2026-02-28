@@ -16,8 +16,8 @@
   },
   "dependencies": {
     "@agenthub/shared": "workspace:*",
-    "@libsql/client": "^0.14.0",
-    "drizzle-orm": "^0.39.0",
+    "@libsql/client": "^0.17.0",
+    "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.0"
   },
   "devDependencies": {

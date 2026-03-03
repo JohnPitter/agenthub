@@ -42,6 +42,7 @@ import { workflowsRouter } from "./routes/workflows.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { teamsRouter } from "./routes/teams.js";
 import { skillsRouter, agentSkillsRouter } from "./routes/skills.js";
+import { systemRouter } from "./routes/system.js";
 import { initDiscovery } from "./services/oauth-discovery.js";
 import { DEFAULT_AGENTS } from "@agenthub/shared";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
@@ -115,6 +116,7 @@ app.use("/api/notifications", notificationsRouter);
 app.use("/api/teams", teamsRouter);
 app.use("/api/skills", skillsRouter);
 app.use("/api/agents", agentSkillsRouter);
+app.use("/api", systemRouter);
 
 // Global error handler (must be last)
 app.use(errorHandler);

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useParams, Link } from "react-router-dom";
-import { Search, Bell, Settings, LogOut, User, HelpCircle } from "lucide-react";
+import { Search, Bell, MessageSquare, Settings, LogOut, User, HelpCircle } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useNotificationStore, useUnreadCount } from "../../stores/notification-store";
@@ -29,6 +29,8 @@ export function Header() {
   const { id: projectId } = useParams();
   const location = useLocation();
   const projects = useWorkspaceStore((s) => s.projects);
+  const chatPanelOpen = useWorkspaceStore((s) => s.chatPanelOpen);
+  const toggleChatPanel = useWorkspaceStore((s) => s.toggleChatPanel);
   const unreadCount = useUnreadCount();
   const panelOpen = useNotificationStore((s) => s.panelOpen);
   const togglePanel = useNotificationStore((s) => s.togglePanel);
@@ -53,6 +55,7 @@ export function Header() {
     .join("")
     .toUpperCase();
 
+  const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const project = projects.find((p) => p.id === projectId);
   const segment = location.pathname.split("/").pop();
   const routeLabelKey = segment && ROUTE_LABEL_KEYS[segment] ? ROUTE_LABEL_KEYS[segment] : null;
@@ -132,6 +135,21 @@ export function Header() {
 
       {/* Right */}
       <div className="flex items-center gap-3">
+        {activeProjectId && (
+          <button
+            onClick={toggleChatPanel}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200",
+              chatPanelOpen
+                ? "bg-gradient-to-r from-brand to-purple text-white shadow-brand"
+                : "bg-neutral-bg2 text-neutral-fg2 hover:bg-neutral-bg-hover border border-stroke",
+            )}
+          >
+            <MessageSquare className="h-4 w-4" strokeWidth={2} />
+            Chat
+          </button>
+        )}
+
         <button
           onClick={() => setCommandOpen(true)}
           className="glass-strong flex items-center gap-2 rounded-lg px-4 py-2 text-neutral-fg3 hover:text-neutral-fg2 hover:border-stroke-active transition-all duration-200 focus:ring-2 focus:ring-brand/20"

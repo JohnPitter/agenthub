@@ -9,8 +9,7 @@ services:
       - NODE_ENV=production
       - ORCHESTRATOR_PORT=3001
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    volumes:
-      - agenthub-data:/root/.agenthub
+      - DATABASE_URL=${DATABASE_URL}
     restart: unless-stopped
 
   web:
@@ -22,6 +21,3 @@ services:
     depends_on:
       - orchestrator
     restart: unless-stopped
-
-volumes:
-  agenthub-data:

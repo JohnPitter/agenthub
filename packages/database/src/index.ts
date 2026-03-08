@@ -1,2 +1,5 @@
-export { db, client } from "./connection";
-export * as schema from "./schema/index";
+export * from './schema';
+export * from './migrate';
+export * from './seed';
+
+export { db } from '../../orchestrator/src/lib/database';

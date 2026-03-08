@@ -97,9 +97,6 @@ RUN mkdir -p /run/nginx && printf 'server {\n\
     }\n\
 }\n' > /etc/nginx/http.d/default.conf
 
-# Data directory for SQLite
-RUN mkdir -p /root/.agenthub
-
 ENV NODE_ENV=production
 ENV ORCHESTRATOR_PORT=3001
 

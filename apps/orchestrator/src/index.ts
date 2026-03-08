@@ -48,7 +48,10 @@ const app = express();
 
 // Middleware stack
 app.use(securityHeaders);
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",")
+  : ["http://localhost:5173", "http://localhost:5174"];
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(requestLogger);
@@ -102,7 +105,7 @@ app.use(errorHandler);
 // HTTP + Socket.io server
 const httpServer = createServer(app);
 const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
-  cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"] },
+  cors: { origin: corsOrigins, methods: ["GET", "POST"] },
   transports: ["websocket", "polling"],
 });
 

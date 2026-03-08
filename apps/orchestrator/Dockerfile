@@ -47,9 +47,6 @@ COPY --from=deps /app/packages/database ./packages/database
 COPY --from=deps /app/apps/orchestrator/node_modules ./apps/orchestrator/node_modules
 COPY package.json pnpm-workspace.yaml ./
 
-# Data directory for SQLite
-RUN mkdir -p /root/.agenthub
-
 ENV NODE_ENV=production
 ENV ORCHESTRATOR_PORT=3001
 

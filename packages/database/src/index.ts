@@ -1,2 +1,17 @@
-export { db, client } from "./connection";
-export * as schema from "./schema/index";
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from './schema';
+
+// Use DATABASE_URL from environment variables provided by LuxView Cloud
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+
+const client = postgres(connectionString);
+
+export const db = drizzle(client, { schema });
+
+export * from './schema';
+export * from 'drizzle-orm';

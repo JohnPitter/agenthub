@@ -51,7 +51,7 @@ WORKDIR /app
 # Copy orchestrator build + runtime deps
 COPY --from=builder /app/apps/orchestrator/dist ./apps/orchestrator/dist
 COPY --from=builder /app/apps/orchestrator/package.json ./apps/orchestrator/
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node
 COPY --from=deps /app/packages/shared ./packages/shared
 COPY --from=deps /app/packages/database ./packages/database
 COPY --from=deps /app/apps/orchestrator/node_modules ./apps/orchestrator/node_modules
@@ -79,7 +79,6 @@ RUN mkdir -p /run/nginx && printf 'server {\n\
         proxy_set_header Host $host;\n\
         proxy_set_header X-Real-IP $remote_addr;\n\
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
-        proxy_set_header X-Forwarded-Proto $scheme;\n\
     }\n\
 \n\
     location /socket.io/ {\n\
@@ -96,9 +95,6 @@ RUN mkdir -p /run/nginx && printf 'server {\n\
         add_header Cache-Control "public, immutable";\n\
     }\n\
 }\n' > /etc/nginx/http.d/default.conf
-
-# Data directory for SQLite
-RUN mkdir -p /root/.agenthub
 
 ENV NODE_ENV=production
 ENV ORCHESTRATOR_PORT=3001

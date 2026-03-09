@@ -32,6 +32,10 @@ COPY apps/web apps/web
 COPY apps/orchestrator apps/orchestrator
 COPY tsconfig.json turbo.json ./
 
+# Build packages first (shared → database → orchestrator)
+RUN pnpm --filter @agenthub/shared build
+RUN pnpm --filter @agenthub/database build
+
 # Build orchestrator (backend)
 RUN pnpm --filter @agenthub/orchestrator build
 
@@ -52,8 +56,8 @@ WORKDIR /app
 COPY --from=builder /app/apps/orchestrator/dist ./apps/orchestrator/dist
 COPY --from=builder /app/apps/orchestrator/package.json ./apps/orchestrator/
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/shared ./packages/shared
-COPY --from=deps /app/packages/database ./packages/database
+COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=builder /app/packages/database ./packages/database
 COPY --from=deps /app/apps/orchestrator/node_modules ./apps/orchestrator/node_modules
 COPY package.json pnpm-workspace.yaml ./
 

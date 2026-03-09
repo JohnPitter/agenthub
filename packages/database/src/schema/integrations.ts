@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-export const integrations = sqliteTable("integrations", {
+export const integrations = pgTable("integrations", {
   id: text("id").primaryKey(),
   projectId: text("project_id"),
   type: text("type", { enum: ["whatsapp", "telegram", "git", "openai"] }).notNull(),
@@ -10,7 +10,7 @@ export const integrations = sqliteTable("integrations", {
   config: text("config"),
   credentials: text("credentials"), // Encrypted credentials (AES-256-GCM)
   linkedAgentId: text("linked_agent_id"),
-  lastConnectedAt: integer("last_connected_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  lastConnectedAt: timestamp("last_connected_at"),
+  createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
 });

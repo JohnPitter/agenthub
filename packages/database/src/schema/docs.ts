@@ -1,14 +1,14 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, boolean, integer, timestamp } from "drizzle-orm/pg-core";
 
-export const docs = sqliteTable("docs", {
+export const docs = pgTable("docs", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   content: text("content").notNull().default(""),
   category: text("category"),
   icon: text("icon"),
-  pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
+  pinned: boolean("pinned").notNull().default(false),
   parentId: text("parent_id"),
   order: integer("order").notNull().default(0),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
 });

@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core";
 
-export const agentMemories = sqliteTable("agent_memories", {
+export const agentMemories = pgTable("agent_memories", {
   id: text("id").primaryKey(),
   agentId: text("agent_id").notNull(),
   projectId: text("project_id"),
@@ -10,7 +10,7 @@ export const agentMemories = sqliteTable("agent_memories", {
   content: text("content").notNull(),
   context: text("context"),
   importance: integer("importance").notNull().default(3),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
 }, (table) => [
   index("idx_agent_memories_agent").on(table.agentId),
   index("idx_agent_memories_project").on(table.agentId, table.projectId),

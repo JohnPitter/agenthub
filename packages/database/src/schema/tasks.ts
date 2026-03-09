@@ -1,8 +1,8 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { agents } from "./agents";
 
-export const tasks = sqliteTable("tasks", {
+export const tasks = pgTable("tasks", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   assignedAgentId: text("assigned_agent_id").references(() => agents.id),
@@ -20,7 +20,7 @@ export const tasks = sqliteTable("tasks", {
   result: text("result"),
   costUsd: text("cost_usd"),
   tokensUsed: integer("tokens_used"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
+  createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
+  completedAt: timestamp("completed_at"),
 });

@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-export const projects = sqliteTable("projects", {
+export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   path: text("path").notNull().unique(),
@@ -12,6 +12,6 @@ export const projects = sqliteTable("projects", {
   githubOwner: text("github_owner"),
   githubRepo: text("github_repo"),
   status: text("status", { enum: ["active", "archived"] }).default("active").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
 });

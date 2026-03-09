@@ -1,9 +1,9 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { agents } from "./agents";
 import { tasks } from "./tasks";
 
-export const messages = sqliteTable("messages", {
+export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   taskId: text("task_id").references(() => tasks.id),
@@ -17,6 +17,6 @@ export const messages = sqliteTable("messages", {
   }).default("text").notNull(),
   metadata: text("metadata"),
   parentMessageId: text("parent_message_id"),
-  isThinking: integer("is_thinking", { mode: "boolean" }).default(false).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  isThinking: boolean("is_thinking").default(false).notNull(),
+  createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
 });

@@ -1,4 +1,4 @@
-import { db } from "./connection";
+import { db } from "./index";
 import { agents } from "./schema/index";
 import { DEFAULT_AGENTS, DEFAULT_SOULS } from "@agenthub/shared";
 import type { AgentRole } from "@agenthub/shared";

@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 
-export const agents = sqliteTable("agents", {
+export const agents = pgTable("agents", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   role: text("role").notNull(),
@@ -13,11 +13,11 @@ export const agents = sqliteTable("agents", {
     enum: ["default", "acceptEdits", "bypassPermissions"],
   }).default("acceptEdits").notNull(),
   level: text("level", { enum: ["junior", "pleno", "senior", "especialista", "arquiteto"] }).default("senior").notNull(),
-  isDefault: integer("is_default", { mode: "boolean" }).default(false).notNull(),
-  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
   color: text("color"),
   avatar: text("avatar"),
   soul: text("soul"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
 });

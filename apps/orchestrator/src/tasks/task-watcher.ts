@@ -45,7 +45,7 @@ class TaskWatcher {
           isNull(schema.tasks.parentTaskId),
         ),
       )
-      .all();
+      ;
 
     for (const task of unassignedTasks) {
       // Skip if already being processed
@@ -63,7 +63,7 @@ class TaskWatcher {
         .select()
         .from(schema.agents)
         .where(eq(schema.agents.isActive, true))
-        .all();
+        ;
 
       const techLead = agents.find((a) => a.role === "tech_lead");
 

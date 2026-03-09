@@ -129,7 +129,7 @@ export async function handleReceptionistMessage(
     })
     .from(schema.agents)
     .where(eq(schema.agents.id, agentId))
-    .get();
+    .then(r => r[0]);
 
   // Use the base role prompt from agent-prompts.ts as source of truth.
   // DB systemPrompt is NOT appended — it may contain stale instructions.

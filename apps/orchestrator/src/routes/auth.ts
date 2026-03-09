@@ -88,7 +88,7 @@ authRouter.post("/refresh", async (req, res) => {
   const user = await db.select({ id: schema.users.id })
     .from(schema.users)
     .where(eq(schema.users.id, payload.userId))
-    .get();
+    .then(r => r[0]);
 
   if (!user) {
     res.status(401).json({ error: "User not found" });
@@ -123,7 +123,7 @@ authRouter.get("/me", authMiddleware, async (req, res) => {
     name: schema.users.name,
     email: schema.users.email,
     avatarUrl: schema.users.avatarUrl,
-  }).from(schema.users).where(eq(schema.users.id, req.user!.userId)).get();
+  }).from(schema.users).where(eq(schema.users.id, req.user!.userId)).then(r => r[0]);
 
   if (!user) {
     res.status(404).json({ error: "User not found" });

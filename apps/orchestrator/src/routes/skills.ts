@@ -37,7 +37,7 @@ skillsRouter.get("/:id", async (req, res) => {
       .select()
       .from(schema.skills)
       .where(eq(schema.skills.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!skill) return res.status(404).json({ error: "Skill not found" });
     res.json({ skill });
@@ -94,7 +94,7 @@ skillsRouter.patch("/:id", async (req, res) => {
       .select()
       .from(schema.skills)
       .where(eq(schema.skills.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!skill) return res.status(404).json({ error: "Skill not found" });
     res.json({ skill });
@@ -111,7 +111,7 @@ skillsRouter.delete("/:id", async (req, res) => {
       .select()
       .from(schema.skills)
       .where(eq(schema.skills.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!skill) return res.status(404).json({ error: "Skill not found" });
 
@@ -174,7 +174,7 @@ agentSkillsRouter.post("/:agentId/skills", async (req, res) => {
       .select()
       .from(schema.skills)
       .where(eq(schema.skills.id, skillId))
-      .get();
+      .then(r => r[0]);
 
     if (!skill) return res.status(404).json({ error: "Skill not found" });
 
@@ -188,7 +188,7 @@ agentSkillsRouter.post("/:agentId/skills", async (req, res) => {
           eq(schema.agentSkills.skillId, skillId),
         ),
       )
-      .get();
+      .then(r => r[0]);
 
     if (existing) {
       return res.status(409).json({ error: "Skill already assigned to this agent" });
@@ -223,7 +223,7 @@ agentSkillsRouter.delete("/:agentId/skills/:skillId", async (req, res) => {
           eq(schema.agentSkills.skillId, skillId),
         ),
       )
-      .get();
+      .then(r => r[0]);
 
     if (!existing) {
       return res.status(404).json({ error: "Skill assignment not found" });

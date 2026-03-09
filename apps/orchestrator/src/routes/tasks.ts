@@ -75,7 +75,7 @@ tasksRouter.get("/:id", async (req, res) => {
     .select()
     .from(schema.tasks)
     .where(eq(schema.tasks.id, req.params.id))
-    .get();
+    .then(r => r[0]);
 
   if (!task) return res.status(404).json({ error: "Task not found" });
   res.json({ task });
@@ -140,7 +140,7 @@ tasksRouter.patch("/:id", async (req, res) => {
 
   await db.update(schema.tasks).set(updates).where(eq(schema.tasks.id, req.params.id));
 
-  const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).get();
+  const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).then(r => r[0]);
 
   // Fire-and-forget: start workflow when task moves to "assigned" (Ready for Dev)
   if (req.body.status === "assigned" && task && techLeadId) {
@@ -163,12 +163,12 @@ tasksRouter.patch("/:id", async (req, res) => {
     if (task.branch) {
       (async () => {
         try {
-          const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
+          const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).then(r => r[0]);
           if (!project) return;
 
           const gitConfig = await db.select().from(schema.integrations)
             .where(and(eq(schema.integrations.projectId, task.projectId), eq(schema.integrations.type, "git")))
-            .get();
+            .then(r => r[0]);
 
           if (!gitConfig?.config) return;
 
@@ -299,7 +299,7 @@ tasksRouter.get("/:id/changes", async (req, res) => {
       .select()
       .from(schema.tasks)
       .where(eq(schema.tasks.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
@@ -309,7 +309,7 @@ tasksRouter.get("/:id/changes", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, task.projectId))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -523,7 +523,7 @@ tasksRouter.post("/:id/git/branch", async (req, res) => {
       .select()
       .from(schema.tasks)
       .where(eq(schema.tasks.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
@@ -533,7 +533,7 @@ tasksRouter.post("/:id/git/branch", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, task.projectId))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -564,7 +564,7 @@ tasksRouter.post("/:id/git/branch", async (req, res) => {
           eq(schema.integrations.type, "git")
         )
       )
-      .get();
+      .then(r => r[0]);
 
     const baseBranch = gitConfig?.config
       ? JSON.parse(gitConfig.config).defaultBranch

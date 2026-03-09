@@ -48,7 +48,7 @@ class AgentMemoryService {
       )
       .orderBy(desc(schema.agentMemories.importance), desc(schema.agentMemories.createdAt))
       .limit(limit)
-      .all();
+      ;
 
     // Get project-specific memories
     let projectMemories: typeof globalMemories = [];
@@ -64,7 +64,7 @@ class AgentMemoryService {
         )
         .orderBy(desc(schema.agentMemories.importance), desc(schema.agentMemories.createdAt))
         .limit(limit)
-        .all();
+        ;
     }
 
     // Also get memories with null projectId (truly global)
@@ -74,7 +74,7 @@ class AgentMemoryService {
       .where(eq(schema.agentMemories.agentId, agentId))
       .orderBy(desc(schema.agentMemories.importance), desc(schema.agentMemories.createdAt))
       .limit(limit * 2)
-      .all();
+      ;
 
     // Merge and deduplicate
     const seen = new Set<string>();
@@ -172,7 +172,7 @@ class AgentMemoryService {
           ),
         )
         .orderBy(desc(schema.agentMemories.createdAt))
-        .all();
+        ;
     }
 
     return db
@@ -180,7 +180,7 @@ class AgentMemoryService {
       .from(schema.agentMemories)
       .where(eq(schema.agentMemories.agentId, agentId))
       .orderBy(desc(schema.agentMemories.createdAt))
-      .all();
+      ;
   }
 
   async delete(memoryId: string): Promise<boolean> {

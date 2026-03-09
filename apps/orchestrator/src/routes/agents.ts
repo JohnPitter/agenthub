@@ -25,7 +25,7 @@ agentsRouter.get("/:id", async (req, res) => {
       .select()
       .from(schema.agents)
       .where(eq(schema.agents.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!agent) return res.status(404).json({ error: "Agent not found" });
     res.json({ agent });
@@ -81,7 +81,7 @@ agentsRouter.patch("/:id", async (req, res) => {
 
     await db.update(schema.agents).set(updates).where(eq(schema.agents.id, req.params.id));
 
-    const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).get();
+    const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).then(r => r[0]);
 
     if (agent) {
       eventBus.emit("agent:updated", { agent: agent as unknown as Record<string, unknown> });
@@ -97,7 +97,7 @@ agentsRouter.patch("/:id", async (req, res) => {
 // DELETE /api/agents/:id — only custom agents
 agentsRouter.delete("/:id", async (req, res) => {
   try {
-    const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).get();
+    const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).then(r => r[0]);
 
     if (!agent) return res.status(404).json({ error: "Agent not found" });
     if (agent.isDefault) return res.status(400).json({ error: "Cannot delete default agents" });

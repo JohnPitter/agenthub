@@ -67,7 +67,7 @@ export async function fetchGitHubUser(accessToken: string): Promise<GitHubUser> 
 }
 
 export async function upsertUser(ghUser: GitHubUser, accessToken: string) {
-  const existing = await db.select().from(schema.users).where(eq(schema.users.githubId, ghUser.id)).get();
+  const existing = await db.select().from(schema.users).where(eq(schema.users.githubId, ghUser.id)).then(r => r[0]);
 
   const encryptedToken = encrypt(accessToken);
   const now = new Date();

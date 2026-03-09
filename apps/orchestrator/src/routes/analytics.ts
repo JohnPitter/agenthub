@@ -56,7 +56,7 @@ router.get("/analytics/agents", async (req, res) => {
     }
 
     // Get all agents
-    const agents = await db.select().from(schema.agents).all();
+    const agents = await db.select().from(schema.agents);
     const agentMap = new Map(agents.map((a) => [a.id, a]));
 
     // Get all tasks in the period
@@ -72,7 +72,7 @@ router.get("/analytics/agents", async (req, res) => {
       .select()
       .from(schema.tasks)
       .where(taskConditions.length > 0 ? and(...taskConditions) : undefined)
-      .all();
+      ;
 
     if (allTasks.length === 0) {
       const metrics: AgentMetrics[] = agents.map((agent) => ({
@@ -98,7 +98,7 @@ router.get("/analytics/agents", async (req, res) => {
       .select({ taskId: schema.taskLogs.taskId, agentId: schema.taskLogs.agentId })
       .from(schema.taskLogs)
       .where(inArray(schema.taskLogs.taskId, taskIds))
-      .all();
+      ;
 
     // Build a map: agentId → Set<taskId> (all tasks the agent participated in)
     const agentTasks = new Map<string, Set<string>>();
@@ -224,7 +224,7 @@ router.get("/analytics/trends", async (req, res) => {
       .select()
       .from(schema.tasks)
       .where(and(...conditions))
-      .all();
+      ;
 
     // Group tasks by date
     const trendMap = new Map<string, { completed: number; failed: number; total: number }>();

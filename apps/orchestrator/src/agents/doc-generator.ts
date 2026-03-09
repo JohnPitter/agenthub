@@ -96,7 +96,7 @@ class DocGenerator {
       .select()
       .from(schema.tasks)
       .where(eq(schema.tasks.id, taskId))
-      .get();
+      .then(r => r[0]);
 
     if (!task) {
       return `Task ${taskId} not found.`;
@@ -107,7 +107,7 @@ class DocGenerator {
       .from(schema.taskLogs)
       .where(eq(schema.taskLogs.taskId, taskId))
       .orderBy(desc(schema.taskLogs.createdAt))
-      .all();
+      ;
 
     const lines: string[] = [
       `# Task Summary: ${task.title}`,

@@ -57,7 +57,7 @@ beforeAll(async () => {
         .select()
         .from(schema.workflows)
         .where(eq(schema.workflows.id, req.params.id))
-        .get();
+        .then(r => r[0]);
 
       if (!workflow) return res.status(404).json({ error: "Workflow not found" });
 
@@ -121,7 +121,7 @@ beforeAll(async () => {
         .select()
         .from(schema.workflows)
         .where(eq(schema.workflows.id, req.params.id))
-        .get();
+        .then(r => r[0]);
 
       if (!existing) return res.status(404).json({ error: "Workflow not found" });
 
@@ -147,7 +147,7 @@ beforeAll(async () => {
         .select()
         .from(schema.workflows)
         .where(eq(schema.workflows.id, req.params.id))
-        .get();
+        .then(r => r[0]);
 
       res.json({
         workflow: updated
@@ -165,7 +165,7 @@ beforeAll(async () => {
         .select()
         .from(schema.workflows)
         .where(eq(schema.workflows.id, req.params.id))
-        .get();
+        .then(r => r[0]);
 
       if (!existing) return res.status(404).json({ error: "Workflow not found" });
 
@@ -182,7 +182,7 @@ beforeAll(async () => {
         .select()
         .from(schema.workflows)
         .where(eq(schema.workflows.id, req.params.id))
-        .get();
+        .then(r => r[0]);
 
       if (!workflow) return res.status(404).json({ error: "Workflow not found" });
 

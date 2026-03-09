@@ -30,7 +30,7 @@ beforeAll(async () => {
       .select()
       .from(schema.agents)
       .where(eq(schema.agents.id, req.params.id))
-      .get();
+      .then(r => r[0]);
     if (!agent) return res.status(404).json({ error: "Agent not found" });
     res.json({ agent });
   });
@@ -67,12 +67,12 @@ beforeAll(async () => {
       }
     }
     await testDb.update(schema.agents).set(updates).where(eq(schema.agents.id, req.params.id));
-    const agent = await testDb.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).get();
+    const agent = await testDb.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).then(r => r[0]);
     res.json({ agent });
   });
 
   app.delete("/api/agents/:id", async (req, res) => {
-    const agent = await testDb.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).get();
+    const agent = await testDb.select().from(schema.agents).where(eq(schema.agents.id, req.params.id)).then(r => r[0]);
     if (!agent) return res.status(404).json({ error: "Agent not found" });
     if (agent.isDefault) return res.status(400).json({ error: "Cannot delete default agents" });
     await testDb.delete(schema.agents).where(eq(schema.agents.id, req.params.id));

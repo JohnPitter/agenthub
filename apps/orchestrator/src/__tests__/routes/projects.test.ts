@@ -48,7 +48,7 @@ beforeAll(async () => {
         .select()
         .from(schema.projects)
         .where(eq(schema.projects.id, req.params.id))
-        .get();
+        .then(r => r[0]);
       if (!project) return res.status(404).json({ error: "Project not found" });
       res.json({ project });
     } catch (error) {
@@ -92,7 +92,7 @@ beforeAll(async () => {
         .select()
         .from(schema.projects)
         .where(eq(schema.projects.id, req.params.id))
-        .get();
+        .then(r => r[0]);
       res.json({ project });
     } catch (error) {
       res.status(500).json({ error: "Failed to update project" });

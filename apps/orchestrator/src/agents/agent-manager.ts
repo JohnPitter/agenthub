@@ -92,7 +92,7 @@ class AgentManager {
       .select()
       .from(schema.workflows)
       .where(and(eq(schema.workflows.projectId, projectId), eq(schema.workflows.isDefault, true)))
-      .get();
+      .then(r => r[0]);
 
     return workflow?.id ?? null;
   }
@@ -104,7 +104,7 @@ class AgentManager {
    * Tech Lead (triage) -> [simple: plan + pick dev | complex: Architect -> plan -> pick dev] -> Dev -> QA
    */
   async runWorkflow(taskId: string, techLeadId: string): Promise<void> {
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) {
       logger.error(`Task ${taskId} not found for workflow`, "agent-manager");
       return;
@@ -172,7 +172,7 @@ class AgentManager {
     const workflow = this.workflowStates.get(taskId);
     if (!workflow) return false;
 
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) return false;
 
     if (workflow.phase === "tech_lead_triage") {
@@ -181,7 +181,7 @@ class AgentManager {
 
       if (triageDecision.needsArchitect) {
         // Complex task → send to Architect for detailed planning
-        const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+        const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true));
         const architect = agents.find((a) => a.role === "architect");
 
         if (!architect) {
@@ -329,7 +329,7 @@ class AgentManager {
 
     if (workflow.phase === "dev_execution") {
       // Dev finished → check if QA agent exists for review
-      const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+      const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true));
       const qaAgent = agents.find((a) => a.role === "qa");
 
       if (qaAgent) {
@@ -416,7 +416,7 @@ class AgentManager {
         return false;
       }
 
-      const devAgent = await db.select().from(schema.agents).where(eq(schema.agents.id, devId)).get();
+      const devAgent = await db.select().from(schema.agents).where(eq(schema.agents.id, devId)).then(r => r[0]);
       const devName = devAgent?.name ?? "Dev";
 
       logger.info(
@@ -478,7 +478,7 @@ class AgentManager {
       }
 
       // Dev fixed it → send back to QA for re-review
-      const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+      const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true));
       const qaAgent = agents.find((a) => a.role === "qa");
 
       if (qaAgent) {
@@ -533,7 +533,7 @@ class AgentManager {
         return false;
       }
 
-      const devAgent = await db.select().from(schema.agents).where(eq(schema.agents.id, devId)).get();
+      const devAgent = await db.select().from(schema.agents).where(eq(schema.agents.id, devId)).then(r => r[0]);
       const devName = devAgent?.name ?? "Dev";
 
       workflow.phase = "dev_fix_with_plan";
@@ -579,7 +579,7 @@ class AgentManager {
 
     if (workflow.phase === "dev_fix_with_plan") {
       // Dev finished implementing Tech Lead's plan → send back to QA
-      const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+      const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true));
       const qaAgent = agents.find((a) => a.role === "qa");
 
       if (qaAgent) {
@@ -617,7 +617,7 @@ class AgentManager {
 
     if (workflow.phase === "architect_fix_plan") {
       // Architect created a fix plan → send to Tech Lead who will relay it to dev
-      const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).get();
+      const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).then(r => r[0]);
       if (!techLead) {
         logger.error(`Tech Lead not found for relay, marking task as failed`, "agent-manager");
         await transitionTask(taskId, "failed" as TaskStatus, undefined, "Tech Lead not found for architect plan relay");
@@ -674,7 +674,7 @@ class AgentManager {
         return false;
       }
 
-      const devAgent = await db.select().from(schema.agents).where(eq(schema.agents.id, devId)).get();
+      const devAgent = await db.select().from(schema.agents).where(eq(schema.agents.id, devId)).then(r => r[0]);
       const devName = devAgent?.name ?? "Dev";
 
       workflow.phase = "dev_fix_with_plan";
@@ -869,7 +869,7 @@ class AgentManager {
 
     // Update parent task description with Tech Lead's split analysis
     if (analysis) {
-      const parentTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, parentTaskId)).get();
+      const parentTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, parentTaskId)).then(r => r[0]);
       const updatedDescription = [
         parentTask?.description ?? "",
         "\n\n---\n## Tech Lead Split Analysis\n",
@@ -897,7 +897,7 @@ class AgentManager {
     await logTaskAction(parentTaskId, "workflow_phase", workflow.techLeadId, `Phase: split_task_dispatch — Creating ${subtasks.length} subtasks`);
 
     // Find Tech Lead for subtask workflows
-    const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).get();
+    const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).then(r => r[0]);
     if (!techLead) {
       logger.error(`Tech Lead ${workflow.techLeadId} not found for subtask dispatch`, "agent-manager");
       await transitionTask(parentTaskId, "failed" as TaskStatus, undefined, "Tech Lead not found for subtask dispatch");
@@ -906,7 +906,7 @@ class AgentManager {
     }
 
     // Create subtask records and launch workflows
-    const parentTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, parentTaskId)).get();
+    const parentTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, parentTaskId)).then(r => r[0]);
 
     for (const subtask of subtasks) {
       const subtaskId = nanoid();
@@ -932,7 +932,7 @@ class AgentManager {
       await logTaskAction(subtaskId, "status_change", workflow.techLeadId, `Subtask created from parent ${parentTaskId}`);
 
       eventBus.emit("task:created", {
-        task: await db.select().from(schema.tasks).where(eq(schema.tasks.id, subtaskId)).get(),
+        task: await db.select().from(schema.tasks).where(eq(schema.tasks.id, subtaskId)).then(r => r[0]),
       });
 
       // Launch independent workflow for each subtask
@@ -960,7 +960,7 @@ class AgentManager {
     plan: string,
   ): Promise<void> {
     const devRole = this.detectDevFromPlan(plan);
-    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true));
 
     let selectedDev = agents.find((a) => a.role === devRole && !this.isAgentBusy(a.id));
     if (!selectedDev) {
@@ -1043,10 +1043,10 @@ class AgentManager {
    * Tech Lead analyzes the errors + QA feedback and creates a structured plan for the dev.
    */
   private async escalateToTechLead(taskId: string, workflow: WorkflowState, errors: string): Promise<void> {
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) return;
 
-    const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).get();
+    const techLead = await db.select().from(schema.agents).where(eq(schema.agents.id, workflow.techLeadId)).then(r => r[0]);
     if (!techLead) {
       logger.error(`Tech Lead ${workflow.techLeadId} not found, marking task as failed`, "agent-manager");
       await transitionTask(taskId, "failed" as TaskStatus, undefined, "Tech Lead not found for escalation");
@@ -1105,10 +1105,10 @@ class AgentManager {
    * Architect creates a detailed fix plan → goes back to Tech Lead → then to Dev.
    */
   private async escalateToArchitect(taskId: string, workflow: WorkflowState, errors: string): Promise<void> {
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) return;
 
-    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true));
     const architect = agents.find((a) => a.role === "architect");
 
     if (!architect) {
@@ -1167,14 +1167,14 @@ class AgentManager {
    * Auto-assign a task to the most appropriate available agent based on task category
    */
   async autoAssignTask(taskId: string): Promise<void> {
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) {
       logger.error(`Task ${taskId} not found`, "agent-manager");
       return;
     }
 
     // Get all active agents for this project
-    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true)).all();
+    const agents = await db.select().from(schema.agents).where(eq(schema.agents.isActive, true));
 
     if (agents.length === 0) {
       logger.warn(`No active agents available for task ${taskId}`, "agent-manager");
@@ -1226,13 +1226,13 @@ class AgentManager {
 
   async assignTask(taskId: string, agentId: string): Promise<void> {
     // Load task and agent from DB
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) {
       logger.error(`Task ${taskId} not found`, "agent-manager");
       return;
     }
 
-    const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, agentId)).get();
+    const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, agentId)).then(r => r[0]);
     if (!agent) {
       logger.error(`Agent ${agentId} not found`, "agent-manager");
       return;
@@ -1250,7 +1250,7 @@ class AgentManager {
     }
 
     // Load project for workspace path
-    const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
+    const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).then(r => r[0]);
     if (!project) {
       logger.error(`Project ${task.projectId} not found`, "agent-manager");
       return;
@@ -1303,7 +1303,7 @@ class AgentManager {
               eq(schema.integrations.type, "git")
             )
           )
-          .get();
+          .then(r => r[0]);
 
         if (gitConfig?.config) {
           const config = JSON.parse(gitConfig.config);
@@ -1393,7 +1393,7 @@ class AgentManager {
         if (workflowExecutor.isWorkflowSubtask(taskId)) {
           await workflowExecutor.onSubtaskCompleted(taskId, result.result ?? undefined);
           // Also check parent task subtask completion
-          const taskData = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+          const taskData = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
           if (taskData?.parentTaskId) {
             await this.checkSubtaskCompletion(taskData.parentTaskId);
           }
@@ -1416,7 +1416,7 @@ class AgentManager {
 
         // Extract and store memory from result
         try {
-          const taskData = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+          const taskData = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
           if (taskData && result.result) {
             await agentMemory.extractFromResult(agentId, taskData.projectId, taskData.title as string, result.result);
           }
@@ -1470,7 +1470,7 @@ class AgentManager {
 
           // Store error as memory for future avoidance
           try {
-            const taskData = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+            const taskData = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
             if (taskData) {
               await agentMemory.storeError(agentId, taskData.projectId, taskData.title as string, result.errors.join("; "));
             }
@@ -1493,10 +1493,10 @@ class AgentManager {
 
   private async autoCommitChanges(taskId: string, agentId: string): Promise<void> {
     try {
-      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
       if (!task?.branch) return;
 
-      const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
+      const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).then(r => r[0]);
       if (!project?.path) return;
 
       const isGitRepo = await gitService.detectGitRepo(project.path);
@@ -1515,7 +1515,7 @@ class AgentManager {
       await gitService.stageAll(project.path);
 
       // Commit (will fail if nothing to commit — that's fine)
-      const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, agentId)).get();
+      const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, agentId)).then(r => r[0]);
       const agentName = agent?.name ?? "Agent";
       const message = `feat(${agentName}): ${task.title}`;
 
@@ -1567,7 +1567,7 @@ class AgentManager {
             eq(schema.integrations.type, "git")
           )
         )
-        .get();
+        .then(r => r[0]);
 
       if (gitConfig?.credentials) {
         try {
@@ -1601,7 +1601,7 @@ class AgentManager {
 
   private async enqueueTask(agentId: string, taskId: string, projectId: string): Promise<void> {
     // Get task details for priority
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) {
       logger.error(`Task ${taskId} not found for enqueue`, "agent-manager");
       return;
@@ -1714,7 +1714,7 @@ class AgentManager {
       .select()
       .from(schema.tasks)
       .where(eq(schema.tasks.parentTaskId, parentTaskId))
-      .all();
+      ;
 
     if (subtasks.length === 0) return;
 
@@ -1727,7 +1727,7 @@ class AgentManager {
         .select()
         .from(schema.tasks)
         .where(eq(schema.tasks.id, parentTaskId))
-        .get();
+        .then(r => r[0]);
 
       if (parent && parent.status === "in_progress") {
         logger.info(
@@ -1761,7 +1761,7 @@ class AgentManager {
       .select({ accessToken: schema.users.accessToken })
       .from(schema.users)
       .limit(1)
-      .get();
+      .then(r => r[0]);
 
     let token: string | undefined;
     if (user?.accessToken) {

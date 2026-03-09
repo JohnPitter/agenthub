@@ -29,7 +29,7 @@ class WorkflowExecutorService {
       .select()
       .from(schema.workflows)
       .where(eq(schema.workflows.id, workflowId))
-      .get();
+      .then(r => r[0]);
 
     if (!workflow) {
       logger.error(`Workflow ${workflowId} not found`, "workflow-executor");
@@ -50,7 +50,7 @@ class WorkflowExecutorService {
       return false;
     }
 
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
     if (!task) {
       logger.error(`Task ${taskId} not found for workflow execution`, "workflow-executor");
       return false;
@@ -120,7 +120,7 @@ class WorkflowExecutorService {
       case "agent": {
         // Create a subtask for the agent node
         const subtaskId = nanoid();
-        const mainTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, mainTaskId)).get();
+        const mainTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, mainTaskId)).then(r => r[0]);
 
         await db.insert(schema.tasks).values({
           id: subtaskId,
@@ -160,7 +160,7 @@ class WorkflowExecutorService {
 
       case "condition": {
         // Gather results from parent task for condition checking
-        const mainTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, mainTaskId)).get();
+        const mainTask = await db.select().from(schema.tasks).where(eq(schema.tasks.id, mainTaskId)).then(r => r[0]);
         const taskResult: Record<string, unknown> = {
           status: mainTask?.status ?? "",
           result: mainTask?.result ?? "",
@@ -200,7 +200,7 @@ class WorkflowExecutorService {
       .select()
       .from(schema.workflows)
       .where(eq(schema.workflows.id, state.workflowId))
-      .get();
+      .then(r => r[0]);
 
     if (!workflow) return false;
 
@@ -208,7 +208,7 @@ class WorkflowExecutorService {
     const edges: WorkflowEdge[] = JSON.parse(workflow.edges);
     const engine = new WorkflowEngine(nodes, edges);
 
-    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, mainTaskId)).get();
+    const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, mainTaskId)).then(r => r[0]);
     const projectId = task?.projectId ?? "";
 
     await this.completeNode(mainTaskId, nodeId, engine, projectId);
@@ -274,7 +274,7 @@ class WorkflowExecutorService {
   private async resolveAgent(node: WorkflowNode, projectId: string): Promise<string | null> {
     // If a specific agent ID is configured, use it
     if (node.agentId) {
-      const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, node.agentId)).get();
+      const agent = await db.select().from(schema.agents).where(eq(schema.agents.id, node.agentId)).then(r => r[0]);
       if (agent?.isActive) return agent.id;
     }
 
@@ -284,7 +284,7 @@ class WorkflowExecutorService {
         .select()
         .from(schema.agents)
         .where(and(eq(schema.agents.isActive, true), eq(schema.agents.role, node.agentRole as AgentRole)))
-        .all();
+        ;
 
       if (agents.length > 0) {
         // Prefer an idle agent

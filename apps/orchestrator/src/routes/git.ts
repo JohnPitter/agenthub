@@ -23,7 +23,7 @@ router.get("/projects/:id/git/status", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -74,7 +74,7 @@ router.post("/projects/:id/git/init", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -96,7 +96,7 @@ router.post("/projects/:id/git/init", async (req, res) => {
         .select()
         .from(schema.integrations)
         .where(and(eq(schema.integrations.projectId, req.params.id), eq(schema.integrations.type, "git")))
-        .get();
+        .then(r => r[0]);
 
       let credentials: { type: "ssh" | "https"; token?: string; sshKeyPath?: string } | undefined;
       if (gitIntegration?.credentials) {
@@ -105,7 +105,7 @@ router.post("/projects/:id/git/init", async (req, res) => {
 
       // Also check user's GitHub access token
       if (!credentials) {
-        const user = await db.select().from(schema.users).get();
+        const user = await db.select().from(schema.users).then(r => r[0]);
         const accessToken = user?.accessToken ? safeDecrypt(user.accessToken) : null;
         if (accessToken) {
           credentials = { type: "https", token: accessToken };
@@ -161,7 +161,7 @@ router.get("/projects/:id/git/config", async (req, res) => {
           eq(schema.integrations.type, "git")
         )
       )
-      .get();
+      .then(r => r[0]);
 
     if (!integration) {
       return res.json(null);
@@ -200,7 +200,7 @@ router.put("/projects/:id/git/config", async (req, res) => {
           eq(schema.integrations.type, "git")
         )
       )
-      .get();
+      .then(r => r[0]);
 
     if (existing) {
       // Update existing
@@ -270,7 +270,7 @@ router.put("/projects/:id/git/credentials", async (req, res) => {
           eq(schema.integrations.type, "git")
         )
       )
-      .get();
+      .then(r => r[0]);
 
     if (existing) {
       // Update credentials
@@ -335,7 +335,7 @@ router.post("/projects/:id/git/remote/add", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -365,7 +365,7 @@ router.post("/projects/:id/git/remote/add", async (req, res) => {
           eq(schema.integrations.type, "git")
         )
       )
-      .get();
+      .then(r => r[0]);
 
     if (integration && integration.config) {
       const config = JSON.parse(integration.config);
@@ -400,7 +400,7 @@ router.get("/projects/:id/git/remote/branches", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -432,7 +432,7 @@ router.post("/projects/:id/git/sync", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });

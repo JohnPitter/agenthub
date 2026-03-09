@@ -103,7 +103,7 @@ export function setupSocketHandlers(
       logger.info(`Execute task ${taskId} with agent ${agentId}`, "socket");
 
       // Reset non-created tasks to created before executing
-      const task = await db.select({ status: schema.tasks.status }).from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      const task = await db.select({ status: schema.tasks.status }).from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
       if (task && task.status !== "created" && task.status !== "in_progress") {
         await transitionTask(taskId, "created", undefined, `Resetting from ${task.status} for execution`);
       }
@@ -123,10 +123,10 @@ export function setupSocketHandlers(
       await transitionTask(taskId, "done", undefined, "Approved by user");
 
       // Git auto-commit logic
-      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
       if (!task) return;
 
-      const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
+      const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).then(r => r[0]);
       if (!project) return;
 
       const gitConfig = await db
@@ -138,7 +138,7 @@ export function setupSocketHandlers(
             eq(schema.integrations.type, "git")
           )
         )
-        .get();
+        .then(r => r[0]);
 
       if (gitConfig && gitConfig.config) {
         const config = JSON.parse(gitConfig.config);
@@ -204,10 +204,10 @@ export function setupSocketHandlers(
     socket.on("user:commit_task", async ({ taskId, message }) => {
       logger.info(`Manual commit for task: ${taskId}`, "socket");
 
-      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
       if (!task) return;
 
-      const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).get();
+      const project = await db.select().from(schema.projects).where(eq(schema.projects.id, task.projectId)).then(r => r[0]);
       if (!project) return;
 
       try {
@@ -253,7 +253,7 @@ export function setupSocketHandlers(
               eq(schema.integrations.type, "git")
             )
           )
-          .get();
+          .then(r => r[0]);
 
         if (gitConfig && gitConfig.config) {
           const config = JSON.parse(gitConfig.config);
@@ -304,7 +304,7 @@ export function setupSocketHandlers(
     socket.on("user:push_task", async ({ taskId }) => {
       logger.info(`Manual push for task: ${taskId}`, "socket");
 
-      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
       if (!task) {
         logger.warn(`Task not found for push: ${taskId}`, "socket");
         return;
@@ -314,7 +314,7 @@ export function setupSocketHandlers(
         .select()
         .from(schema.projects)
         .where(eq(schema.projects.id, task.projectId))
-        .get();
+        .then(r => r[0]);
 
       if (!project) {
         logger.warn(`Project not found for push: ${task.projectId}`, "socket");
@@ -330,7 +330,7 @@ export function setupSocketHandlers(
             eq(schema.integrations.type, "git")
           )
         )
-        .get();
+        .then(r => r[0]);
 
       if (!gitConfig) {
         logger.warn(`Git integration not configured for project: ${task.projectId}`, "socket");
@@ -384,7 +384,7 @@ export function setupSocketHandlers(
       await transitionTask(taskId, "changes_requested", undefined, feedback);
 
       // Re-assign to original agent with feedback
-      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+      const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
       if (task?.assignedAgentId) {
         const updatedDescription = [
           task.description ?? "",
@@ -598,7 +598,7 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
       const task = await db.select({ projectId: schema.tasks.projectId, title: schema.tasks.title })
         .from(schema.tasks)
         .where(eq(schema.tasks.id, data.taskId))
-        .get();
+        .then(r => r[0]);
 
       const projectId = task?.projectId ?? undefined;
       const taskTitle = task?.title ?? data.taskId;

@@ -39,7 +39,7 @@ export async function getUserRoleInTeam(userId: string, teamId: string): Promise
     .select()
     .from(schema.teamMembers)
     .where(and(eq(schema.teamMembers.userId, userId), eq(schema.teamMembers.teamId, teamId)))
-    .get();
+    .then(r => r[0]);
   return member?.role ?? null;
 }
 

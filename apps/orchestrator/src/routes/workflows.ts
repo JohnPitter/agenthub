@@ -41,7 +41,7 @@ workflowsRouter.get("/:id", async (req, res) => {
       .select()
       .from(schema.workflows)
       .where(eq(schema.workflows.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!workflow) return res.status(404).json({ error: "Workflow not found" });
 
@@ -113,7 +113,7 @@ workflowsRouter.put("/:id", async (req, res) => {
       .select()
       .from(schema.workflows)
       .where(eq(schema.workflows.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!existing) return res.status(404).json({ error: "Workflow not found" });
 
@@ -140,7 +140,7 @@ workflowsRouter.put("/:id", async (req, res) => {
       .select()
       .from(schema.workflows)
       .where(eq(schema.workflows.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     res.json({
       workflow: updated
@@ -160,7 +160,7 @@ workflowsRouter.delete("/:id", async (req, res) => {
       .select()
       .from(schema.workflows)
       .where(eq(schema.workflows.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!existing) return res.status(404).json({ error: "Workflow not found" });
 
@@ -181,7 +181,7 @@ workflowsRouter.post("/:id/set-default", async (req, res) => {
       .select()
       .from(schema.workflows)
       .where(eq(schema.workflows.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!workflow) return res.status(404).json({ error: "Workflow not found" });
 

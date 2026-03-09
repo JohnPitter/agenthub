@@ -18,7 +18,7 @@ export async function transitionTask(
   agentId?: string,
   detail?: string,
 ): Promise<boolean> {
-  const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+  const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
   if (!task) {
     logger.warn(`Task ${taskId} not found for transition`, "task-lifecycle");
     return false;
@@ -66,7 +66,7 @@ export async function transitionTask(
   // Emit events
   eventBus.emit("task:status", { taskId, projectId: task.projectId, status: newStatus, agentId });
 
-  const updated = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+  const updated = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
   eventBus.emit("task:updated", { task: updated });
 
   // Check if parent task should advance when subtask completes
@@ -144,7 +144,7 @@ class TaskTimeoutManager {
       .select()
       .from(schema.tasks)
       .where(eq(schema.tasks.status, "in_progress"))
-      .all();
+      ;
 
     for (const task of timedOutTasks) {
       // Check if task has been in_progress for more than TIMEOUT_MS

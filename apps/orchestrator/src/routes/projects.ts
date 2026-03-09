@@ -38,7 +38,7 @@ async function resolveAccessToken(
     .select({ accessToken: schema.users.accessToken })
     .from(schema.users)
     .where(eq(schema.users.id, userId))
-    .get();
+    .then(r => r[0]);
 
   if (!user?.accessToken) {
     res.status(424).json({ error: "github_reauth", message: "GitHub access token not found. Please re-authenticate." });
@@ -190,7 +190,7 @@ projectsRouter.post("/create", async (req, res) => {
       .select({ id: schema.projects.id })
       .from(schema.projects)
       .where(eq(schema.projects.githubUrl, repoResult.html_url))
-      .get();
+      .then(r => r[0]);
     if (existing) return res.status(409).json({ error: "errorDuplicate" });
 
     // Clone to local
@@ -248,7 +248,7 @@ projectsRouter.post("/import", async (req, res) => {
       .select({ id: schema.projects.id })
       .from(schema.projects)
       .where(eq(schema.projects.githubUrl, htmlUrl || `https://github.com/${owner}/${repo}`))
-      .get();
+      .then(r => r[0]);
     if (existing) return res.status(409).json({ error: "errorDuplicate" });
 
     // Resolve clone URL
@@ -304,7 +304,7 @@ projectsRouter.get("/:id", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) return res.status(404).json({ error: "Project not found" });
 
@@ -373,7 +373,7 @@ projectsRouter.patch("/:id", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     res.json({ project });
   } catch (error) {

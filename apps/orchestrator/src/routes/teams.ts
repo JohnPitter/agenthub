@@ -99,7 +99,7 @@ teamsRouter.get("/:id", async (req, res) => {
       .select()
       .from(schema.teams)
       .where(eq(schema.teams.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!team) return res.status(404).json({ error: "Team not found" });
 
@@ -199,7 +199,7 @@ teamsRouter.post("/invite/:token/accept", async (req, res) => {
       .select()
       .from(schema.teamInvites)
       .where(eq(schema.teamInvites.token, req.params.token))
-      .get();
+      .then(r => r[0]);
 
     if (!invite) return res.status(404).json({ error: "Invite not found" });
     if (invite.acceptedAt) return res.status(400).json({ error: "Invite already accepted" });
@@ -210,7 +210,7 @@ teamsRouter.post("/invite/:token/accept", async (req, res) => {
       .select()
       .from(schema.teamMembers)
       .where(and(eq(schema.teamMembers.teamId, invite.teamId), eq(schema.teamMembers.userId, userId)))
-      .get();
+      .then(r => r[0]);
 
     if (existing) return res.status(400).json({ error: "Already a member of this team" });
 

@@ -27,7 +27,7 @@ router.get("/projects/:id/files", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -58,7 +58,7 @@ router.get("/projects/:id/files/content", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -109,7 +109,7 @@ router.put("/projects/:id/files/content", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -156,7 +156,7 @@ router.get("/projects/:id/files/history", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -214,7 +214,7 @@ router.get("/projects/:id/files/at-commit", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });

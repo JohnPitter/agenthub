@@ -773,7 +773,7 @@ export class OpenAISession {
     try {
       const rows = await db.select()
         .from(schema.integrations)
-        .all();
+        ;
 
       const openaiIntegration = rows.find(
         (i) => i.type === "openai" && i.credentials,

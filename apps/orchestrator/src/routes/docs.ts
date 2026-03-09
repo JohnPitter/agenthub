@@ -27,7 +27,7 @@ docsRouter.get("/:id", async (req, res) => {
       .select()
       .from(schema.docs)
       .where(eq(schema.docs.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!doc) return res.status(404).json({ error: "Document not found" });
     res.json({ doc });
@@ -70,7 +70,7 @@ async function hasCircularRef(docId: string, newParentId: string | null): Promis
   let current: string | null = newParentId;
   while (current) {
     const parent = await db.select({ parentId: schema.docs.parentId })
-      .from(schema.docs).where(eq(schema.docs.id, current)).get();
+      .from(schema.docs).where(eq(schema.docs.id, current)).then(r => r[0]);
     if (!parent) break;
     if (parent.parentId === docId) return true;
     current = parent.parentId;
@@ -107,7 +107,7 @@ docsRouter.patch("/:id", async (req, res) => {
       .select()
       .from(schema.docs)
       .where(eq(schema.docs.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     res.json({ doc });
   } catch (error) {
@@ -122,7 +122,7 @@ docsRouter.delete("/:id", async (req, res) => {
     const { id } = req.params;
 
     // Reassign children to the deleted doc's parent before removing
-    const deletedDoc = await db.select().from(schema.docs).where(eq(schema.docs.id, id)).get();
+    const deletedDoc = await db.select().from(schema.docs).where(eq(schema.docs.id, id)).then(r => r[0]);
     if (deletedDoc) {
       await db.update(schema.docs)
         .set({ parentId: deletedDoc.parentId, updatedAt: new Date() })

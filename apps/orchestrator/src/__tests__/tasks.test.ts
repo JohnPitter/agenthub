@@ -38,7 +38,7 @@ beforeAll(async () => {
       .select()
       .from(schema.tasks)
       .where(eq(schema.tasks.id, req.params.id))
-      .get();
+      .then(r => r[0]);
     if (!task) return res.status(404).json({ error: "Task not found" });
     res.json({ task });
   });
@@ -71,7 +71,7 @@ beforeAll(async () => {
       updates.completedAt = new Date();
     }
     await testDb.update(schema.tasks).set(updates).where(eq(schema.tasks.id, req.params.id));
-    const task = await testDb.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).get();
+    const task = await testDb.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).then(r => r[0]);
     res.json({ task });
   });
 

@@ -56,7 +56,7 @@ export async function listProjects(): Promise<string> {
       id: schema.projects.id,
       name: schema.projects.name,
       description: schema.projects.description,
-    }).from(schema.projects).all();
+    }).from(schema.projects);
 
     if (projects.length === 0) {
       return "\u{1F4C1} No projects found.";
@@ -85,7 +85,7 @@ export async function listProjects(): Promise<string> {
 export async function listTasks(projectId: string, statusFilter?: string): Promise<string> {
   try {
     const project = await db.select().from(schema.projects)
-      .where(eq(schema.projects.id, projectId)).get();
+      .where(eq(schema.projects.id, projectId)).then(r => r[0]);
 
     const conditions = [eq(schema.tasks.projectId, projectId)];
     if (statusFilter) {
@@ -102,7 +102,7 @@ export async function listTasks(projectId: string, statusFilter?: string): Promi
     }).from(schema.tasks)
       .where(conditions.length === 1 ? conditions[0] : and(...conditions))
       .orderBy(desc(schema.tasks.updatedAt))
-      .all();
+      ;
 
     if (allTasks.length === 0) {
       const filter = statusFilter ? ` with status *${statusFilter}*` : "";
@@ -118,7 +118,7 @@ export async function listTasks(projectId: string, statusFilter?: string): Promi
       const agentRows = await db
         .select({ id: schema.agents.id, name: schema.agents.name })
         .from(schema.agents)
-        .all();
+        ;
       for (const a of agentRows) {
         if (agentIds.has(a.id)) agentsMap.set(a.id, a.name);
       }
@@ -173,7 +173,7 @@ export async function listTasks(projectId: string, statusFilter?: string): Promi
 export async function getTaskDetail(taskId: string): Promise<string> {
   try {
     const task = await db.select().from(schema.tasks)
-      .where(eq(schema.tasks.id, taskId)).get();
+      .where(eq(schema.tasks.id, taskId)).then(r => r[0]);
 
     if (!task) {
       return `\u{274C} Task \`${taskId}\` not found.`;
@@ -184,7 +184,7 @@ export async function getTaskDetail(taskId: string): Promise<string> {
       const agent = await db.select({ name: schema.agents.name })
         .from(schema.agents)
         .where(eq(schema.agents.id, task.assignedAgentId))
-        .get();
+        .then(r => r[0]);
       if (agent) agentName = agent.name;
     }
 
@@ -241,7 +241,7 @@ export async function createTask(
   try {
     // Validate project exists
     const project = await db.select().from(schema.projects)
-      .where(eq(schema.projects.id, projectId)).get();
+      .where(eq(schema.projects.id, projectId)).then(r => r[0]);
 
     if (!project) {
       return `\u{274C} Project \`${projectId}\` not found.`;
@@ -295,7 +295,7 @@ export async function createTask(
 export async function advanceTaskStatus(taskId: string, newStatus: string): Promise<string> {
   try {
     const task = await db.select().from(schema.tasks)
-      .where(eq(schema.tasks.id, taskId)).get();
+      .where(eq(schema.tasks.id, taskId)).then(r => r[0]);
 
     if (!task) {
       return `\u{274C} Task \`${taskId}\` not found.`;
@@ -346,7 +346,7 @@ export async function listAgents(): Promise<string> {
   try {
     const agents = await db.select().from(schema.agents)
       .where(eq(schema.agents.isActive, true))
-      .all();
+      ;
 
     if (agents.length === 0) {
       return "\u{1F916} No active agents found.";
@@ -385,7 +385,7 @@ export async function listAgents(): Promise<string> {
 export async function getProjectOverview(projectId: string): Promise<string> {
   try {
     const project = await db.select().from(schema.projects)
-      .where(eq(schema.projects.id, projectId)).get();
+      .where(eq(schema.projects.id, projectId)).then(r => r[0]);
 
     if (!project) {
       return `\u{274C} Project \`${projectId}\` not found.`;
@@ -396,7 +396,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
       priority: schema.tasks.priority,
     }).from(schema.tasks)
       .where(eq(schema.tasks.projectId, projectId))
-      .all();
+      ;
 
     // Count by status using Map for O(n)
     const statusCounts = new Map<string, number>();
@@ -448,7 +448,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
         const agent = await db.select({ name: schema.agents.name })
           .from(schema.agents)
           .where(eq(schema.agents.id, s.agentId))
-          .get();
+          .then(r => r[0]);
         if (agent) {
           msg += `  \u{1F7E2} ${agent.name} \u{2192} \`${s.taskId.slice(0, 8)}\`\n`;
         }
@@ -468,7 +468,7 @@ export async function getProjectOverview(projectId: string): Promise<string> {
 export async function assignTaskToAgent(taskId: string, agentName?: string): Promise<string> {
   try {
     const task = await db.select().from(schema.tasks)
-      .where(eq(schema.tasks.id, taskId)).get();
+      .where(eq(schema.tasks.id, taskId)).then(r => r[0]);
 
     if (!task) {
       return `\u{274C} Task \`${taskId}\` not found.`;
@@ -487,7 +487,7 @@ export async function assignTaskToAgent(taskId: string, agentName?: string): Pro
     // Find agent by name (case-insensitive)
     const agents = await db.select().from(schema.agents)
       .where(eq(schema.agents.isActive, true))
-      .all();
+      ;
 
     const lowerName = agentName.toLowerCase();
     const agent = agents.find((a) => a.name.toLowerCase() === lowerName);

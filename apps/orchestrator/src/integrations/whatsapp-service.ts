@@ -288,7 +288,7 @@ export class WhatsAppService {
       .select()
       .from(schema.agents)
       .where(eq(schema.agents.role, "receptionist"))
-      .get();
+      .then(r => r[0]);
 
     if (!receptionist) {
       logger.warn(
@@ -379,7 +379,7 @@ export class WhatsAppService {
       if (action.action === "advance_status" && action.status === "assigned" && !result.startsWith("❌")) {
         const taskId = action.taskId as string;
         const task = await db.select({ title: schema.tasks.title })
-          .from(schema.tasks).where(eq(schema.tasks.id, taskId)).get();
+          .from(schema.tasks).where(eq(schema.tasks.id, taskId)).then(r => r[0]);
         if (task) {
           await this.offerTaskTracking(from, taskId, task.title);
         }
@@ -427,7 +427,7 @@ export class WhatsAppService {
 
       // Find Tech Lead or linked agent
       const agents = await db.select().from(schema.agents)
-        .where(eq(schema.agents.isActive, true)).all();
+        .where(eq(schema.agents.isActive, true));
 
       const techLead = this.config.linkedAgentId
         ? agents.find(a => a.id === this.config.linkedAgentId)
@@ -525,7 +525,7 @@ export class WhatsAppService {
   private async sendTaskResult(taskId: string, to: string): Promise<void> {
     try {
       const task = await db.select().from(schema.tasks)
-        .where(eq(schema.tasks.id, taskId)).get();
+        .where(eq(schema.tasks.id, taskId)).then(r => r[0]);
       if (!task) return;
 
       let reply = task.result || "✅ Task processed.";
@@ -849,7 +849,7 @@ export async function restoreWhatsAppSessions(): Promise<void> {
         eq(schema.integrations.status, "connected"),
       ),
     )
-    .all();
+    ;
 
   if (connected.length === 0) {
     logger.info("No WhatsApp sessions to restore", "whatsapp");

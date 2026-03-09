@@ -37,7 +37,7 @@ openaiRouter.get("/status", async (_req, res) => {
   const row = await db.select()
     .from(schema.integrations)
     .where(eq(schema.integrations.type, "openai" as "whatsapp"))
-    .get();
+    .then(r => r[0]);
 
   if (row?.credentials) {
     try {
@@ -89,7 +89,7 @@ openaiRouter.post("/connect", async (req, res) => {
   const existing = await db.select()
     .from(schema.integrations)
     .where(eq(schema.integrations.type, "openai" as "whatsapp"))
-    .get();
+    .then(r => r[0]);
 
   const encryptedKey = encrypt(apiKey);
 

@@ -17,7 +17,7 @@ router.get("/projects/:id/prs/status", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -67,7 +67,7 @@ router.get("/projects/:id/prs", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -95,7 +95,7 @@ router.get("/projects/:id/prs/:number", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -134,7 +134,7 @@ router.post("/projects/:id/prs", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -198,7 +198,7 @@ router.post("/projects/:id/prs/:number/merge", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -235,7 +235,7 @@ router.post("/projects/:id/prs/:number/close", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -270,7 +270,7 @@ router.get("/projects/:id/prs/branch/:branch", async (req, res) => {
       .select()
       .from(schema.projects)
       .where(eq(schema.projects.id, req.params.id))
-      .get();
+      .then(r => r[0]);
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });

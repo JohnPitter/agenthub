@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "preinstall": "command -v pnpm >/dev/null 2>&1 || npm install -g pnpm",
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsup src/index.ts --format esm",
     "start": "node dist/index.js",

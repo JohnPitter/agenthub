@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
     "lint": "tsc --noEmit"
@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "drizzle-kit": "^0.30.0",
+    "tsup": "^8.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"
   }

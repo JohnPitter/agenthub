@@ -12,10 +12,11 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
+    "tsup": "^8.0.0",
     "typescript": "^5.8.0"
   }
 }

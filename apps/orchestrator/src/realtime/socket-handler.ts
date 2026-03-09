@@ -493,7 +493,7 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
   });
 
   eventBus.on("task:status", (data) => {
-    const projectId = data.projectId as string | undefined;
+    const projectId = data.projectId;
     if (projectId) {
       io.to(`project:${projectId}`).emit("task:status", data);
     } else {

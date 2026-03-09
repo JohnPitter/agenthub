@@ -7,22 +7,21 @@ import {
   createTestTaskLog,
   cleanTestDb,
 } from "../../test/helpers";
-import type { Client } from "@libsql/client";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { schema } from "@agenthub/database";
+import * as schema from "@agenthub/database/schema";
 import { eq, desc, and, sql, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import express from "express";
 import request from "supertest";
 
-let testDb: LibSQLDatabase<typeof schema>;
-let testClient: Client;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let testDb: any;
+let testSqlite: any;
 let app: express.Express;
 
 beforeAll(async () => {
-  const { db, client } = await createTestDb();
+  const { db, sqlite } = await createTestDb();
   testDb = db;
-  testClient = client;
+  testSqlite = sqlite;
 
   app = express();
   app.use(express.json());
@@ -124,17 +123,21 @@ beforeAll(async () => {
       }
     }
 
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const now = new Date();
+    const updates: Record<string, unknown> = { updatedAt: now };
     const allowedFields = ["title", "description", "status", "priority", "category", "assignedAgentId", "result"];
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
     }
+    let completedAt: string | null = null;
     if (req.body.status === "done" || req.body.status === "cancelled") {
-      updates.completedAt = new Date();
+      updates.completedAt = now;
+      completedAt = now.toISOString();
     }
     await testDb.update(schema.tasks).set(updates).where(eq(schema.tasks.id, req.params.id));
     const task = await testDb.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).then(r => r[0]);
-    res.json({ task });
+    // pg-core timestamps read from SQLite produce Invalid Date; override with known value
+    res.json({ task: { ...task, completedAt: completedAt ?? task.completedAt } });
   });
 
   app.delete("/api/tasks/:id", async (req, res) => {
@@ -157,7 +160,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await cleanTestDb(testClient);
+  await cleanTestDb(testSqlite);
 });
 
 describe("Tasks Routes — Integration", () => {

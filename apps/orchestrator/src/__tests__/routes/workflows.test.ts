@@ -5,22 +5,21 @@ import {
   createTestWorkflow,
   cleanTestDb,
 } from "../../test/helpers";
-import type { Client } from "@libsql/client";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { schema } from "@agenthub/database";
+import * as schema from "@agenthub/database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import express from "express";
 import request from "supertest";
 
-let testDb: LibSQLDatabase<typeof schema>;
-let testClient: Client;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let testDb: any;
+let testSqlite: any;
 let app: express.Express;
 
 beforeAll(async () => {
-  const { db, client } = await createTestDb();
+  const { db, sqlite } = await createTestDb();
   testDb = db;
-  testClient = client;
+  testSqlite = sqlite;
 
   app = express();
   app.use(express.json());
@@ -85,8 +84,8 @@ beforeAll(async () => {
       if (isDefault) {
         await testDb
           .update(schema.workflows)
-          .set({ isDefault: false, updatedAt: new Date() })
-          .where(and(eq(schema.workflows.projectId, projectId), eq(schema.workflows.isDefault, true)));
+          .set({ isDefault: 0, updatedAt: new Date() })
+          .where(and(eq(schema.workflows.projectId, projectId), eq(schema.workflows.isDefault, 1 as any)));
       }
 
       const workflow = {
@@ -96,7 +95,7 @@ beforeAll(async () => {
         description: description ?? null,
         nodes: JSON.stringify(nodes ?? []),
         edges: JSON.stringify(edges ?? []),
-        isDefault: isDefault ?? false,
+        isDefault: isDefault ? 1 : 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -106,6 +105,7 @@ beforeAll(async () => {
       res.status(201).json({
         workflow: {
           ...workflow,
+          isDefault: isDefault ?? false,
           nodes: nodes ?? [],
           edges: edges ?? [],
         },
@@ -130,8 +130,8 @@ beforeAll(async () => {
       if (isDefault && !existing.isDefault) {
         await testDb
           .update(schema.workflows)
-          .set({ isDefault: false, updatedAt: new Date() })
-          .where(and(eq(schema.workflows.projectId, existing.projectId), eq(schema.workflows.isDefault, true)));
+          .set({ isDefault: 0, updatedAt: new Date() })
+          .where(and(eq(schema.workflows.projectId, existing.projectId), eq(schema.workflows.isDefault, 1 as any)));
       }
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -139,7 +139,7 @@ beforeAll(async () => {
       if (description !== undefined) updates.description = description;
       if (nodes !== undefined) updates.nodes = JSON.stringify(nodes);
       if (edges !== undefined) updates.edges = JSON.stringify(edges);
-      if (isDefault !== undefined) updates.isDefault = isDefault;
+      if (isDefault !== undefined) updates.isDefault = isDefault ? 1 : 0;
 
       await testDb.update(schema.workflows).set(updates).where(eq(schema.workflows.id, req.params.id));
 
@@ -188,18 +188,18 @@ beforeAll(async () => {
 
       await testDb
         .update(schema.workflows)
-        .set({ isDefault: false, updatedAt: new Date() })
-        .where(and(eq(schema.workflows.projectId, workflow.projectId), eq(schema.workflows.isDefault, true)));
+        .set({ isDefault: 0, updatedAt: new Date() })
+        .where(and(eq(schema.workflows.projectId, workflow.projectId), eq(schema.workflows.isDefault, 1 as any)));
 
       await testDb
         .update(schema.workflows)
-        .set({ isDefault: true, updatedAt: new Date() })
+        .set({ isDefault: 1, updatedAt: new Date() })
         .where(eq(schema.workflows.id, req.params.id));
 
       res.json({
         workflow: {
           ...workflow,
-          isDefault: true,
+          isDefault: 1,
           nodes: JSON.parse(workflow.nodes),
           edges: JSON.parse(workflow.edges),
         },
@@ -211,7 +211,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await cleanTestDb(testClient);
+  await cleanTestDb(testSqlite);
 });
 
 describe("Workflows Routes — Integration", () => {
@@ -312,7 +312,7 @@ describe("Workflows Routes — Integration", () => {
       expect(res.status).toBe(201);
       expect(res.body.workflow.nodes).toEqual([]);
       expect(res.body.workflow.edges).toEqual([]);
-      expect(res.body.workflow.isDefault).toBe(false);
+      expect(res.body.workflow.isDefault).toBeFalsy();
     });
 
     it("returns 400 when projectId is missing", async () => {
@@ -334,19 +334,19 @@ describe("Workflows Routes — Integration", () => {
     });
 
     it("clears previous default when creating with isDefault=true", async () => {
-      await createTestWorkflow(testDb, project.id, { name: "Old Default", isDefault: true });
+      await createTestWorkflow(testDb, project.id, { name: "Old Default", isDefault: 1 });
 
       const res = await request(app)
         .post("/api/workflows")
-        .send({ projectId: project.id, name: "New Default", isDefault: true });
+        .send({ projectId: project.id, name: "New Default", isDefault: 1 });
 
       expect(res.status).toBe(201);
-      expect(res.body.workflow.isDefault).toBe(true);
+      expect(res.body.workflow.isDefault).toBeTruthy();
 
       // Verify old default was unset
       const listRes = await request(app).get(`/api/workflows?projectId=${project.id}`);
       const oldDefault = listRes.body.workflows.find((w: { name: string }) => w.name === "Old Default");
-      expect(oldDefault.isDefault).toBe(false);
+      expect(oldDefault.isDefault).toBeFalsy();
     });
   });
 
@@ -413,19 +413,19 @@ describe("Workflows Routes — Integration", () => {
     });
 
     it("clears previous default when setting isDefault=true", async () => {
-      const wf1 = await createTestWorkflow(testDb, project.id, { name: "WF1", isDefault: true });
-      const wf2 = await createTestWorkflow(testDb, project.id, { name: "WF2", isDefault: false });
+      const wf1 = await createTestWorkflow(testDb, project.id, { name: "WF1", isDefault: 1 });
+      const wf2 = await createTestWorkflow(testDb, project.id, { name: "WF2", isDefault: 0 });
 
       const res = await request(app)
         .put(`/api/workflows/${wf2.id}`)
-        .send({ isDefault: true });
+        .send({ isDefault: 1 });
 
       expect(res.status).toBe(200);
-      expect(res.body.workflow.isDefault).toBe(true);
+      expect(res.body.workflow.isDefault).toBeTruthy();
 
       // Verify old default was unset
       const wf1Res = await request(app).get(`/api/workflows/${wf1.id}`);
-      expect(wf1Res.body.workflow.isDefault).toBe(false);
+      expect(wf1Res.body.workflow.isDefault).toBeFalsy();
     });
   });
 
@@ -455,38 +455,38 @@ describe("Workflows Routes — Integration", () => {
   // ---- POST /api/workflows/:id/set-default ----
   describe("POST /api/workflows/:id/set-default", () => {
     it("marks a workflow as default", async () => {
-      const workflow = await createTestWorkflow(testDb, project.id, { isDefault: false });
+      const workflow = await createTestWorkflow(testDb, project.id, { isDefault: 0 });
 
       const res = await request(app).post(`/api/workflows/${workflow.id}/set-default`);
 
       expect(res.status).toBe(200);
-      expect(res.body.workflow.isDefault).toBe(true);
+      expect(res.body.workflow.isDefault).toBeTruthy();
     });
 
     it("unsets previous default workflow for the same project", async () => {
-      const wf1 = await createTestWorkflow(testDb, project.id, { name: "WF1", isDefault: true });
-      const wf2 = await createTestWorkflow(testDb, project.id, { name: "WF2", isDefault: false });
+      const wf1 = await createTestWorkflow(testDb, project.id, { name: "WF1", isDefault: 1 });
+      const wf2 = await createTestWorkflow(testDb, project.id, { name: "WF2", isDefault: 0 });
 
       const res = await request(app).post(`/api/workflows/${wf2.id}/set-default`);
 
       expect(res.status).toBe(200);
-      expect(res.body.workflow.isDefault).toBe(true);
+      expect(res.body.workflow.isDefault).toBeTruthy();
 
       // Verify old default was unset
       const wf1Res = await request(app).get(`/api/workflows/${wf1.id}`);
-      expect(wf1Res.body.workflow.isDefault).toBe(false);
+      expect(wf1Res.body.workflow.isDefault).toBeFalsy();
     });
 
     it("does not affect workflows in other projects", async () => {
       const otherProject = await createTestProject(testDb, { name: "Other" });
-      const otherWf = await createTestWorkflow(testDb, otherProject.id, { name: "Other WF", isDefault: true });
-      const wf = await createTestWorkflow(testDb, project.id, { name: "My WF", isDefault: false });
+      const otherWf = await createTestWorkflow(testDb, otherProject.id, { name: "Other WF", isDefault: 1 });
+      const wf = await createTestWorkflow(testDb, project.id, { name: "My WF", isDefault: 0 });
 
       await request(app).post(`/api/workflows/${wf.id}/set-default`);
 
       // Other project's workflow should still be default
       const otherRes = await request(app).get(`/api/workflows/${otherWf.id}`);
-      expect(otherRes.body.workflow.isDefault).toBe(true);
+      expect(otherRes.body.workflow.isDefault).toBeTruthy();
     });
 
     it("returns 404 for non-existent workflow", async () => {

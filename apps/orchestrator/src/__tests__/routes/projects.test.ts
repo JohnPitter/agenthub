@@ -4,22 +4,21 @@ import {
   createTestProject,
   cleanTestDb,
 } from "../../test/helpers";
-import type { Client } from "@libsql/client";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { schema } from "@agenthub/database";
+import * as schema from "@agenthub/database/schema";
 import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import express from "express";
 import request from "supertest";
 
-let testDb: LibSQLDatabase<typeof schema>;
-let testClient: Client;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let testDb: any;
+let testSqlite: any;
 let app: express.Express;
 
 beforeAll(async () => {
-  const { db, client } = await createTestDb();
+  const { db, sqlite } = await createTestDb();
   testDb = db;
-  testClient = client;
+  testSqlite = sqlite;
 
   app = express();
   app.use(express.json());
@@ -110,7 +109,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await cleanTestDb(testClient);
+  await cleanTestDb(testSqlite);
 });
 
 describe("Projects Routes — Integration", () => {

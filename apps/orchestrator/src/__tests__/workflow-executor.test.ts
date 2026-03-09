@@ -1,17 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WorkflowNode, WorkflowEdge } from "@agenthub/shared";
 
+// Queue of mock results for sequential db queries
+let queryResults: unknown[] = [];
+
 // Mock all external dependencies before imports
 vi.mock("@agenthub/database", () => {
-  const mockDb = {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    get: vi.fn(),
-    insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockResolvedValue(undefined),
-    all: vi.fn(),
+  // Create a thenable chain that resolves to the next queued result
+  const createChain = (): Record<string, unknown> => {
+    const chain: Record<string, unknown> = {};
+    const self = () => chain;
+    chain.select = vi.fn(self);
+    chain.from = vi.fn(self);
+    chain.where = vi.fn(self);
+    chain.insert = vi.fn(self);
+    chain.values = vi.fn(() => Promise.resolve(undefined));
+    // Make the chain thenable so .then(r => r[0]) works
+    chain.then = vi.fn((resolve: (value: unknown) => unknown) => {
+      const result = queryResults.shift();
+      return Promise.resolve(result).then(resolve);
+    });
+    return chain;
   };
+
+  const mockDb = createChain();
+
   return {
     db: mockDb,
     schema: {
@@ -51,7 +64,6 @@ vi.mock("../realtime/event-bus.js", () => ({
 
 // Import after mocks
 import { workflowExecutor } from "../workflows/workflow-executor.js";
-import { db } from "@agenthub/database";
 import { agentManager } from "../agents/agent-manager.js";
 import { transitionTask } from "../tasks/task-lifecycle.js";
 import { eventBus } from "../realtime/event-bus.js";
@@ -71,23 +83,25 @@ function makeEdge(source: string, target: string): WorkflowEdge {
 describe("WorkflowExecutorService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryResults = [];
   });
 
   describe("executeWorkflow()", () => {
     it("returns false when workflow is not found", async () => {
-      vi.mocked(db.get).mockResolvedValueOnce(undefined);
+      // .then(r => r[0]) on empty array → undefined
+      queryResults.push([]);
 
       const result = await workflowExecutor.executeWorkflow("task-1", "wf-missing");
       expect(result).toBe(false);
     });
 
     it("returns false when workflow validation fails (empty nodes)", async () => {
-      vi.mocked(db.get).mockResolvedValueOnce({
+      queryResults.push([{
         id: "wf-1",
         name: "Bad Workflow",
         nodes: "[]",
         edges: "[]",
-      });
+      }]);
 
       const result = await workflowExecutor.executeWorkflow("task-1", "wf-1");
       expect(result).toBe(false);
@@ -95,14 +109,14 @@ describe("WorkflowExecutorService", () => {
 
     it("returns false when task is not found", async () => {
       const nodes = [makeNode("A")];
-      vi.mocked(db.get)
-        .mockResolvedValueOnce({
-          id: "wf-1",
-          name: "Test Workflow",
-          nodes: JSON.stringify(nodes),
-          edges: "[]",
-        })
-        .mockResolvedValueOnce(undefined); // task not found
+      // workflow found, task not found
+      queryResults.push([{
+        id: "wf-1",
+        name: "Test Workflow",
+        nodes: JSON.stringify(nodes),
+        edges: "[]",
+      }]);
+      queryResults.push([]); // task not found
 
       const result = await workflowExecutor.executeWorkflow("task-missing", "wf-1");
       expect(result).toBe(false);
@@ -125,15 +139,11 @@ describe("WorkflowExecutorService", () => {
         category: null,
       };
 
-      // Calls: workflow lookup, task lookup, main task for subtask title, agent role lookup
-      vi.mocked(db.get)
-        .mockResolvedValueOnce(mockWorkflow)   // workflow
-        .mockResolvedValueOnce(mockTask)        // task
-        .mockResolvedValueOnce(mockTask);       // main task re-fetch in executeNode
-
-      vi.mocked(db.all).mockResolvedValueOnce([
-        { id: "agent-1", isActive: true, role: "developer" },
-      ]);
+      // Calls: workflow lookup, task lookup, main task re-fetch, agent role lookup
+      queryResults.push([mockWorkflow]);
+      queryResults.push([mockTask]);
+      queryResults.push([mockTask]);
+      queryResults.push([{ id: "agent-1", isActive: true, role: "developer" }]);
 
       const result = await workflowExecutor.executeWorkflow("task-1", "wf-1");
       expect(result).toBe(true);
@@ -172,13 +182,10 @@ describe("WorkflowExecutorService", () => {
         category: null,
       };
 
-      vi.mocked(db.get)
-        .mockResolvedValueOnce(mockWorkflow)
-        .mockResolvedValueOnce(mockTask)
-        .mockResolvedValueOnce(mockTask);
-
-      // No agents match role
-      vi.mocked(db.all).mockResolvedValueOnce([]);
+      queryResults.push([mockWorkflow]);
+      queryResults.push([mockTask]);
+      queryResults.push([mockTask]);
+      queryResults.push([]); // no agents match role
 
       const result = await workflowExecutor.executeWorkflow("task-1", "wf-1");
       expect(result).toBe(true);
@@ -206,14 +213,10 @@ describe("WorkflowExecutorService", () => {
         category: null,
       };
 
-      vi.mocked(db.get)
-        .mockResolvedValueOnce(mockWorkflow)
-        .mockResolvedValueOnce(mockTask)
-        .mockResolvedValueOnce(mockTask); // re-fetch for agent node
-
-      vi.mocked(db.all).mockResolvedValueOnce([
-        { id: "agent-1", isActive: true, role: "developer" },
-      ]);
+      queryResults.push([mockWorkflow]);
+      queryResults.push([mockTask]);
+      queryResults.push([mockTask]); // re-fetch for agent node
+      queryResults.push([{ id: "agent-1", isActive: true, role: "developer" }]);
 
       const result = await workflowExecutor.executeWorkflow("task-1", "wf-1");
       expect(result).toBe(true);

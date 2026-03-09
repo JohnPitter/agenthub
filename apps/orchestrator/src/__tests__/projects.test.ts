@@ -1,21 +1,20 @@
 import { describe, it, expect, beforeAll, beforeEach } from "vitest";
-import { createTestDb, createTestProject } from "../test/helpers";
-import type { Client } from "@libsql/client";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { schema } from "@agenthub/database";
+import { createTestDb, createTestProject, cleanTestDb } from "../test/helpers";
+import * as schema from "@agenthub/database/schema";
 import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import express from "express";
 import request from "supertest";
 
-let testDb: LibSQLDatabase<typeof schema>;
-let testClient: Client;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let testDb: any;
+let testSqlite: any;
 let app: express.Express;
 
 beforeAll(async () => {
-  const { db, client } = await createTestDb();
+  const { db, sqlite } = await createTestDb();
   testDb = db;
-  testClient = client;
+  testSqlite = sqlite;
 
   app = express();
   app.use(express.json());
@@ -80,13 +79,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await testClient.execute("DELETE FROM task_logs");
-  await testClient.execute("DELETE FROM messages");
-  await testClient.execute("DELETE FROM tasks");
-  await testClient.execute("DELETE FROM agent_project_configs");
-  await testClient.execute("DELETE FROM integrations");
-  await testClient.execute("DELETE FROM agents");
-  await testClient.execute("DELETE FROM projects");
+  await cleanTestDb(testSqlite);
 });
 
 describe("Projects API", () => {

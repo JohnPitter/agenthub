@@ -1,21 +1,20 @@
 import { describe, it, expect, beforeAll, beforeEach } from "vitest";
-import { createTestDb, createTestAgent } from "../test/helpers";
-import type { Client } from "@libsql/client";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import { schema } from "@agenthub/database";
+import { createTestDb, createTestAgent, cleanTestDb } from "../test/helpers";
+import * as schema from "@agenthub/database/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import express from "express";
 import request from "supertest";
 
-let testDb: LibSQLDatabase<typeof schema>;
-let testClient: Client;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let testDb: any;
+let testSqlite: any;
 let app: express.Express;
 
 beforeAll(async () => {
-  const { db, client } = await createTestDb();
+  const { db, sqlite } = await createTestDb();
   testDb = db;
-  testClient = client;
+  testSqlite = sqlite;
 
   app = express();
   app.use(express.json());
@@ -47,8 +46,8 @@ beforeAll(async () => {
       allowedTools: JSON.stringify(allowedTools ?? ["Read", "Write"]),
       permissionMode: permissionMode ?? "acceptEdits",
       level: level ?? "senior",
-      isDefault: false,
-      isActive: true,
+      isDefault: 0,
+      isActive: 1,
       color: color ?? "#6B7280",
       avatar: avatar ?? "bot",
       createdAt: new Date(),
@@ -81,11 +80,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await testClient.execute("DELETE FROM agent_project_configs");
-  await testClient.execute("DELETE FROM task_logs");
-  await testClient.execute("DELETE FROM messages");
-  await testClient.execute("DELETE FROM tasks");
-  await testClient.execute("DELETE FROM agents");
+  await cleanTestDb(testSqlite);
 });
 
 describe("Agents API", () => {
@@ -127,7 +122,7 @@ describe("Agents API", () => {
       expect(res.body.agent.name).toBe("New Agent");
       expect(res.body.agent.role).toBe("custom");
       expect(res.body.agent.model).toBe("claude-sonnet-4-5-20250929");
-      expect(res.body.agent.isDefault).toBe(false);
+      expect(res.body.agent.isDefault).toBeFalsy();
     });
 
     it("creates an agent with custom fields", async () => {

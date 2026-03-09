@@ -148,7 +148,7 @@ router.get("/usage/summary", async (req, res) => {
       : [];
 
     const tasks = conditions.length > 0
-      ? await db.select().from(schema.tasks).where(and(...conditions)).all()
+      ? await db.select().from(schema.tasks).where(and(...conditions))
       : await db.select().from(schema.tasks);
 
     let totalCostUsd = 0;
@@ -527,7 +527,6 @@ router.get("/usage/analytics", async (req, res) => {
             .leftJoin(schema.agents, eq(schema.tasks.assignedAgentId, schema.agents.id))
             .where(conditions)
             .groupBy(schema.tasks.assignedAgentId)
-            .all()
         : await db
             .select({
               agentId: schema.tasks.assignedAgentId,
@@ -543,8 +542,8 @@ router.get("/usage/analytics", async (req, res) => {
             ;
 
       const data = rows
-        .filter((r) => r.agentId)
-        .map((r) => ({
+        .filter((r: typeof rows[number]) => r.agentId)
+        .map((r: typeof rows[number]) => ({
           agentId: r.agentId,
           agentName: r.agentName ?? "Unknown",
           agentColor: r.agentColor ?? null,
@@ -552,7 +551,7 @@ router.get("/usage/analytics", async (req, res) => {
           totalTokens: Number(r.totalTokens) || 0,
           taskCount: Number(r.taskCount) || 0,
         }))
-        .sort((a, b) => b.totalCost - a.totalCost);
+        .sort((a: { totalCost: number }, b: { totalCost: number }) => b.totalCost - a.totalCost);
 
       return res.json(data);
     }
@@ -574,7 +573,6 @@ router.get("/usage/analytics", async (req, res) => {
             .leftJoin(schema.agents, eq(schema.tasks.assignedAgentId, schema.agents.id))
             .where(conditions)
             .groupBy(schema.agents.model)
-            .all()
         : await db
             .select({
               model: schema.agents.model,
@@ -584,18 +582,17 @@ router.get("/usage/analytics", async (req, res) => {
             })
             .from(schema.tasks)
             .leftJoin(schema.agents, eq(schema.tasks.assignedAgentId, schema.agents.id))
-            .groupBy(schema.agents.model)
-            ;
+            .groupBy(schema.agents.model);
 
       const data = rows
-        .filter((r) => r.model)
-        .map((r) => ({
+        .filter((r: typeof rows[number]) => r.model)
+        .map((r: typeof rows[number]) => ({
           model: r.model!,
           totalCost: parseFloat(String(r.totalCost)) || 0,
           totalTokens: Number(r.totalTokens) || 0,
           taskCount: Number(r.taskCount) || 0,
         }))
-        .sort((a, b) => b.totalCost - a.totalCost);
+        .sort((a: { totalCost: number }, b: { totalCost: number }) => b.totalCost - a.totalCost);
 
       return res.json(data);
     }
@@ -617,7 +614,6 @@ router.get("/usage/analytics", async (req, res) => {
             .where(conditions)
             .groupBy(sql`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER)`)
             .orderBy(sql`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER)`)
-            .all()
         : await db
             .select({
               dateUnix: sql<number>`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER) * 86400`,
@@ -630,7 +626,7 @@ router.get("/usage/analytics", async (req, res) => {
             .orderBy(sql`CAST(${schema.tasks.createdAt} / 86400 AS INTEGER)`)
             ;
 
-      const data = rows.map((r) => {
+      const data = rows.map((r: typeof rows[number]) => {
         const totalTokens = Number(r.totalTokens) || 0;
         const inputTokens = Math.round(totalTokens * 0.3);
         const outputTokens = totalTokens - inputTokens;

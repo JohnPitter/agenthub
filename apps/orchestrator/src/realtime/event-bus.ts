@@ -9,7 +9,7 @@ export interface EventMap {
   "agent:notification": { agentId: string; projectId: string; message: string; title?: string; level?: "info" | "warn" | "error" };
   "agent:result": { agentId: string; projectId: string; taskId?: string; result?: string; cost: number; duration: number; isError: boolean; errors?: string[] };
   "agent:error": { agentId: string; projectId: string; error: string };
-  "task:status": { taskId: string; status: string; agentId?: string };
+  "task:status": { taskId: string; projectId: string; status: string; agentId?: string };
   "task:created": { task: unknown };
   "task:updated": { task: unknown };
   "task:queued": { taskId: string; agentId: string; projectId: string; queuePosition: number };

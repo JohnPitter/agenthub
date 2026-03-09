@@ -69,7 +69,7 @@ async function hasCircularRef(docId: string, newParentId: string | null): Promis
   if (newParentId === docId) return true;
   let current: string | null = newParentId;
   while (current) {
-    const parent = await db.select({ parentId: schema.docs.parentId })
+    const parent: { parentId: string | null } | undefined = await db.select({ parentId: schema.docs.parentId })
       .from(schema.docs).where(eq(schema.docs.id, current)).then(r => r[0]);
     if (!parent) break;
     if (parent.parentId === docId) return true;

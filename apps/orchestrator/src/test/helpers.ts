@@ -1,10 +1,13 @@
-import { createClient, type Client } from "@libsql/client";
-import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
 import express, { type Express } from "express";
 import { nanoid } from "nanoid";
-import { schema } from "@agenthub/database";
+import * as schema from "@agenthub/database/schema";
 
-// SQL statements to create all tables (from migrate.ts, updated with latest schema)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TestDb = any;
+
+// SQL statements to create all tables (SQLite syntax for in-memory testing)
 const CREATE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY,
@@ -13,8 +16,11 @@ const CREATE_STATEMENTS = [
     stack TEXT,
     icon TEXT,
     description TEXT,
-    status TEXT NOT NULL DEFAULT 'active',
     team_id TEXT,
+    github_url TEXT,
+    github_owner TEXT,
+    github_repo TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
@@ -142,8 +148,8 @@ const CREATE_STATEMENTS = [
 
 export interface TestContext {
   app: Express;
-  db: LibSQLDatabase<typeof schema>;
-  client: Client;
+  db: TestDb;
+  sqlite: Database.Database;
   cleanup: () => void;
 }
 
@@ -151,35 +157,30 @@ export interface TestContext {
  * Creates an in-memory SQLite database with all tables for testing.
  */
 export async function createTestDb() {
-  const client = createClient({ url: ":memory:" });
-  const db = drizzle(client, { schema });
-
-  await client.execute("PRAGMA foreign_keys = ON");
+  const sqlite = new Database(":memory:");
+  sqlite.pragma("foreign_keys = ON");
+  const db = drizzle(sqlite, { schema });
 
   for (const stmt of CREATE_STATEMENTS) {
-    await client.execute(stmt);
+    sqlite.exec(stmt);
   }
 
-  return { db, client };
+  return { db, sqlite };
 }
 
 /**
  * Creates an Express app wired to an in-memory test database.
- * Uses vi.mock to intercept the @agenthub/database import.
  */
-export function createTestApp(db: LibSQLDatabase<typeof schema>): Express {
+export function createTestApp(db: TestDb): Express {
   const app = express();
   app.use(express.json());
-
-  // We need to import routes dynamically after mocking the database
-  // This is handled in each test file via vi.mock
   return app;
 }
 
 /**
  * Helper to create a test project in the database.
  */
-export async function createTestProject(db: LibSQLDatabase<typeof schema>, overrides?: Partial<typeof schema.projects.$inferInsert>) {
+export async function createTestProject(db: TestDb, overrides?: Partial<typeof schema.projects.$inferInsert>) {
   const project = {
     id: nanoid(),
     name: "Test Project",
@@ -198,8 +199,8 @@ export async function createTestProject(db: LibSQLDatabase<typeof schema>, overr
 /**
  * Helper to create a test agent in the database.
  */
-export async function createTestAgent(db: LibSQLDatabase<typeof schema>, overrides?: Partial<typeof schema.agents.$inferInsert>) {
-  const agent = {
+export async function createTestAgent(db: TestDb, overrides?: Partial<typeof schema.agents.$inferInsert>) {
+  const merged = {
     id: nanoid(),
     name: "Test Agent",
     role: "developer",
@@ -217,6 +218,12 @@ export async function createTestAgent(db: LibSQLDatabase<typeof schema>, overrid
     updatedAt: new Date(),
     ...overrides,
   };
+  // SQLite needs booleans as integers
+  const agent = {
+    ...merged,
+    isDefault: merged.isDefault ? 1 : 0,
+    isActive: merged.isActive ? 1 : 0,
+  };
 
   await db.insert(schema.agents).values(agent);
   return agent;
@@ -226,7 +233,7 @@ export async function createTestAgent(db: LibSQLDatabase<typeof schema>, overrid
  * Helper to create a test task in the database.
  */
 export async function createTestTask(
-  db: LibSQLDatabase<typeof schema>,
+  db: TestDb,
   projectId: string,
   overrides?: Partial<typeof schema.tasks.$inferInsert>,
 ) {
@@ -250,11 +257,11 @@ export async function createTestTask(
  * Helper to create a test workflow in the database.
  */
 export async function createTestWorkflow(
-  db: LibSQLDatabase<typeof schema>,
+  db: TestDb,
   projectId: string,
   overrides?: Partial<typeof schema.workflows.$inferInsert>,
 ) {
-  const workflow = {
+  const mergedWorkflow = {
     id: nanoid(),
     projectId,
     name: "Test Workflow",
@@ -266,6 +273,11 @@ export async function createTestWorkflow(
     updatedAt: new Date(),
     ...overrides,
   };
+  // SQLite needs booleans as integers
+  const workflow = {
+    ...mergedWorkflow,
+    isDefault: mergedWorkflow.isDefault ? 1 : 0,
+  };
 
   await db.insert(schema.workflows).values(workflow);
   return workflow;
@@ -275,7 +287,7 @@ export async function createTestWorkflow(
  * Helper to create a test task log in the database.
  */
 export async function createTestTaskLog(
-  db: LibSQLDatabase<typeof schema>,
+  db: TestDb,
   taskId: string,
   overrides?: Partial<typeof schema.taskLogs.$inferInsert>,
 ) {
@@ -298,11 +310,11 @@ export async function createTestTaskLog(
  * Helper to create a test skill in the database.
  */
 export async function createTestSkill(
-  db: LibSQLDatabase<typeof schema>,
+  db: TestDb,
   projectId?: string,
   overrides?: Partial<typeof schema.skills.$inferInsert>,
 ) {
-  const skill = {
+  const mergedSkill = {
     id: nanoid(),
     projectId: projectId ?? null,
     name: "Test Skill",
@@ -314,6 +326,11 @@ export async function createTestSkill(
     updatedAt: new Date(),
     ...overrides,
   };
+  // SQLite needs booleans as integers
+  const skill = {
+    ...mergedSkill,
+    isActive: mergedSkill.isActive ? 1 : 0,
+  };
 
   await db.insert(schema.skills).values(skill);
   return skill;
@@ -323,7 +340,7 @@ export async function createTestSkill(
  * Helper to create a test agent-skill assignment in the database.
  */
 export async function createTestAgentSkill(
-  db: LibSQLDatabase<typeof schema>,
+  db: TestDb,
   agentId: string,
   skillId: string,
   overrides?: Partial<typeof schema.agentSkills.$inferInsert>,
@@ -343,15 +360,15 @@ export async function createTestAgentSkill(
 /**
  * Helper to clean all tables in the test database.
  */
-export async function cleanTestDb(client: Client) {
-  await client.execute("DELETE FROM agent_skills");
-  await client.execute("DELETE FROM skills");
-  await client.execute("DELETE FROM task_logs");
-  await client.execute("DELETE FROM messages");
-  await client.execute("DELETE FROM tasks");
-  await client.execute("DELETE FROM workflows");
-  await client.execute("DELETE FROM agent_project_configs");
-  await client.execute("DELETE FROM integrations");
-  await client.execute("DELETE FROM agents");
-  await client.execute("DELETE FROM projects");
+export async function cleanTestDb(sqlite: Database.Database) {
+  sqlite.exec("DELETE FROM agent_skills");
+  sqlite.exec("DELETE FROM skills");
+  sqlite.exec("DELETE FROM task_logs");
+  sqlite.exec("DELETE FROM messages");
+  sqlite.exec("DELETE FROM tasks");
+  sqlite.exec("DELETE FROM workflows");
+  sqlite.exec("DELETE FROM agent_project_configs");
+  sqlite.exec("DELETE FROM integrations");
+  sqlite.exec("DELETE FROM agents");
+  sqlite.exec("DELETE FROM projects");
 }

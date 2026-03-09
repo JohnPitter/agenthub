@@ -12,7 +12,6 @@ dashboardRouter.get("/stats", async (req, res) => {
   const pageSize = Math.min(50, Math.max(1, parseInt(req.query.activityPageSize as string) || 10));
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const weekAgoTs = Math.floor(weekAgo.getTime() / 1000);
 
   const [projectRows, agentRows, taskRows, recentLogs, activityTotal, tasksByProject, agentsByProject, agentDetailsByProject, weeklyRows, recentCompleted] = await Promise.all([
     db.select({ total: count() }).from(schema.projects),
@@ -81,9 +80,9 @@ dashboardRouter.get("/stats", async (req, res) => {
     // Weekly task counts
     db
       .select({
-        weeklyCreated: sql<number>`count(case when ${schema.tasks.createdAt} >= ${weekAgoTs} then 1 end)`,
-        weeklyCompleted: sql<number>`count(case when ${schema.tasks.status} = 'done' and ${schema.tasks.completedAt} >= ${weekAgoTs} then 1 end)`,
-        weeklyFailed: sql<number>`count(case when ${schema.tasks.status} = 'failed' and ${schema.tasks.updatedAt} >= ${weekAgoTs} then 1 end)`,
+        weeklyCreated: sql<number>`count(case when ${schema.tasks.createdAt} >= ${weekAgo} then 1 end)`,
+        weeklyCompleted: sql<number>`count(case when ${schema.tasks.status} = 'done' and ${schema.tasks.completedAt} >= ${weekAgo} then 1 end)`,
+        weeklyFailed: sql<number>`count(case when ${schema.tasks.status} = 'failed' and ${schema.tasks.updatedAt} >= ${weekAgo} then 1 end)`,
       })
       .from(schema.tasks),
     // Recent completed tasks
@@ -156,7 +155,7 @@ dashboardRouter.get("/stats", async (req, res) => {
     agentCount: hasPerProjectConfigs
       ? (agentCountMap.get(r.projectId) ?? 0)
       : totalActiveAgents,
-    lastActivity: r.lastActivity ? new Date(r.lastActivity).toISOString() : null,
+    lastActivity: r.lastActivity instanceof Date ? r.lastActivity.toISOString() : r.lastActivity ? String(r.lastActivity) : null,
     agents: getAgentsForProject(r.projectId),
   }));
 

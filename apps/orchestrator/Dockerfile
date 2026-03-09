@@ -1,5 +1,10 @@
+# We are now using PostgreSQL managed by LuxView Cloud
+# No SQLite database setup needed
+
 # ---- Stage 1: Dependencies ----
 FROM node:20-alpine AS deps
+
+RUN corepack enable && corepostgres-js
 
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
@@ -46,9 +51,6 @@ COPY --from=deps /app/packages/shared ./packages/shared
 COPY --from=deps /app/packages/database ./packages/database
 COPY --from=deps /app/apps/orchestrator/node_modules ./apps/orchestrator/node_modules
 COPY package.json pnpm-workspace.yaml ./
-
-# Data directory for SQLite
-RUN mkdir -p /root/.agenthub
 
 ENV NODE_ENV=production
 ENV ORCHESTRATOR_PORT=3001

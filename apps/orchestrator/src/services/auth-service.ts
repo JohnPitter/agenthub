@@ -80,7 +80,7 @@ export async function upsertUser(ghUser: GitHubUser, accessToken: string) {
       avatarUrl: ghUser.avatar_url,
       accessToken: encryptedToken,
       updatedAt: now,
-    }).where(eq(schema.users.id, existing.id)).run();
+    }).where(eq(schema.users.id, existing.id));
     return existing;
   }
 
@@ -96,7 +96,7 @@ export async function upsertUser(ghUser: GitHubUser, accessToken: string) {
     updatedAt: now,
   };
 
-  await db.insert(schema.users).values(user).run();
+  await db.insert(schema.users).values(user);
   logger.info(`New user created: ${ghUser.login}`, "auth");
   return user;
 }

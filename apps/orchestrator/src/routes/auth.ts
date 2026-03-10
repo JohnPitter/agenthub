@@ -123,6 +123,7 @@ authRouter.get("/me", authMiddleware, async (req, res) => {
     name: schema.users.name,
     email: schema.users.email,
     avatarUrl: schema.users.avatarUrl,
+    role: schema.users.role,
   }).from(schema.users).where(eq(schema.users.id, req.user!.userId)).then(r => r[0]);
 
   if (!user) {

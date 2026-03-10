@@ -4,7 +4,7 @@ import { X, Brain, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../../lib/agent-avatar";
 import type { Agent, AgentModel, AgentRole, PermissionMode, Skill } from "@agenthub/shared";
-import { DEFAULT_SOULS, OPENAI_MODELS, CLAUDE_MODELS } from "@agenthub/shared";
+import { DEFAULT_SOULS } from "@agenthub/shared";
 import { api } from "../../lib/utils";
 
 interface AgentConfigDialogProps {
@@ -12,16 +12,6 @@ interface AgentConfigDialogProps {
   onSave: (agentId: string, updates: Partial<Agent>) => void;
   onClose: () => void;
 }
-
-const CLAUDE_MODEL_OPTIONS: { value: string; label: string }[] = CLAUDE_MODELS.map((m) => ({
-  value: m.id,
-  label: m.label,
-}));
-
-const OPENAI_MODEL_OPTIONS: { value: string; label: string }[] = OPENAI_MODELS.map((m) => ({
-  value: m.id,
-  label: m.label,
-}));
 
 const PERMISSION_MODE_VALUES: PermissionMode[] = ["default", "acceptEdits", "bypassPermissions"];
 
@@ -31,18 +21,17 @@ const ALL_TOOLS = ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Task", "Web
 
 export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogProps) {
   const { t } = useTranslation();
-  const [openaiConnected, setOpenaiConnected] = useState(false);
+  const [enabledModels, setEnabledModels] = useState<{ id: string; name: string; provider: string }[]>([]);
 
   useEffect(() => {
-    fetch("/api/openai/status", { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => setOpenaiConnected(data.connected === true))
+    api<{ models: { id: string; name: string; provider: string }[] }>("/plans/models")
+      .then((data) => {
+        if (data.models?.length) {
+          setEnabledModels(data.models);
+        }
+      })
       .catch(() => {});
   }, []);
-
-  const modelOptions = openaiConnected
-    ? [...CLAUDE_MODEL_OPTIONS, ...OPENAI_MODEL_OPTIONS]
-    : CLAUDE_MODEL_OPTIONS;
 
   const parsedTools: string[] = typeof agent.allowedTools === "string"
     ? JSON.parse(agent.allowedTools)
@@ -244,19 +233,21 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               onChange={(e) => setModel(e.target.value as AgentModel)}
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
-              <optgroup label="Claude (Anthropic)">
-                {modelOptions.filter((m) => m.value.startsWith("claude-")).map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </optgroup>
-              {openaiConnected && (
-                <optgroup label="OpenAI">
-                  {OPENAI_MODEL_OPTIONS.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </optgroup>
+              {enabledModels.length > 0 ? (
+                enabledModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))
+              ) : (
+                <option value={model}>{model}</option>
               )}
             </select>
+            {enabledModels.length === 0 && (
+              <p className="mt-1.5 text-[11px] text-neutral-fg3">
+                Modelos configurados pelo admin via OpenRouter
+              </p>
+            )}
           </div>
 
           {/* Permission Mode */}

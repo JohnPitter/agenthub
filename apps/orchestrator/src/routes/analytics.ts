@@ -266,4 +266,137 @@ router.get("/analytics/trends", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/analytics/summary
+ * Aggregated cost summary from task_logs for a given period.
+ * Query params: period (7d, 30d, all)
+ */
+router.get("/analytics/summary", async (req, res) => {
+  try {
+    const { period = "30d" } = req.query;
+
+    let dateThreshold: Date | null = null;
+    if (period === "7d") {
+      dateThreshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === "30d") {
+      dateThreshold = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    } else if (period === "24h") {
+      dateThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    }
+
+    // Get all tasks (optionally filtered by period)
+    const allTasks = dateThreshold
+      ? await db.select().from(schema.tasks).where(gte(schema.tasks.createdAt, dateThreshold))
+      : await db.select().from(schema.tasks);
+
+    let totalCostUsd = 0;
+    let totalTokens = 0;
+    let completedTasks = 0;
+    let failedTasks = 0;
+    const costBreakdown: Record<string, { agentId: string; agentName: string; model: string; cost: number; tasks: number }> = {};
+    const modelCosts: Record<string, { cost: number; tasks: number; inputTokens: number; outputTokens: number }> = {};
+
+    for (const task of allTasks) {
+      const cost = task.costUsd ? parseFloat(task.costUsd) : 0;
+      totalCostUsd += cost;
+      totalTokens += task.tokensUsed ?? 0;
+
+      if (task.status === "done") completedTasks++;
+      if (task.status === "failed") failedTasks++;
+
+      if (task.assignedAgentId) {
+        if (!costBreakdown[task.assignedAgentId]) {
+          costBreakdown[task.assignedAgentId] = {
+            agentId: task.assignedAgentId,
+            agentName: task.assignedAgentId,
+            model: "unknown",
+            cost: 0,
+            tasks: 0,
+          };
+        }
+        costBreakdown[task.assignedAgentId].cost += cost;
+        costBreakdown[task.assignedAgentId].tasks++;
+      }
+    }
+
+    res.json({
+      period: period as string,
+      totalCostUsd,
+      totalTokens,
+      totalTasks: allTasks.length,
+      completedTasks,
+      failedTasks,
+      costBreakdown: Object.values(costBreakdown),
+      modelCosts,
+    });
+  } catch (error) {
+    logger.error(`Failed to get analytics summary: ${error}`, "analytics-route");
+    res.status(500).json({ error: "Failed to get summary" });
+  }
+});
+
+/**
+ * GET /api/analytics/costs
+ * Grouped cost analytics. Query params: period (7d, 30d, all), groupBy (agent, model, day)
+ */
+router.get("/analytics/costs", async (req, res) => {
+  try {
+    const { period = "30d", groupBy = "agent" } = req.query;
+
+    let dateThreshold: Date | null = null;
+    if (period === "7d") dateThreshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    else if (period === "30d") dateThreshold = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    else if (period === "24h") dateThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const allTasks = dateThreshold
+      ? await db.select().from(schema.tasks).where(gte(schema.tasks.createdAt, dateThreshold))
+      : await db.select().from(schema.tasks);
+
+    // Load agents for name resolution
+    const agents = await db.select({ id: schema.agents.id, name: schema.agents.name, color: schema.agents.color }).from(schema.agents);
+    const agentMap = new Map(agents.map((a) => [a.id, a]));
+
+    if (groupBy === "agent") {
+      const grouped: Record<string, { agentId: string; agentName: string; agentColor: string | null; totalCost: number; totalTokens: number; taskCount: number }> = {};
+      for (const t of allTasks) {
+        const aid = t.assignedAgentId ?? "unassigned";
+        if (!grouped[aid]) {
+          const agent = agentMap.get(aid);
+          grouped[aid] = { agentId: aid, agentName: agent?.name ?? "Unassigned", agentColor: agent?.color ?? null, totalCost: 0, totalTokens: 0, taskCount: 0 };
+        }
+        grouped[aid].totalCost += t.costUsd ? parseFloat(t.costUsd) : 0;
+        grouped[aid].totalTokens += t.tokensUsed ?? 0;
+        grouped[aid].taskCount++;
+      }
+      res.json(Object.values(grouped));
+    } else if (groupBy === "model") {
+      const grouped: Record<string, { model: string; totalCost: number; totalTokens: number; taskCount: number }> = {};
+      for (const t of allTasks) {
+        const model = "openrouter";
+        if (!grouped[model]) grouped[model] = { model, totalCost: 0, totalTokens: 0, taskCount: 0 };
+        grouped[model].totalCost += t.costUsd ? parseFloat(t.costUsd) : 0;
+        grouped[model].totalTokens += t.tokensUsed ?? 0;
+        grouped[model].taskCount++;
+      }
+      res.json(Object.values(grouped));
+    } else if (groupBy === "day") {
+      const grouped: Record<string, { date: string; totalCost: number; inputTokens: number; outputTokens: number; taskCount: number }> = {};
+      for (const t of allTasks) {
+        const date = t.createdAt.toISOString().split("T")[0];
+        if (!grouped[date]) grouped[date] = { date, totalCost: 0, inputTokens: 0, outputTokens: 0, taskCount: 0 };
+        grouped[date].totalCost += t.costUsd ? parseFloat(t.costUsd) : 0;
+        grouped[date].inputTokens += (t.tokensUsed ?? 0) / 2;
+        grouped[date].outputTokens += (t.tokensUsed ?? 0) / 2;
+        grouped[date].taskCount++;
+      }
+      res.json(Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date)));
+    } else {
+      res.status(400).json({ error: "Invalid groupBy. Use: agent, model, day" });
+    }
+  } catch (error) {
+    logger.error(`Failed to get cost analytics: ${error}`, "analytics-route");
+    res.status(500).json({ error: "Failed to get cost analytics" });
+  }
+});
+
 export { router as analyticsRouter };

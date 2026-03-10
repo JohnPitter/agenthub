@@ -10,6 +10,7 @@ interface AuthUser {
   name: string;
   email: string | null;
   avatarUrl: string | null;
+  role: "user" | "admin";
 }
 
 interface AuthState {

@@ -4,8 +4,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
-import { AgentSession } from "./agent-session";
-import { OpenAISession } from "./openai-session";
+import { OpenRouterSession } from "./openrouter-session";
 import { transitionTask, logTaskAction } from "../tasks/task-lifecycle";
 import { eventBus } from "../realtime/event-bus";
 import { logger } from "../lib/logger";
@@ -14,14 +13,13 @@ import { GitService } from "../git/git-service";
 import { slugify } from "../lib/utils";
 import { nanoid } from "nanoid";
 import type { Agent, TaskStatus, AgentRole, TaskCategory } from "@agenthub/shared";
-import { getModelProvider } from "@agenthub/shared";
 import { agentMemory } from "./agent-memory.js";
 import { workflowExecutor } from "../workflows/workflow-executor.js";
 
 const gitService = new GitService();
 
 interface ActiveSession {
-  session: AgentSession | OpenAISession;
+  session: OpenRouterSession;
   agentId: string;
   taskId: string;
   projectId: string;
@@ -1359,10 +1357,7 @@ class AgentManager {
       prompt,
     };
 
-    const provider = getModelProvider(agent.model);
-    const session = provider === "openai"
-      ? new OpenAISession(sessionConfig)
-      : new AgentSession(sessionConfig);
+    const session = new OpenRouterSession(sessionConfig);
 
     this.activeSessions.set(taskId, {
       session,
@@ -1372,7 +1367,7 @@ class AgentManager {
     });
     this.agentToTask.set(agentId, taskId);
 
-    await logTaskAction(taskId, "agent_assigned", agentId, `Agent ${agent.name} started working (${provider})`);
+    await logTaskAction(taskId, "agent_assigned", agentId, `Agent ${agent.name} started working (openrouter)`);
 
     // Execute in background (don't await)
     this.executeSession(taskId, agentId, session).catch((err) => {
@@ -1380,7 +1375,7 @@ class AgentManager {
     });
   }
 
-  private async executeSession(taskId: string, agentId: string, session: AgentSession | OpenAISession) {
+  private async executeSession(taskId: string, agentId: string, session: OpenRouterSession) {
     try {
       const result = await session.execute();
 

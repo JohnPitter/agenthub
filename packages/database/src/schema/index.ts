@@ -12,3 +12,5 @@ export { workflows } from "./workflows";
 export { notifications } from "./notifications";
 export { teams, teamMembers, teamInvites } from "./teams";
 export { skills, agentSkills } from "./skills";
+export { plans } from "./plans";
+export { openrouterConfig } from "./openrouter-config";

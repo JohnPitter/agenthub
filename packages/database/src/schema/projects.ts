@@ -8,6 +8,7 @@ export const projects = pgTable("projects", {
   icon: text("icon"),
   description: text("description"),
   teamId: text("team_id"),
+  ownerId: text("owner_id"),
   githubUrl: text("github_url"),
   githubOwner: text("github_owner"),
   githubRepo: text("github_repo"),

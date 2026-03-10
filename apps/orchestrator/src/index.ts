@@ -12,7 +12,8 @@ import { filesRouter } from "./routes/files";
 import { analyticsRouter } from "./routes/analytics";
 import { pullRequestsRouter } from "./routes/pull-requests";
 import { integrationsRouter } from "./routes/integrations";
-import { usageRouter } from "./routes/usage";
+import { adminRouter } from "./routes/admin.js";
+import { plansRouter } from "./routes/plans.js";
 import { memoriesRouter } from "./routes/memories.js";
 import { devServerRouter } from "./routes/dev-server.js";
 import { devServerManager } from "./processes/dev-server-manager.js";
@@ -31,8 +32,6 @@ import { taskTimeoutManager } from "./tasks/task-lifecycle";
 import { taskWatcher } from "./tasks/task-watcher.js";
 import { docsRouter } from "./routes/docs.js";
 import { docsGeneratorRouter } from "./routes/docs-generator.js";
-import { openaiRouter } from "./routes/openai.js";
-import { codexOAuthRouter, codexCallbackRouter } from "./routes/codex-oauth.js";
 import { workflowsRouter } from "./routes/workflows.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { teamsRouter } from "./routes/teams.js";
@@ -58,8 +57,6 @@ app.use(requestLogger);
 
 // Public auth routes (stricter rate limit)
 app.use("/api/auth", authLimiter, authRouter);
-app.use("/callback", codexCallbackRouter); // PUBLIC — OpenAI OAuth redirect
-
 // Auth middleware for all other API routes
 app.use("/api", authMiddleware);
 
@@ -72,8 +69,6 @@ app.use("/api", pullRequestsRouter);
 
 // Agent / AI execution routes
 app.use("/api/tasks", tasksRouter);
-app.use("/api/openai", openaiRouter);
-app.use("/api/openai", codexOAuthRouter);
 app.use("/api/workflows", workflowsRouter);
 
 // All other API routes
@@ -85,7 +80,8 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api", filesRouter);
 app.use("/api", analyticsRouter);
 app.use("/api", integrationsRouter);
-app.use("/api", usageRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/plans", plansRouter);
 app.use("/api/projects", devServerRouter);
 app.use("/api/docs", docsRouter);
 app.use("/api/docs-gen", docsGeneratorRouter);

@@ -1,9 +1,9 @@
 import { db } from "./index";
-import { agents } from "./schema/index";
+import { agents, users, plans } from "./schema/index";
 import { DEFAULT_AGENTS, DEFAULT_SOULS } from "@agenthub/shared";
 import type { AgentRole } from "@agenthub/shared";
 import { nanoid } from "nanoid";
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   architect: `You are the Architect, a senior software architect on the AgentHub team.
@@ -250,6 +250,28 @@ async function seed() {
     } else {
       console.log(`Added ${added} missing agent(s). Total: ${existingAgents.length + added}.`);
     }
+  }
+
+  // Set JohnPitter as admin
+  const johnPitter = await db.select({ id: users.id }).from(users).where(eq(users.login, "JohnPitter")).then(r => r[0]);
+  if (johnPitter) {
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, johnPitter.id));
+    console.log("Set JohnPitter as admin.");
+  }
+
+  // Seed default plans if none exist
+  const existingPlans = await db.select({ value: count() }).from(plans);
+  if ((existingPlans[0]?.value ?? 0) === 0) {
+    const now = new Date();
+    const defaultPlans = [
+      { id: nanoid(), name: "Free", description: "Plano gratuito para experimentar", maxProjects: 2, maxTasksPerMonth: 20, priceMonthly: "0", features: ["2 projetos", "20 tasks/mês"], isDefault: true, createdAt: now, updatedAt: now },
+      { id: nanoid(), name: "Pro", description: "Para desenvolvedores individuais", maxProjects: 10, maxTasksPerMonth: 200, priceMonthly: "29.90", features: ["10 projetos", "200 tasks/mês", "Todos os modelos"], isDefault: false, createdAt: now, updatedAt: now },
+      { id: nanoid(), name: "Team", description: "Para equipes de desenvolvimento", maxProjects: 50, maxTasksPerMonth: 1000, priceMonthly: "99.90", features: ["50 projetos", "1000 tasks/mês", "Todos os modelos", "Suporte prioritário"], isDefault: false, createdAt: now, updatedAt: now },
+    ];
+    for (const plan of defaultPlans) {
+      await db.insert(plans).values(plan);
+    }
+    console.log(`Seeded ${defaultPlans.length} default plans.`);
   }
 
   process.exit(0);

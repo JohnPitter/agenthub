@@ -17,6 +17,7 @@ const CREATE_STATEMENTS = [
     icon TEXT,
     description TEXT,
     team_id TEXT,
+    owner_id TEXT,
     github_url TEXT,
     github_owner TEXT,
     github_repo TEXT,
@@ -144,6 +145,94 @@ const CREATE_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_skills_project ON skills(project_id)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_skills_agent ON agent_skills(agent_id)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_skills_skill ON agent_skills(skill_id)`,
+  `CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    github_id INTEGER NOT NULL UNIQUE,
+    login TEXT NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    avatar_url TEXT,
+    access_token TEXT,
+    role TEXT NOT NULL DEFAULT 'user',
+    plan_id TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS plans (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    max_projects INTEGER NOT NULL DEFAULT 5,
+    max_tasks_per_month INTEGER NOT NULL DEFAULT 100,
+    price_monthly TEXT NOT NULL DEFAULT '0',
+    features TEXT DEFAULT '[]',
+    is_default INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS openrouter_config (
+    id TEXT PRIMARY KEY,
+    api_key TEXT NOT NULL,
+    enabled_models TEXT DEFAULT '[]',
+    created_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT,
+    is_read INTEGER NOT NULL DEFAULT 0,
+    metadata TEXT,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS teams (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    owner_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS team_members (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS team_invites (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    email TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS docs (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    file_path TEXT,
+    is_auto_generated INTEGER NOT NULL DEFAULT 0,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS agent_memories (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    project_id TEXT,
+    content TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'general',
+    importance INTEGER NOT NULL DEFAULT 5,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_memories_agent ON agent_memories(agent_id)`,
 ];
 
 export interface TestContext {
@@ -361,14 +450,13 @@ export async function createTestAgentSkill(
  * Helper to clean all tables in the test database.
  */
 export async function cleanTestDb(sqlite: Database.Database) {
-  sqlite.exec("DELETE FROM agent_skills");
-  sqlite.exec("DELETE FROM skills");
-  sqlite.exec("DELETE FROM task_logs");
-  sqlite.exec("DELETE FROM messages");
-  sqlite.exec("DELETE FROM tasks");
-  sqlite.exec("DELETE FROM workflows");
-  sqlite.exec("DELETE FROM agent_project_configs");
-  sqlite.exec("DELETE FROM integrations");
-  sqlite.exec("DELETE FROM agents");
-  sqlite.exec("DELETE FROM projects");
+  const tables = [
+    "agent_memories", "agent_skills", "skills", "task_logs", "messages",
+    "tasks", "workflows", "agent_project_configs", "integrations", "docs",
+    "notifications", "team_invites", "team_members", "teams", "agents",
+    "openrouter_config", "plans", "users", "projects",
+  ];
+  for (const table of tables) {
+    sqlite.prepare(`DELETE FROM ${table}`).run();
+  }
 }

@@ -3,7 +3,7 @@
 ## Pré-requisitos
 
 - Docker e Docker Compose instalados
-- Anthropic API Key
+- OpenRouter API Key (opcional — pode ser configurado via Admin panel)
 - Git instalado no host (para operações git dos agentes)
 
 ## Deploy com Docker Compose (Recomendado)
@@ -13,7 +13,7 @@
 ```bash
 # Criar arquivo .env na raiz do projeto
 cat > .env << EOF
-ANTHROPIC_API_KEY=sk-ant-...
+OPENROUTER_API_KEY=sk-or-...
 EOF
 ```
 
@@ -53,7 +53,7 @@ pnpm build
 ### 2. Configurar ambiente
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export OPENROUTER_API_KEY=sk-or-...
 export ORCHESTRATOR_PORT=3001
 export NODE_ENV=production
 ```
@@ -78,7 +78,7 @@ npx serve apps/web/dist -p 80
 
 | Variável | Obrigatória | Default | Descrição |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | Sim | — | API key da Anthropic para os agentes |
+| `OPENROUTER_API_KEY` | Não | — | API key do OpenRouter (pode ser configurada via Admin panel) |
 | `ORCHESTRATOR_PORT` | Não | `3001` | Porta do servidor backend |
 | `NODE_ENV` | Não | `development` | Ambiente (`production` em deploy) |
 

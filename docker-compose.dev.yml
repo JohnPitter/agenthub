@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=development
       - ORCHESTRATOR_PORT=3001
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
     volumes:
       - ./apps/orchestrator/src:/app/apps/orchestrator/src
       - ./packages/shared/src:/app/packages/shared/src

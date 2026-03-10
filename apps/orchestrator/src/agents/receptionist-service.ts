@@ -1,11 +1,11 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import OpenAI from "openai";
 import { logger } from "../lib/logger.js";
 import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { getAgentPrompt } from "./agent-prompts.js";
 import type { AgentRole } from "@agenthub/shared";
 
-const MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_MODEL = "anthropic/claude-haiku-4-5-20251001";
 const MAX_HISTORY = 20;
 
 export type TextBlock = { type: "text"; text: string };
@@ -72,8 +72,7 @@ function cleanResponseText(text: string): string {
 }
 
 /**
- * Convert multimodal content blocks to a text description for the Agent SDK.
- * The Agent SDK query() only accepts text prompts, so images become text descriptions.
+ * Convert multimodal content blocks to a text description.
  */
 function contentToText(content: string | ContentBlock[]): string {
   if (typeof content === "string") return content;
@@ -88,31 +87,21 @@ function contentToText(content: string | ContentBlock[]): string {
 }
 
 /**
- * Build a prompt that includes conversation history for context.
+ * Get OpenRouter API key from env or database.
  */
-function buildConversationPrompt(
-  history: ConversationEntry[],
-  currentMessage: string,
-): string {
-  const parts: string[] = [];
-
-  // Include recent history for context (skip current message, it's the last)
-  const priorHistory = history.slice(0, -1);
-  if (priorHistory.length > 0) {
-    parts.push("## Previous conversation:");
-    for (const entry of priorHistory) {
-      const prefix = entry.role === "user" ? "User" : "You";
-      parts.push(`${prefix}: ${entry.text}`);
-    }
-    parts.push("");
+async function getApiKey(): Promise<string | null> {
+  if (process.env.OPENROUTER_API_KEY) {
+    return process.env.OPENROUTER_API_KEY;
   }
-
-  parts.push(`## Current user message:\n${currentMessage}`);
-  parts.push(
-    "\nRespond directly to the current message, considering the previous conversation context.",
-  );
-
-  return parts.join("\n");
+  try {
+    const configs = await db.select().from(schema.openrouterConfig);
+    const config = configs[0];
+    if (!config?.apiKey) return null;
+    const { safeDecrypt } = await import("../lib/encryption.js");
+    return safeDecrypt(config.apiKey);
+  } catch {
+    return null;
+  }
 }
 
 export async function handleReceptionistMessage(
@@ -131,8 +120,6 @@ export async function handleReceptionistMessage(
     .where(eq(schema.agents.id, agentId))
     .then(r => r[0]);
 
-  // Use the base role prompt from agent-prompts.ts as source of truth.
-  // DB systemPrompt is NOT appended — it may contain stale instructions.
   const systemPrompt = getAgentPrompt(
     (agent?.role as AgentRole) || "receptionist",
     undefined,
@@ -143,35 +130,39 @@ export async function handleReceptionistMessage(
   addToHistory(contactId, { role: "user", text: userText });
   const history = getHistory(contactId);
 
-  const prompt = buildConversationPrompt(history, userText);
-
   try {
-    let resultText = "";
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+      throw new Error("OpenRouter API key not configured");
+    }
 
-    const conversation = query({
-      prompt,
-      options: {
-        model: MODEL,
-        systemPrompt,
-        allowedTools: [],
-        cwd: process.cwd(),
-        permissionMode: "bypassPermissions",
-        maxThinkingTokens: undefined,
+    const client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey,
+      defaultHeaders: {
+        "HTTP-Referer": "http://localhost:5173",
+        "X-Title": "AgentHub",
       },
     });
 
-    for await (const message of conversation) {
-      if (message.type === "result") {
-        if (message.subtype === "success" && message.result) {
-          resultText = message.result;
-        } else if (message.subtype !== "success" && "errors" in message && Array.isArray((message as Record<string, unknown>).errors)) {
-          throw new Error(((message as Record<string, unknown>).errors as string[]).join("; "));
-        }
-      }
+    // Build messages from conversation history
+    const messages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+    ];
+    for (const entry of history) {
+      messages.push({ role: entry.role, content: entry.text });
     }
 
+    const response = await client.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages,
+      max_tokens: 1024,
+    });
+
+    const resultText = response.choices[0]?.message?.content ?? "";
+
     if (!resultText) {
-      throw new Error("No result from agent query");
+      throw new Error("No result from OpenRouter");
     }
 
     addToHistory(contactId, { role: "assistant", text: resultText });

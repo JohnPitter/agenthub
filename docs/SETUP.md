@@ -9,7 +9,7 @@ Antes de começar, certifique-se de ter instalado:
 - **Node.js** 18+ ([download](https://nodejs.org/))
 - **pnpm** 8+ (instalar: `npm install -g pnpm`)
 - **Git** ([download](https://git-scm.com/))
-- **Anthropic API Key** ([obter aqui](https://console.anthropic.com/))
+- **OpenRouter API Key** (opcional — [obter aqui](https://openrouter.ai/keys) ou configurar via painel Admin)
 
 ## 🚀 Instalação Rápida
 
@@ -41,8 +41,8 @@ cp apps/orchestrator/.env.example apps/orchestrator/.env
 Edite o arquivo `apps/orchestrator/.env` e configure:
 
 ```bash
-# OBRIGATÓRIO
-ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
+# OPCIONAL (pode ser configurado via Admin panel)
+# OPENROUTER_API_KEY=sk-or-xxxxx
 
 # RECOMENDADO - Gere uma chave de criptografia
 # Execute este comando e copie o resultado:
@@ -221,9 +221,9 @@ agenthub/
 
 ## 🐛 Troubleshooting
 
-### Erro: "ANTHROPIC_API_KEY not found"
+### Erro: "OpenRouter API key not configured"
 
-**Solução:** Certifique-se de ter criado o arquivo `.env` em `apps/orchestrator/.env` com a API key válida.
+**Solução:** Configure a API key do OpenRouter via painel Admin ou adicione `OPENROUTER_API_KEY` no arquivo `.env` em `apps/orchestrator/.env`.
 
 ### Erro: "Port 3001 already in use"
 

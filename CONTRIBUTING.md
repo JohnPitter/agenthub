@@ -204,7 +204,7 @@ pnpm install
 cp apps/orchestrator/.env.example apps/orchestrator/.env
 
 # Adicionar sua API key
-# ANTHROPIC_API_KEY=sk-ant-...
+# OPENROUTER_API_KEY=sk-or-...
 
 # Rodar migrations
 pnpm db:push

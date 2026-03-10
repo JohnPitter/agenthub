@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-orange?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.27.0-purple?style=for-the-badge)](CHANGELOG.md)
 
-**Multi-Agent Task Orchestration Platform powered by Claude & OpenAI**
+**Multi-Agent Task Orchestration Platform powered by OpenRouter**
 
 *Autonomous AI agents working in parallel to automate software development*
 
@@ -28,7 +28,7 @@ AgentHub orchestrates multiple AI agents to automate software development. Agent
 
 **What you get:**
 
-- 🤖 **Agent Execution** — Claude & OpenAI agents executing real coding tasks
+- 🤖 **Agent Execution** — AI agents via OpenRouter executing real coding tasks
 - 🔀 **Git Integration** — Automatic branch creation, commits, push/pull
 - 👀 **Code Review** — Approve/reject cycle with structured feedback
 - ⚡ **Real-time Updates** — WebSocket notifications for all operations
@@ -47,7 +47,7 @@ AgentHub orchestrates multiple AI agents to automate software development. Agent
 | Node.js | 18+ |
 | pnpm | 9+ |
 | Git | 2.x+ |
-| Anthropic API Key | — |
+| OpenRouter API Key | Optional (can configure via Admin panel) |
 
 ### Setup
 
@@ -61,7 +61,7 @@ pnpm install
 
 # Configure environment
 cp apps/orchestrator/.env.example apps/orchestrator/.env
-# Add your ANTHROPIC_API_KEY to .env
+# Optionally add OPENROUTER_API_KEY to .env (or configure via Admin panel)
 
 # Build all packages
 pnpm build
@@ -78,7 +78,7 @@ pnpm dev
 
 | Feature | Description |
 |---------|-------------|
-| 🤖 **Agent Execution** | Claude & OpenAI agents running real development tasks |
+| 🤖 **Agent Execution** | AI agents via OpenRouter running real development tasks |
 | 🔀 **Branch Management** | Automatic branch creation per task (`task/{id}-{slug}`) |
 | 👀 **Review Cycle** | Approve/reject tasks with structured feedback |
 | ⚡ **Real-time Tracking** | WebSocket notifications for task progress |
@@ -130,15 +130,15 @@ agenthub/
 | Layer | Technologies |
 |-------|-------------|
 | **Frontend** | ⚛️ React 19, TypeScript, Vite, Tailwind CSS 4, Zustand, Monaco Editor, Recharts |
-| **Backend** | 🚀 Express, Socket.io, Claude Agent SDK, OpenAI Responses API, Node.js crypto (AES-256-GCM) |
-| **Database** | 🗄️ SQLite via @libsql + Drizzle ORM |
+| **Backend** | 🚀 Express, Socket.io, OpenRouter (OpenAI SDK), Node.js crypto (AES-256-GCM) |
+| **Database** | 🗄️ PostgreSQL via postgres.js + Drizzle ORM |
 | **Tooling** | ⚙️ pnpm 9, Turborepo, TypeScript 5.8 strict mode |
 
 ### Environment Variables
 
 ```bash
-# Required
-ANTHROPIC_API_KEY=sk-ant-...
+# Optional (can be configured via Admin panel instead)
+OPENROUTER_API_KEY=sk-or-...
 
 # Optional
 ENCRYPTION_KEY=your-32-byte-key    # For credential encryption
@@ -255,8 +255,7 @@ Contributions are welcome! Please:
 
 ## 🙏 Acknowledgements
 
-- [Anthropic](https://anthropic.com) — Claude Agent SDK
-- [OpenAI](https://openai.com) — Responses API
+- [OpenRouter](https://openrouter.ai) — Multi-model AI gateway
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) — Code editor
 - [Recharts](https://recharts.org/) — Charts and visualizations
 - [Drizzle ORM](https://orm.drizzle.team/) — Modern TypeScript ORM

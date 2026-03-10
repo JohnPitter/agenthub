@@ -3,7 +3,7 @@ import { db, schema } from "@agenthub/database";
 import { eq, and, gte, count } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 
 // GET /api/plans — List available plans (public for authenticated users)
 router.get("/", async (_req, res) => {
@@ -114,4 +114,4 @@ router.get("/models", async (_req, res) => {
   }
 });
 
-export const plansRouter = router;
+export { router as plansRouter };

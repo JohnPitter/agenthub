@@ -45,7 +45,14 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
   }
 }
 
-export async function getOpenRouterConfig() {
+export async function getOpenRouterConfig(): Promise<{
+  id: string;
+  apiKey: string;
+  enabledModels: { id: string; name: string; provider: string }[] | null;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+} | null> {
   const configs = await db.select().from(schema.openrouterConfig);
   return configs[0] ?? null;
 }

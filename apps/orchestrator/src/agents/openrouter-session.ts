@@ -277,8 +277,10 @@ export class OpenRouterSession {
         }
 
         // Execute tool calls
-        for (const toolCall of assistantMessage.tool_calls) {
+        for (const rawToolCall of assistantMessage.tool_calls) {
           if (!this.running) break;
+          if (rawToolCall.type !== "function") continue;
+          const toolCall = rawToolCall;
 
           toolCallCount++;
           const estimatedProgress = Math.min(95, (toolCallCount / ESTIMATED_TOOL_CALLS) * 100);

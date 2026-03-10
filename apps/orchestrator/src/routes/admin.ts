@@ -14,7 +14,7 @@ import {
 import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+const router: ReturnType<typeof Router> = Router();
 
 // All admin routes require admin role
 router.use(adminMiddleware);
@@ -388,4 +388,4 @@ router.get("/dashboard", async (_req, res) => {
   }
 });
 
-export const adminRouter = router;
+export { router as adminRouter };

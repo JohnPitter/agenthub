@@ -48,9 +48,6 @@ Edite o arquivo `apps/orchestrator/.env` e configure:
 # Execute este comando e copie o resultado:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ENCRYPTION_KEY=sua_chave_gerada_aqui
-
-# Configure o diretório de trabalho
-WORKSPACE_DIR=/caminho/para/seus/projetos
 ```
 
 ### 4. Inicialize o banco de dados

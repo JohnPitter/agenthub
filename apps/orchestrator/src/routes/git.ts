@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { join } from "path";
-import { homedir } from "os";
+import { REPOS_DIR } from "../lib/storage.js";
 import { nanoid } from "nanoid";
 import { GitService } from "../git/git-service.js";
 import { logger } from "../lib/logger.js";
@@ -82,7 +82,6 @@ router.post("/projects/:id/git/init", async (req, res) => {
 
     // If project.path is a URL, clone it to a local directory first
     if (project.path.startsWith("http")) {
-      const REPOS_DIR = join(homedir(), ".agenthub", "repos");
       await mkdir(REPOS_DIR, { recursive: true });
 
       const dirName = (project.name || "repo").replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();

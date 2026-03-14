@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { join } from "path";
-import { homedir } from "os";
+import { REPOS_DIR } from "../lib/storage.js";
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
 import { OpenRouterSession } from "./openrouter-session";
@@ -1740,7 +1740,6 @@ class AgentManager {
    * Fetches the first user's GitHub token for authentication.
    */
   private async autoCloneProject(repoUrl: string, projectName: string): Promise<string> {
-    const REPOS_DIR = join(homedir(), ".agenthub", "repos");
     await mkdir(REPOS_DIR, { recursive: true });
 
     const dirName = projectName.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();

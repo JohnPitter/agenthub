@@ -3,7 +3,7 @@ import { db, schema } from "@agenthub/database";
 import { eq, desc, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { join } from "path";
-import { homedir } from "os";
+import { REPOS_DIR } from "../lib/storage.js";
 import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import {
@@ -18,7 +18,6 @@ import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
 
 const git = new GitService();
-const REPOS_DIR = join(homedir(), ".agenthub", "repos");
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,7 +53,7 @@ async function resolveAccessToken(
   }
 }
 
-/** Clone a GitHub repo into ~/.agenthub/repos/<name> and return the local path. */
+/** Clone a GitHub repo into REPOS_DIR/<name> and return the local path. */
 async function cloneGitHubRepo(
   cloneUrl: string,
   projectName: string,

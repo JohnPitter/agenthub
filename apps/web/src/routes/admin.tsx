@@ -7,7 +7,7 @@ import {
 import { cn } from "../lib/utils";
 import { useAdminStore } from "../stores/admin-store";
 import { CommandBar } from "../components/layout/command-bar";
-import { getModelLabel, getModelProvider } from "@agenthub/shared";
+import { getModelLabel, getModelProvider, getModelCategory, getModelTags, TAG_CONFIG, MODEL_CATEGORIES } from "@agenthub/shared";
 
 type AdminTab = "plans" | "users" | "openrouter" | "dashboard";
 
@@ -546,8 +546,24 @@ function OpenRouterTab() {
                     onClick={() => toggleModel(model.id)}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-medium text-neutral-fg1 truncate">{model.name}</p>
-                      <p className="text-[10px] text-neutral-fg-disabled truncate">{model.id}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[12px] font-medium text-neutral-fg1 truncate">{getModelLabel(model.id)}</p>
+                        {(() => {
+                          const cat = MODEL_CATEGORIES.find(c => c.id === getModelCategory(model.id));
+                          return cat ? (
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-neutral-bg3 text-neutral-fg3">{cat.label}</span>
+                          ) : null;
+                        })()}
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[10px] text-neutral-fg-disabled">{getModelProvider(model.id)}</span>
+                        {getModelTags(model.id).slice(0, 3).map(tag => {
+                          const cfg = TAG_CONFIG[tag];
+                          return cfg ? (
+                            <span key={tag} className={cn("text-[8px] font-medium px-1 py-0.5 rounded", cfg.color)}>{cfg.label}</span>
+                          ) : null;
+                        })}
+                      </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0 ml-3">
                       <span className="text-[10px] text-neutral-fg3 tabular-nums">

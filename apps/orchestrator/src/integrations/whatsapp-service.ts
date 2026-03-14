@@ -720,9 +720,20 @@ export class WhatsAppService {
     }
 
     // Normalize WID — to can be a string or a Wid object
-    const chatId: string = typeof to === "string"
-      ? to
-      : (to as { _serialized?: string })?._serialized ?? String(to);
+    let chatId: string;
+    if (typeof to === "string") {
+      chatId = to;
+    } else if (to && typeof to === "object") {
+      const wid = to as { _serialized?: string; user?: string; server?: string };
+      chatId = wid._serialized ?? (wid.user && wid.server ? `${wid.user}@${wid.server}` : String(to));
+    } else {
+      chatId = String(to);
+    }
+
+    // Ensure chatId has @c.us suffix for regular contacts
+    if (chatId && !chatId.includes("@")) {
+      chatId = `${chatId.replace(/\D/g, "")}@c.us`;
+    }
 
     try {
       await this.client.sendText(chatId, content);

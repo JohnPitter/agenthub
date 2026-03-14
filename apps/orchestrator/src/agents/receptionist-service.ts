@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { getAgentPrompt } from "./agent-prompts.js";
 import type { AgentRole } from "@agenthub/shared";
 
-const DEFAULT_MODEL = "anthropic/claude-haiku-4-5-20251001";
+const FALLBACK_MODEL = "anthropic/claude-haiku-4.5";
 const MAX_HISTORY = 20;
 
 export type TextBlock = { type: "text"; text: string };
@@ -114,6 +114,7 @@ export async function handleReceptionistMessage(
     .select({
       systemPrompt: schema.agents.systemPrompt,
       role: schema.agents.role,
+      model: schema.agents.model,
       soul: schema.agents.soul,
     })
     .from(schema.agents)
@@ -154,7 +155,7 @@ export async function handleReceptionistMessage(
     }
 
     const response = await client.chat.completions.create({
-      model: DEFAULT_MODEL,
+      model: agent?.model || FALLBACK_MODEL,
       messages,
       max_tokens: 1024,
     });

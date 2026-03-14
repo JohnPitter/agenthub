@@ -120,13 +120,18 @@ export function KanbanBoard({ projectId, tasks, agents, recentlyMoved, onTaskUpd
         ))}
       </div>
 
-      {/* Drag overlay */}
-      <DragOverlay>
+      {/* Drag overlay — floating Harry Potter style */}
+      <DragOverlay dropAnimation={{
+        duration: 500,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+      }}>
         {activeTask ? (
-          <div className="rotate-2 scale-105 opacity-90">
+          <div className="animate-task-float-idle animate-task-glow rounded-xl">
             <KanbanCard
               task={activeTask}
               agent={agents.find(a => a.id === activeTask.assignedAgentId)}
+              recentlyMoved={false}
+              className="rotate-1 scale-[1.04] shadow-2xl"
             />
           </div>
         ) : null}

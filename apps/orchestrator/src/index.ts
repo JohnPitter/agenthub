@@ -143,26 +143,43 @@ taskWatcher.start();
 httpServer.listen(PORT, async () => {
   logger.info(`Orchestrator running on http://localhost:${PORT}`, "server");
 
-  // Sync default agents' allowedTools with current blueprints
+  // Sync default agents with current blueprints (tools, model, thinking tokens)
   try {
     const defaultAgents = await db.select().from(schema.agents).where(eq(schema.agents.isDefault, true));
     let synced = 0;
     for (const agent of defaultAgents) {
       const blueprint = DEFAULT_AGENTS.find((b) => b.role === agent.role);
       if (!blueprint) continue;
+
+      const updates: Record<string, unknown> = {};
+
+      // Sync allowedTools
       const currentTools = JSON.stringify(JSON.parse(agent.allowedTools || "[]").sort());
       const blueprintTools = JSON.stringify([...blueprint.allowedTools].sort());
       if (currentTools !== blueprintTools) {
-        await db
-          .update(schema.agents)
-          .set({ allowedTools: JSON.stringify(blueprint.allowedTools), updatedAt: new Date() })
-          .where(eq(schema.agents.id, agent.id));
-        logger.info(`Synced tools for ${agent.name}: ${blueprint.allowedTools.join(", ")}`, "startup");
+        updates.allowedTools = JSON.stringify(blueprint.allowedTools);
+      }
+
+      // Sync model
+      if (agent.model !== blueprint.model) {
+        updates.model = blueprint.model;
+      }
+
+      // Sync maxThinkingTokens
+      if (agent.maxThinkingTokens !== blueprint.maxThinkingTokens) {
+        updates.maxThinkingTokens = blueprint.maxThinkingTokens;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updates.updatedAt = new Date();
+        await db.update(schema.agents).set(updates).where(eq(schema.agents.id, agent.id));
+        const changedFields = Object.keys(updates).filter(k => k !== "updatedAt").join(", ");
+        logger.info(`Synced ${changedFields} for ${agent.name}`, "startup");
         synced++;
       }
     }
     if (synced > 0) {
-      logger.info(`Synced allowedTools for ${synced} default agent(s)`, "startup");
+      logger.info(`Synced ${synced} default agent(s)`, "startup");
     }
   } catch (err) {
     logger.error(`Failed to sync default agent tools: ${err}`, "startup");

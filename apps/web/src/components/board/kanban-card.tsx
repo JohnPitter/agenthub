@@ -10,6 +10,7 @@ interface KanbanCardProps {
   task: Task;
   agent?: Agent;
   recentlyMoved?: boolean;
+  className?: string;
   onViewChanges?: (taskId: string) => void;
   onTaskClick?: (task: Task) => void;
 }
@@ -28,7 +29,7 @@ const PRIORITY_KEYS = {
   urgent: "taskPriority.urgent",
 } as const;
 
-export function KanbanCard({ task, agent, recentlyMoved, onViewChanges, onTaskClick }: KanbanCardProps) {
+export function KanbanCard({ task, agent, recentlyMoved, className, onViewChanges, onTaskClick }: KanbanCardProps) {
   const { t } = useTranslation();
   const {
     attributes,
@@ -54,7 +55,8 @@ export function KanbanCard({ task, agent, recentlyMoved, onViewChanges, onTaskCl
       className={cn(
         "group cursor-grab card-interactive p-3 active:cursor-grabbing",
         isDragging && "opacity-40 shadow-glow ring-2 ring-brand/20",
-        recentlyMoved && "animate-task-arrive"
+        recentlyMoved && "animate-task-land",
+        className
       )}
     >
       {/* Priority + blocked */}

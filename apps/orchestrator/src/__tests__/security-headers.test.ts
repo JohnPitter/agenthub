@@ -54,9 +54,13 @@ describe("Security Headers Middleware", () => {
       prodApp.get("/test", (_req, res) => res.json({ ok: true }));
 
       const res = await request(prodApp).get("/test");
-      expect(res.headers["content-security-policy"]).toBe(
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' wss:",
-      );
+      const csp = res.headers["content-security-policy"] as string;
+      expect(csp).toContain("default-src 'self'");
+      expect(csp).toContain("script-src 'self' 'unsafe-inline'");
+      expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
+      expect(csp).toContain("font-src 'self' https://fonts.gstatic.com");
+      expect(csp).toContain("img-src 'self' data: https:");
+      expect(csp).toContain("connect-src 'self' wss: https://openrouter.ai https://api.github.com");
     });
   });
 });

@@ -45,7 +45,7 @@ export function KanbanColumn({ id, title, tasks, agents, color, recentlyMoved, o
           className={cn(
             "flex-1 space-y-3 rounded-xl border-2 border-dashed p-4 transition-all duration-200",
             isOver
-              ? "border-brand bg-brand-light/10 shadow-glow"
+              ? "border-brand bg-brand-light/10 shadow-[0_0_24px_rgba(99,102,241,0.12)]"
               : "border-transparent glass"
           )}
         >

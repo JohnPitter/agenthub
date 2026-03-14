@@ -40,7 +40,7 @@ export function ProjectBoard() {
     setTimeout(() => {
       recentlyMovedRef.current.delete(taskId);
       setRecentlyMoved(new Set(recentlyMovedRef.current));
-    }, 600);
+    }, 800);
   }, []);
 
   useEffect(() => {

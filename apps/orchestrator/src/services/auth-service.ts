@@ -2,7 +2,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { db } from "@agenthub/database";
 import { schema } from "@agenthub/database";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { encrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
@@ -84,6 +84,10 @@ export async function upsertUser(ghUser: GitHubUser, accessToken: string) {
     return existing;
   }
 
+  // First user becomes admin automatically
+  const [userCount] = await db.select({ count: count() }).from(schema.users);
+  const isFirstUser = (userCount?.count ?? 0) === 0;
+
   const user = {
     id: nanoid(),
     githubId: ghUser.id,
@@ -92,12 +96,13 @@ export async function upsertUser(ghUser: GitHubUser, accessToken: string) {
     email: ghUser.email,
     avatarUrl: ghUser.avatar_url,
     accessToken: encryptedToken,
+    role: isFirstUser ? "admin" as const : "user" as const,
     createdAt: now,
     updatedAt: now,
   };
 
   await db.insert(schema.users).values(user);
-  logger.info(`New user created: ${ghUser.login}`, "auth");
+  logger.info(`New user created: ${ghUser.login}${isFirstUser ? " (admin)" : ""}`, "auth");
   return user;
 }
 

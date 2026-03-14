@@ -172,17 +172,21 @@ export class WhatsAppService {
       try {
         if (msg.fromMe) return;
 
+        // Normalize WID — msg.from can be a string or a Wid object
+        const rawFrom = msg.from;
+        const from: string = typeof rawFrom === "string"
+          ? rawFrom
+          : (rawFrom as unknown as { _serialized?: string })._serialized ?? String(rawFrom);
+
         // Whitelist check — only allow messages from the authorized number
         if (this.config.allowedNumber) {
-          const senderNumber = msg.from.replace("@c.us", "");
+          const senderNumber = from.replace("@c.us", "");
           const allowed = this.config.allowedNumber.replace(/\D/g, "");
           if (senderNumber !== allowed) {
-            logger.info(`Blocked message from unauthorized number: ${msg.from}`, "whatsapp");
+            logger.info(`Blocked message from unauthorized number: ${from}`, "whatsapp");
             return;
           }
         }
-
-        const from = msg.from;
         const contactName =
           msg.sender?.pushname || msg.sender?.formattedName || from;
 
@@ -710,13 +714,18 @@ export class WhatsAppService {
     }
   }
 
-  async sendMessage(to: string, content: string): Promise<void> {
+  async sendMessage(to: string | unknown, content: string): Promise<void> {
     if (!this.client) {
       throw new Error("WhatsApp not connected");
     }
 
+    // Normalize WID — to can be a string or a Wid object
+    const chatId: string = typeof to === "string"
+      ? to
+      : (to as { _serialized?: string })?._serialized ?? String(to);
+
     try {
-      await this.client.sendText(to, content);
+      await this.client.sendText(chatId, content);
       logger.info(`WhatsApp message sent to ${to}`, "whatsapp");
     } catch (error) {
       logger.error(`Failed to send WhatsApp message: ${error instanceof Error ? error.message : "Unknown error"}`, "whatsapp");

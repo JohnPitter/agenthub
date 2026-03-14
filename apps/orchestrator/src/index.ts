@@ -1,4 +1,6 @@
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import cors from "cors";
 import { createServer } from "http";
 import { Server as SocketServer } from "socket.io";
@@ -94,6 +96,17 @@ app.use("/api/agents", agentSkillsRouter);
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: Date.now() });
 });
+
+// In production, serve the web frontend (SPA)
+if (process.env.NODE_ENV === "production") {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const webDist = path.resolve(__dirname, "../../apps/web/dist");
+  app.use(express.static(webDist));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) return next();
+    res.sendFile(path.join(webDist, "index.html"));
+  });
+}
 
 // Global error handler (must be last)
 app.use(errorHandler);

@@ -1,261 +1,358 @@
-# AgentHub
-
 <div align="center">
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-orange?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.27.0-purple?style=for-the-badge)](CHANGELOG.md)
+<img src="apps/web/public/favicon.svg" alt="AgentHub" width="80" height="80" />
 
-**Multi-Agent Task Orchestration Platform powered by OpenRouter**
+# AgentHub
 
-*Autonomous AI agents working in parallel to automate software development*
+**Multi-Agent AI Orchestration Platform — automate software development with autonomous agents.**
 
-[Installation](#installation) •
-[Features](#features) •
-[Screenshots](#screenshots) •
-[Configuration](#configuration) •
-[Documentation](#documentation)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![OpenRouter](https://img.shields.io/badge/OpenRouter-Powered-6366F1?style=flat-square)](https://openrouter.ai)
+[![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-orange?style=flat-square)](#license)
+
+[Features](#-features) · [Architecture](#-architecture) · [Agent Workflow](#-agent-workflow) · [Getting Started](#-getting-started) · [Tech Stack](#-tech-stack)
 
 </div>
 
 ---
 
-## Overview
+## What is AgentHub?
 
-AgentHub orchestrates multiple AI agents to automate software development. Agents execute tasks in isolated git branches, go through code review, and report progress in real-time.
+AgentHub is an **AI-powered development orchestration platform** that coordinates multiple AI agents to automate software engineering tasks. Import a GitHub repository, describe what you want built, and a team of specialized agents — Tech Lead, Architect, Developer, QA — executes the work autonomously in isolated git branches, with real-time progress tracking and automatic pull request creation.
 
-**What you get:**
-
-- 🤖 **Agent Execution** — AI agents via OpenRouter executing real coding tasks
-- 🔀 **Git Integration** — Automatic branch creation, commits, push/pull
-- 👀 **Code Review** — Approve/reject cycle with structured feedback
-- ⚡ **Real-time Updates** — WebSocket notifications for all operations
-- 📊 **Analytics** — Performance metrics, success rates, trend charts
-- 📝 **Code Editor** — Monaco Editor with diff viewer and git history
-- 📱 **Integrations** — Git, WhatsApp, Telegram notifications
+Think of it as your own **AI dev team** — always available, working in parallel, with full audit trail.
 
 ---
 
-## Installation
+## Features
 
-### Requirements
+| Category | What you get |
+|---|---|
+| **Multi-Agent Workflows** | Tech Lead triages, Architect plans, Developer codes, QA reviews. Fully automatic pipeline. |
+| **GitHub Integration** | Import repos, auto-branch per task, push commits, create PRs — all automated |
+| **Real-time Dashboard** | Live task progress, agent status indicators, WebSocket updates |
+| **Kanban Board** | Drag tasks through columns: Created, Assigned, In Progress, Review, Done |
+| **Code Editor** | Monaco Editor with IntelliSense, diff viewer, git history, 50+ languages |
+| **Model Catalog** | 45+ AI models from Anthropic, OpenAI, Google, DeepSeek, Mistral, Meta — categorized by skill |
+| **Plan-based Quotas** | Per-plan limits: max projects, tasks/month, storage, allowed models |
+| **Storage Management** | User-isolated repos, shallow clones, automatic TTL cleanup, quota enforcement |
+| **Analytics** | Agent performance, cost tracking by model/agent/day, task trends |
+| **Integrations** | WhatsApp (auto-reconnect), Telegram bots, Git webhooks |
+| **Team Collaboration** | Teams, role-based access (owner/admin/member), invites |
+| **Security** | AES-256-GCM encryption, GitHub OAuth, JWT, rate limiting, path traversal protection |
+| **Admin Panel** | Manage users, plans, OpenRouter config, global metrics dashboard |
+| **380+ Tests** | Unit, integration, E2E flows — all passing |
+
+---
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Internet
+        USER[User Browser]
+        GH[GitHub API]
+    end
+
+    subgraph Platform["AgentHub Platform"]
+        WEB["Web Frontend<br/>(React SPA — :5173)"]
+        API["Orchestrator API<br/>(Express + Socket.io — :3001)"]
+        DB[("PostgreSQL<br/>Drizzle ORM")]
+
+        subgraph Agents["AI Agent Pipeline"]
+            TL["Tech Lead<br/>Triage & Plan"]
+            ARCH["Architect<br/>Design & Structure"]
+            DEV["Developer<br/>Code & Commit"]
+            QA["QA Engineer<br/>Review & Test"]
+        end
+
+        subgraph Services["Core Services"]
+            GIT["Git Service<br/>Branch, Commit, Push"]
+            STORAGE["Storage Service<br/>Quotas, Cleanup, TTL"]
+            OR["OpenRouter<br/>Multi-Model Gateway"]
+        end
+    end
+
+    USER -->|HTTPS| WEB
+    WEB -->|REST + WebSocket| API
+    API --> DB
+    API --> Agents
+    API --> Services
+    TL --> ARCH
+    ARCH --> DEV
+    DEV --> QA
+    Agents -->|API Calls| OR
+    GIT -->|Push/PR| GH
+    STORAGE -->|Clone| GH
+
+    style WEB fill:#6366F1,color:#fff,stroke:none
+    style API fill:#10B981,color:#fff,stroke:none
+    style DB fill:#336791,color:#fff,stroke:none
+    style TL fill:#F59E0B,color:#fff,stroke:none
+    style ARCH fill:#8B5CF6,color:#fff,stroke:none
+    style DEV fill:#3B82F6,color:#fff,stroke:none
+    style QA fill:#EF4444,color:#fff,stroke:none
+    style OR fill:#6366F1,color:#fff,stroke:none
+```
+
+### How the pieces fit together
+
+| Component | Role | Tech |
+|---|---|---|
+| **Web Frontend** | SPA with dashboard, kanban board, code editor, analytics, admin panel | React 19 + Vite + Tailwind CSS 4 |
+| **Orchestrator** | REST API, WebSocket server, agent execution engine, git operations | Express + Socket.io + Node.js |
+| **Database** | Projects, agents, tasks, messages, logs, plans, teams, workflows | PostgreSQL + Drizzle ORM |
+| **OpenRouter** | Multi-model AI gateway — 45+ models from 6 providers | OpenAI SDK compatible |
+| **Git Service** | Branch management, commits, push/pull, PR creation via `gh` CLI | `execFile` (injection-safe) |
+| **Storage Service** | User-isolated repos, shallow clones, quota enforcement, TTL cleanup | Node.js + cron scheduler |
+
+---
+
+## Agent Workflow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Board as Kanban Board
+    participant API as Orchestrator
+    participant TL as Tech Lead
+    participant Dev as Developer
+    participant QA as QA Engineer
+    participant Git as GitHub
+
+    User->>Board: Create task + drag to "Assigned"
+    Board->>API: PATCH /tasks/:id (status: assigned)
+    API->>TL: Triage & create plan
+
+    alt Complex task
+        TL->>TL: SPLIT_TASK — create subtasks
+        TL->>Dev: Parallel execution per subtask
+    else Simple task
+        TL->>Dev: Direct assignment
+    end
+
+    Dev->>Dev: Create branch, write code, commit
+    Dev->>QA: Submit for review
+
+    alt Issues found
+        QA->>Dev: Reject with feedback
+        Dev->>QA: Fix and resubmit
+    end
+
+    QA->>API: Approve (status: done)
+    API->>Git: Auto-push branch
+    API->>Git: Auto-create Pull Request
+    Git-->>User: PR ready for merge!
+```
+
+### Task State Machine
+
+```
+created → assigned → in_progress → review → done
+                                    review → assigned (reject with feedback)
+                                    * → failed (error)
+```
+
+---
+
+## Model Catalog
+
+AgentHub includes a curated catalog of **45+ AI models** organized by skill:
+
+| Category | Best For | Example Models |
+|---|---|---|
+| **Coding** | Code generation, editing, debugging | Claude Opus 4.6, GPT-4.1, Codestral, DeepSeek V3.2 |
+| **Reasoning** | Complex problem solving, math | o3, DeepSeek R1, Gemini 2.5 Pro |
+| **General** | Balanced multi-task | Claude Sonnet 4.5, Mistral Large, Llama 4 Maverick |
+| **Fast** | Quick responses, high throughput | Claude Haiku 4.5, Gemini 2.5 Flash, GPT-4.1 Mini |
+| **Budget** | Low cost for simple tasks | Gemini 2.0 Flash, GPT-4.1 Nano, Claude 3 Haiku |
+
+Admins configure which models each plan can access. Models display with friendly names and skill tags throughout the UI.
+
+---
+
+## Getting Started
+
+### Prerequisites
 
 | Requirement | Version |
-|-------------|---------|
+|---|---|
 | Node.js | 18+ |
 | pnpm | 9+ |
+| PostgreSQL | 16+ |
 | Git | 2.x+ |
-| OpenRouter API Key | Optional (can configure via Admin panel) |
+| GitHub OAuth App | Client ID + Secret |
 
-### Setup
+### Development
 
 ```bash
-# Clone the repository
+# Clone
 git clone https://github.com/JohnPitter/agenthub.git
 cd agenthub
 
 # Install dependencies
 pnpm install
 
-# Configure environment
+# Configure
 cp apps/orchestrator/.env.example apps/orchestrator/.env
-# Optionally add OPENROUTER_API_KEY to .env (or configure via Admin panel)
+# Edit .env: set DATABASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, JWT_SECRET
+
+# Run migrations
+pnpm db:migrate
 
 # Build all packages
 pnpm build
 
-# Start development
+# Start development (web + orchestrator)
 pnpm dev
+
+# Access
+#   Web UI:     http://localhost:5173
+#   API:        http://localhost:3001
+#   Health:     http://localhost:3001/api/health
 ```
 
-**That's it!** Access the Web UI at `http://localhost:5173` and the API at `http://localhost:3001`.
+### Production (via LuxView Cloud)
+
+AgentHub deploys as a single-container app on [LuxView Cloud](https://github.com/JohnPitter/luxview-cloud) with auto-detected stack, managed PostgreSQL, and SSL.
+
+```bash
+# On LuxView Cloud: connect GitHub, select agenthub, deploy
+# DATABASE_URL and PGHOST/PGPORT are auto-injected
+```
 
 ---
 
-## Features
+## Tech Stack
 
-| Feature | Description |
-|---------|-------------|
-| 🤖 **Agent Execution** | AI agents via OpenRouter running real development tasks |
-| 🔀 **Branch Management** | Automatic branch creation per task (`task/{id}-{slug}`) |
-| 👀 **Review Cycle** | Approve/reject tasks with structured feedback |
-| ⚡ **Real-time Tracking** | WebSocket notifications for task progress |
-| 📁 **File Browser** | Tree view explorer with breadcrumbs and file icons |
-| 📝 **Code Editor** | Monaco Editor with IntelliSense and 50+ languages |
-| 🔍 **Diff Viewer** | Side-by-side comparison with git history |
-| 📊 **Analytics Dashboard** | Agent metrics, trend charts, success rates |
-| 🔐 **Credential Storage** | AES-256-GCM encrypted secrets |
-| 🔄 **Remote Operations** | Push, pull, sync with conflict detection |
-| 📱 **Notifications** | WhatsApp (auto-reconnect + number whitelist), Telegram, Slack |
-| 🧠 **Autonomous Agents** | Soul system, memory, and task watcher |
-| 🖥️ **Dev Server Preview** | Live iframe preview with terminal output |
+<div align="center">
+
+| Layer | Technology |
+|:---:|:---:|
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS 4, Zustand, Monaco Editor, Recharts, Socket.io Client |
+| **Backend** | Express, Socket.io, OpenRouter (OpenAI SDK), Node.js crypto (AES-256-GCM) |
+| **Database** | PostgreSQL 16 via postgres.js + Drizzle ORM |
+| **AI Models** | OpenRouter gateway — Anthropic, OpenAI, Google, DeepSeek, Mistral, Meta |
+| **Auth** | GitHub OAuth + JWT (httpOnly cookies) |
+| **Tooling** | pnpm 9, Turborepo, TypeScript 5.8 strict mode, Vitest |
+| **Security** | AES-256-GCM encryption, execFile only, parameterized queries, rate limiting |
+
+</div>
 
 ---
 
-## Screenshots
-
-### Dashboard
-
-[![Dashboard](assets/dashboard.png)](assets/dashboard.png)
-
-### Project Board
-
-[![Board](assets/board.png)](assets/board.png)
-
-### Code Editor
-
-[![Editor](assets/editor.png)](assets/editor.png)
-
----
-
-## Configuration
-
-### Monorepo Structure
+## Project Structure
 
 ```
 agenthub/
-├── apps/
-│   ├── web/              # ⚛️ React 19 + Vite + Tailwind 4 (port 5173)
-│   └── orchestrator/     # 🚀 Node.js + Express + Socket.io (port 3001)
-├── packages/
-│   ├── database/         # 🗄️ Drizzle ORM + SQLite (@libsql)
-│   └── shared/           # 📦 Shared types & constants
-└── turbo.json            # ⚙️ Turborepo config
-```
+  apps/
+    web/                        # React SPA frontend
+      src/
+        routes/                 # Pages: dashboard, projects, agents, tasks, analytics, admin, settings
+        components/             # UI components organized by domain
+        stores/                 # Zustand state management
+        hooks/                  # Custom React hooks
+        i18n/                   # Internationalization (pt-BR, en-US, es, ja, zh-CN)
 
-### Tech Stack
+    orchestrator/               # Node.js API backend
+      src/
+        routes/                 # REST endpoints (projects, tasks, agents, git, storage, admin, plans)
+        agents/                 # Agent manager — workflow execution engine
+        services/               # Business logic (storage, OpenRouter, auth, GitHub)
+        git/                    # Git operations (clone, commit, push, PR)
+        integrations/           # WhatsApp, Telegram services
+        realtime/               # Socket.io event handlers
+        tasks/                  # Task lifecycle, watcher, cleanup scheduler
+        middleware/             # Auth, rate limiter, error handler, security headers
+        lib/                    # Utilities (logger, encryption, storage, detect-stack)
 
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | ⚛️ React 19, TypeScript, Vite, Tailwind CSS 4, Zustand, Monaco Editor, Recharts |
-| **Backend** | 🚀 Express, Socket.io, OpenRouter (OpenAI SDK), Node.js crypto (AES-256-GCM) |
-| **Database** | 🗄️ PostgreSQL via postgres.js + Drizzle ORM |
-| **Tooling** | ⚙️ pnpm 9, Turborepo, TypeScript 5.8 strict mode |
+  packages/
+    database/                   # Drizzle ORM schemas + migrations
+      src/schema/               # 16 tables: projects, agents, tasks, messages, plans, teams, etc.
+      drizzle/                  # SQL migration files
 
-### Environment Variables
-
-```bash
-# Optional (can be configured via Admin panel instead)
-OPENROUTER_API_KEY=sk-or-...
-
-# Optional
-ENCRYPTION_KEY=your-32-byte-key    # For credential encryption
-PORT=3001                           # Orchestrator port
+    shared/                     # Shared types & constants
+      src/
+        types/                  # TypeScript interfaces (Agent, Task, Project, Events, etc.)
+        constants/              # Default agents, task states, model catalog, stack icons
 ```
 
 ---
 
-## Documentation
+## Environment Variables
 
-| Document | Description |
-|----------|-------------|
-| [CHANGELOG.md](CHANGELOG.md) | Version history and phase details |
-| [DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) | Roadmap with Phases 18-25 detailed |
-
----
-
-## Compatibility
-
-### Task State Machine
-
-```
-pending → assigned → in_progress → review → done
-                                   review → assigned (reject with feedback)
-                                   * → failed (error)
-```
-
-### Database Schema
-
-| Table | Description |
-|-------|-------------|
-| `projects` | Managed projects with path and status |
-| `agents` | Claude agents with role and system prompt |
-| `tasks` | Development tasks with priority, category, branch |
-| `messages` | Agent conversation messages |
-| `task_logs` | Audit trail for all operations |
-| `integrations` | Git, WhatsApp, Telegram configs |
+| Variable | Description | Required |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `JWT_SECRET` | JWT signing secret | Yes |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID | Yes |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret | Yes |
+| `ENCRYPTION_KEY` | AES-256-GCM key (32 bytes hex) | Production |
+| `OPENROUTER_API_KEY` | OpenRouter API key (or configure via Admin panel) | No |
+| `ORCHESTRATOR_PORT` | API port (default: 3001) | No |
+| `CORS_ORIGINS` | Allowed CORS origins (default: localhost:5173,5174) | No |
+| `STORAGE_PATH` | Base directory for repos (default: ~/.agenthub) | No |
 
 ---
 
 ## Scripts
 
-```bash
-# Development
-pnpm dev                  # Start all apps
-pnpm dev:web              # Start frontend only
-pnpm dev:orchestrator     # Start backend only
-
-# Build
-pnpm build                # Build all packages
-
-# Database
-pnpm db:migrate           # Run migrations
-pnpm db:seed              # Seed database
-```
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start all apps (web + orchestrator) |
+| `pnpm dev:web` | Start frontend only |
+| `pnpm dev:orchestrator` | Start backend only |
+| `pnpm build` | Build all packages |
+| `pnpm db:migrate` | Run database migrations |
+| `pnpm db:seed` | Seed database with default agents |
 
 ---
 
-## Engineering Principles
+## Database Schema
 
-AgentHub follows **12 master principles**:
-
-| # | Principle | Summary |
-|---|-----------|---------|
-| 1 | **Clean Architecture** | DRY, single responsibility, no business logic in routes |
-| 2 | **Big O Performance** | O(1) lookups, paginated endpoints, lazy loading, memoization |
-| 3 | **CVE Mitigation** | OWASP Top 10 protection, `execFile` only, parameterized queries |
-| 4 | **Resilience & Cache** | Retry with backoff, timeouts, Error Boundaries, auto-reconnect |
-| 5 | **Modern Design** | Semantic palette, typography hierarchy, 4px grid, accessibility |
-| 6 | **Test Pyramid** | Unit (70%), Integration (20%), E2E (10%) with Vitest |
-| 7 | **Data Security** | AES-256-GCM encryption, no secrets in logs/responses, httpOnly cookies |
-| 8 | **Observability** | Structured logger, context tags, audit trail, full lifecycle tracing |
-| 9 | **Design System** | Lucide icons, CSS variables, reusable components, consistent states |
-| 10 | **Phase-based Dev** | Numbered phases, sub-phases, plans before code |
-| 11 | **CHANGELOG** | Semantic versioning, every change documented |
-| 12 | **Clean Builds** | Zero unused imports, zero `any`, TypeScript strict, `pnpm build` always passes |
+| Table | Purpose |
+|---|---|
+| `projects` | GitHub repos with path, stack, owner, storage tracking |
+| `agents` | AI agents with role, model, tools, permissions, soul |
+| `tasks` | Dev tasks with status, priority, branch, cost, tokens |
+| `messages` | Threaded chat history (user + agent messages) |
+| `task_logs` | Complete audit trail for every operation |
+| `plans` | Subscription plans with quotas and allowed models |
+| `users` | User accounts with GitHub OAuth + encrypted tokens |
+| `teams` | Team collaboration with role-based access |
+| `workflows` | Custom agent pipeline definitions (nodes + edges) |
+| `integrations` | Git, WhatsApp, Telegram configs + encrypted credentials |
+| `notifications` | User notification queue |
+| `skills` | Custom skills library assignable to agents |
 
 ---
 
 ## Security
 
-- 🔐 **Credential Storage** — AES-256-GCM encryption (never plain text)
-- 🛡️ **Git Operations** — `execFile` only (no shell injection)
-- ✅ **Input Validation** — Zod schemas, parameterized SQL via Drizzle ORM
-- 🚫 **Path Traversal** — `path.resolve()` + directory boundary validation
-- 🔒 **Rate Limiting** — All API routes protected
-- 🍪 **Cookie Security** — httpOnly, secure, sameSite strict
-- 🛡️ **Error Handling** — No stack traces leaked to clients, Error Boundaries per route
+| Protection | Implementation |
+|---|---|
+| **Credential Encryption** | AES-256-GCM — tokens, API keys, git credentials never stored in plain text |
+| **Command Injection** | `execFile` only (never `exec`/`execSync`), args as array |
+| **SQL Injection** | Drizzle ORM parameterized queries, never string interpolation |
+| **Path Traversal** | `path.resolve()` + boundary validation before every file operation |
+| **XSS** | React built-in escaping, content sanitized before render |
+| **Auth** | GitHub OAuth + JWT (httpOnly, secure, sameSite strict, 7-day max) |
+| **Rate Limiting** | All API routes protected, stricter limits on auth endpoints |
+| **Storage Isolation** | Per-user repo directories, path validation before rm operations |
 
 ---
 
 ## License
 
-CC BY-NC 4.0 — uso pessoal permitido, uso comercial proibido. Veja [LICENSE](LICENSE).
+CC BY-NC 4.0 — personal use allowed, commercial use prohibited. See [LICENSE](LICENSE).
 
 ---
 
-## Contributing
+<div align="center">
 
-Contributions are welcome! Please:
+**Built with TypeScript and React by [@JohnPitter](https://github.com/JohnPitter)**
 
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
----
-
-## Support
-
-- **Issues:** [GitHub Issues](https://github.com/JohnPitter/agenthub/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/JohnPitter/agenthub/discussions)
-
----
-
-## 🙏 Acknowledgements
-
-- [OpenRouter](https://openrouter.ai) — Multi-model AI gateway
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) — Code editor
-- [Recharts](https://recharts.org/) — Charts and visualizations
-- [Drizzle ORM](https://orm.drizzle.team/) — Modern TypeScript ORM
+</div>

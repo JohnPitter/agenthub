@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
 
 export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
@@ -13,6 +13,9 @@ export const projects = pgTable("projects", {
   githubOwner: text("github_owner"),
   githubRepo: text("github_repo"),
   status: text("status", { enum: ["active", "archived"] }).default("active").notNull(),
+  lastAccessedAt: timestamp("last_accessed_at").$defaultFn(() => new Date()),
+  diskSizeMb: numeric("disk_size_mb", { precision: 10, scale: 2 }).default("0"),
+  isShallowClone: boolean("is_shallow_clone").notNull().default(true),
   createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
   updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
 });

@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useUsageStore, type CostByModelEntry } from "../../stores/usage-store";
 import { PieChart as PieChartIcon } from "lucide-react";
+import { getModelLabel } from "@agenthub/shared";
 
 const MODEL_COLORS = ["#F97316", "#8B5CF6", "#06B6D4", "#10B981", "#EF4444", "#F59E0B"];
 
@@ -9,7 +10,7 @@ function ModelTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   const d = payload[0].payload;
   return (
     <div className="bg-neutral-bg1 border border-stroke2 rounded-md shadow-4 p-3 min-w-[160px]">
-      <p className="text-[12px] font-semibold text-neutral-fg1 mb-2">{d.model}</p>
+      <p className="text-[12px] font-semibold text-neutral-fg1 mb-2">{getModelLabel(d.model)}</p>
       <div className="space-y-1">
         <div className="flex justify-between text-[11px]">
           <span className="text-neutral-fg3">Custo:</span>
@@ -71,6 +72,7 @@ export function CostByModelChart() {
   const totalCost = costByModel.reduce((sum, e) => sum + e.totalCost, 0);
   const data = costByModel.map((entry) => ({
     ...entry,
+    label: getModelLabel(entry.model),
     percent: totalCost > 0 ? entry.totalCost / totalCost : 0,
   }));
 
@@ -82,7 +84,7 @@ export function CostByModelChart() {
           <Pie
             data={data}
             dataKey="totalCost"
-            nameKey="model"
+            nameKey="label"
             cx="50%"
             cy="50%"
             outerRadius={100}

@@ -97,17 +97,38 @@ router.get("/my-usage", async (req, res) => {
   }
 });
 
-// GET /api/plans/models — Public endpoint: get enabled models from OpenRouter config
-router.get("/models", async (_req, res) => {
+// GET /api/plans/models — Get enabled models, filtered by user's plan allowedModels
+router.get("/models", async (req, res) => {
   try {
+    const userId = req.user?.userId;
+
+    // Get all enabled models from OpenRouter config
     const configs = await db.select().from(schema.openrouterConfig);
     const config = configs[0];
     if (!config) {
       res.json({ models: [] });
       return;
     }
-    const enabledModels = (config.enabledModels as { id: string; name: string; provider: string }[]) ?? [];
-    res.json({ models: enabledModels });
+    const allEnabledModels = (config.enabledModels as { id: string; name: string; provider: string }[]) ?? [];
+
+    // If user is authenticated, filter by their plan's allowed models
+    if (userId) {
+      const [user] = await db.select({ planId: schema.users.planId }).from(schema.users).where(eq(schema.users.id, userId));
+      if (user?.planId) {
+        const [plan] = await db.select({ allowedModels: schema.plans.allowedModels }).from(schema.plans).where(eq(schema.plans.id, user.planId));
+        const planModels = (plan?.allowedModels as string[]) ?? [];
+        if (planModels.length > 0) {
+          // Filter to only allowed models
+          const allowedSet = new Set(planModels);
+          const filtered = allEnabledModels.filter((m) => allowedSet.has(m.id));
+          res.json({ models: filtered });
+          return;
+        }
+      }
+    }
+
+    // No restriction — return all enabled models
+    res.json({ models: allEnabledModels });
   } catch (err) {
     logger.error(`Failed to fetch enabled models: ${err}`, "plans");
     res.status(500).json({ error: "Failed to fetch models" });

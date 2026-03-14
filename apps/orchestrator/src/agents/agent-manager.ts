@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { join } from "path";
-import { REPOS_DIR } from "../lib/storage.js";
+import { userReposDir } from "../lib/storage.js";
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
 import { OpenRouterSession } from "./openrouter-session";
@@ -1260,7 +1260,7 @@ class AgentManager {
     if (isUrl) {
       logger.info(`Project path is a URL, auto-cloning: ${project.path}`, "agent-manager");
       try {
-        const localPath = await this.autoCloneProject(project.path, project.name);
+        const localPath = await this.autoCloneProject(project.path, project.name, project.ownerId);
         // Update project path in DB so future tasks don't need to re-clone
         await db.update(schema.projects).set({ path: localPath, updatedAt: new Date() }).where(eq(schema.projects.id, project.id));
         project.path = localPath;
@@ -1739,23 +1739,23 @@ class AgentManager {
    * Auto-clone a GitHub repo URL to a local directory.
    * Fetches the first user's GitHub token for authentication.
    */
-  private async autoCloneProject(repoUrl: string, projectName: string): Promise<string> {
-    await mkdir(REPOS_DIR, { recursive: true });
+  private async autoCloneProject(repoUrl: string, projectName: string, ownerId?: string | null): Promise<string> {
+    const baseDir = ownerId ? userReposDir(ownerId) : userReposDir("default");
+    await mkdir(baseDir, { recursive: true });
 
     const dirName = projectName.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
-    let targetPath = join(REPOS_DIR, dirName);
+    let targetPath = join(baseDir, dirName);
     if (existsSync(targetPath)) {
       // Already cloned — reuse
       logger.info(`Reusing existing clone at ${targetPath}`, "agent-manager");
       return targetPath;
     }
 
-    // Fetch first user's GitHub token
-    const user = await db
-      .select({ accessToken: schema.users.accessToken })
-      .from(schema.users)
-      .limit(1)
-      .then(r => r[0]);
+    // Fetch owner's or first user's GitHub token
+    const userQuery = ownerId
+      ? db.select({ accessToken: schema.users.accessToken }).from(schema.users).where(eq(schema.users.id, ownerId)).then(r => r[0])
+      : db.select({ accessToken: schema.users.accessToken }).from(schema.users).limit(1).then(r => r[0]);
+    const user = await userQuery;
 
     let token: string | undefined;
     if (user?.accessToken) {
@@ -1767,7 +1767,7 @@ class AgentManager {
     }
 
     const credentials = token ? { type: "https" as const, token } : undefined;
-    await gitService.clone(repoUrl, targetPath, credentials);
+    await gitService.clone(repoUrl, targetPath, credentials, { depth: 1 });
     return targetPath;
   }
 }

@@ -4,7 +4,7 @@ import { X, Brain, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AVATAR_PRESETS, getAgentAvatarUrl } from "../../lib/agent-avatar";
 import type { Agent, AgentModel, AgentRole, PermissionMode, Skill } from "@agenthub/shared";
-import { DEFAULT_SOULS } from "@agenthub/shared";
+import { DEFAULT_SOULS, getModelLabel, getModelProvider } from "@agenthub/shared";
 import { api } from "../../lib/utils";
 
 interface AgentConfigDialogProps {
@@ -234,13 +234,24 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
               className="w-full rounded-md border border-stroke bg-neutral-bg2 px-4 py-3 text-[14px] text-neutral-fg1 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-light"
             >
               {enabledModels.length > 0 ? (
-                enabledModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
+                Object.entries(
+                  enabledModels.reduce((groups, m) => {
+                    const provider = getModelProvider(m.id);
+                    if (!groups[provider]) groups[provider] = [];
+                    groups[provider].push(m);
+                    return groups;
+                  }, {} as Record<string, typeof enabledModels>)
+                ).map(([provider, models]) => (
+                  <optgroup key={provider} label={provider}>
+                    {models.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {getModelLabel(m.id)}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))
               ) : (
-                <option value={model}>{model}</option>
+                <option value={model}>{getModelLabel(model)}</option>
               )}
             </select>
             {enabledModels.length === 0 && (

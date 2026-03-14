@@ -38,6 +38,8 @@ import { workflowsRouter } from "./routes/workflows.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { teamsRouter } from "./routes/teams.js";
 import { skillsRouter, agentSkillsRouter } from "./routes/skills.js";
+import { storageRouter } from "./routes/storage.js";
+import { storageCleanup } from "./tasks/storage-cleanup.js";
 import { DEFAULT_AGENTS } from "@agenthub/shared";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 import { db, schema } from "@agenthub/database";
@@ -91,6 +93,7 @@ app.use("/api/notifications", notificationsRouter);
 app.use("/api/teams", teamsRouter);
 app.use("/api/skills", skillsRouter);
 app.use("/api/agents", agentSkillsRouter);
+app.use("/api/storage", storageRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -165,6 +168,9 @@ httpServer.listen(PORT, async () => {
     logger.error(`Failed to sync default agent tools: ${err}`, "startup");
   }
 
+  // Start storage cleanup scheduler
+  storageCleanup.start();
+
   // Auto-restore WhatsApp sessions (fire-and-forget)
   restoreWhatsAppSessions().catch((err) => {
     logger.error(`Failed to restore WhatsApp sessions: ${err}`, "whatsapp");
@@ -176,6 +182,7 @@ process.on("SIGINT", () => {
   logger.info("SIGINT received, shutting down gracefully", "server");
   taskTimeoutManager.stop();
   taskWatcher.stop();
+  storageCleanup.stop();
   devServerManager.stopAll();
   process.exit(0);
 });
@@ -184,6 +191,7 @@ process.on("SIGTERM", () => {
   logger.info("SIGTERM received, shutting down gracefully", "server");
   taskTimeoutManager.stop();
   taskWatcher.stop();
+  storageCleanup.stop();
   devServerManager.stopAll();
   process.exit(0);
 });

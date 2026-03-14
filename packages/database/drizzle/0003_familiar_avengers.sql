@@ -1,0 +1,1 @@
+ALTER TABLE "plans" ADD COLUMN "allowed_models" jsonb DEFAULT '[]'::jsonb;

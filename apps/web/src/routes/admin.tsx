@@ -7,6 +7,7 @@ import {
 import { cn } from "../lib/utils";
 import { useAdminStore } from "../stores/admin-store";
 import { CommandBar } from "../components/layout/command-bar";
+import { getModelLabel, getModelProvider } from "@agenthub/shared";
 
 type AdminTab = "plans" | "users" | "openrouter" | "dashboard";
 
@@ -27,19 +28,22 @@ function PlansTab() {
   const createPlan = useAdminStore((s) => s.createPlan);
   const updatePlan = useAdminStore((s) => s.updatePlan);
   const deletePlan = useAdminStore((s) => s.deletePlan);
+  const openrouterConfig = useAdminStore((s) => s.openrouterConfig);
+  const fetchConfig = useAdminStore((s) => s.fetchConfig);
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "", description: "", maxProjects: 5, maxTasksPerMonth: 100,
     priceMonthly: "0", features: [] as string[], isDefault: false,
+    maxStorageMb: 500, repoTtlDays: 30, allowedModels: [] as string[],
   });
   const [featureInput, setFeatureInput] = useState("");
 
-  useEffect(() => { fetchPlans(); }, [fetchPlans]);
+  useEffect(() => { fetchPlans(); fetchConfig(); }, [fetchPlans, fetchConfig]);
 
   const resetForm = () => {
-    setForm({ name: "", description: "", maxProjects: 5, maxTasksPerMonth: 100, priceMonthly: "0", features: [], isDefault: false });
+    setForm({ name: "", description: "", maxProjects: 5, maxTasksPerMonth: 100, priceMonthly: "0", features: [], isDefault: false, maxStorageMb: 500, repoTtlDays: 30, allowedModels: [] });
     setFeatureInput("");
     setEditId(null);
     setShowForm(false);
@@ -54,6 +58,9 @@ function PlansTab() {
       priceMonthly: plan.priceMonthly,
       features: plan.features ?? [],
       isDefault: plan.isDefault,
+      maxStorageMb: plan.maxStorageMb ?? 500,
+      repoTtlDays: plan.repoTtlDays ?? 30,
+      allowedModels: plan.allowedModels ?? [],
     });
     setEditId(plan.id);
     setShowForm(true);
@@ -108,6 +115,14 @@ function PlansTab() {
               <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">Max Tasks/Mês</label>
               <input type="number" value={form.maxTasksPerMonth} onChange={(e) => setForm({ ...form, maxTasksPerMonth: parseInt(e.target.value) || 0 })} className="w-full input-fluent" />
             </div>
+            <div>
+              <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">Max Storage (MB)</label>
+              <input type="number" value={form.maxStorageMb} onChange={(e) => setForm({ ...form, maxStorageMb: parseInt(e.target.value) || 0 })} className="w-full input-fluent" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">TTL Repos (dias)</label>
+              <input type="number" value={form.repoTtlDays} onChange={(e) => setForm({ ...form, repoTtlDays: parseInt(e.target.value) || 0 })} className="w-full input-fluent" />
+            </div>
             <div className="col-span-2">
               <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">Descrição</label>
               <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full input-fluent" placeholder="Descrição breve do plano" />
@@ -128,6 +143,67 @@ function PlansTab() {
                   </span>
                 ))}
               </div>
+            </div>
+            {/* Allowed Models */}
+            <div className="col-span-2">
+              <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
+                Modelos Permitidos
+              </label>
+              <p className="text-[11px] text-neutral-fg3 mb-2">
+                Vazio = todos os modelos habilitados
+              </p>
+              {openrouterConfig?.enabledModels && openrouterConfig.enabledModels.length > 0 ? (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, allowedModels: openrouterConfig.enabledModels.map((m) => m.id) })}
+                      className="text-[11px] font-medium text-brand hover:text-brand-hover transition-colors"
+                    >
+                      Selecionar todos
+                    </button>
+                    <span className="text-neutral-fg-disabled">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, allowedModels: [] })}
+                      className="text-[11px] font-medium text-neutral-fg3 hover:text-neutral-fg1 transition-colors"
+                    >
+                      Limpar
+                    </button>
+                    <span className="ml-auto text-[11px] text-neutral-fg3 tabular-nums">
+                      {form.allowedModels.length}/{openrouterConfig.enabledModels.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {openrouterConfig.enabledModels.map((m) => {
+                      const isSelected = form.allowedModels.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setForm({
+                            ...form,
+                            allowedModels: isSelected
+                              ? form.allowedModels.filter((id) => id !== m.id)
+                              : [...form.allowedModels, m.id],
+                          })}
+                          className={cn(
+                            "rounded-md px-2.5 py-1 text-[11px] font-medium transition-all",
+                            isSelected
+                              ? "bg-brand text-white"
+                              : "bg-neutral-bg2 text-neutral-fg3 hover:bg-stroke2 hover:text-neutral-fg2"
+                          )}
+                          title={`${getModelProvider(m.id)} — ${m.id}`}
+                        >
+                          {getModelLabel(m.id)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className="text-[11px] text-neutral-fg3 italic">Configure modelos na aba OpenRouter primeiro</p>
+              )}
             </div>
             <div className="col-span-2 flex items-center gap-2">
               <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} id="isDefault" className="rounded" />
@@ -160,6 +236,9 @@ function PlansTab() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Max Projetos</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Max Tasks/Mês</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Preço</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Storage</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">TTL</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Modelos</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Default</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Ações</th>
               </tr>
@@ -174,6 +253,13 @@ function PlansTab() {
                   <td className="px-4 py-3 text-[13px] text-neutral-fg2 tabular-nums">{plan.maxProjects}</td>
                   <td className="px-4 py-3 text-[13px] text-neutral-fg2 tabular-nums">{plan.maxTasksPerMonth}</td>
                   <td className="px-4 py-3 text-[13px] font-medium text-neutral-fg1 tabular-nums">${plan.priceMonthly}</td>
+                  <td className="px-4 py-3 text-[13px] text-neutral-fg2 tabular-nums">{plan.maxStorageMb ?? "—"}MB</td>
+                  <td className="px-4 py-3 text-[13px] text-neutral-fg2 tabular-nums">{plan.repoTtlDays ?? "—"}d</td>
+                  <td className="px-4 py-3">
+                    <span className="text-[12px] text-neutral-fg2">
+                      {plan.allowedModels?.length ? `${plan.allowedModels.length} modelo(s)` : "Todos"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     {plan.isDefault && <span className="inline-flex items-center rounded-md bg-brand-light px-1.5 py-0.5 text-[10px] font-bold text-brand">DEFAULT</span>}
                   </td>
@@ -569,7 +655,7 @@ function DashboardTab() {
               <div key={model.model} className="flex items-center gap-3">
                 <span className="text-[12px] font-bold text-neutral-fg-disabled w-5 tabular-nums">{i + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-neutral-fg1 truncate">{model.model}</p>
+                  <p className="text-[13px] font-medium text-neutral-fg1 truncate">{getModelLabel(model.model)}</p>
                 </div>
                 <span className="text-[12px] tabular-nums text-neutral-fg2">{model.taskCount} tasks</span>
                 <span className="text-[12px] tabular-nums font-medium text-neutral-fg1">${model.cost.toFixed(2)}</span>

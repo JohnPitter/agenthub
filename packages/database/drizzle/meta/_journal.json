@@ -15,6 +15,20 @@
       "when": 1773086505162,
       "tag": "0001_left_mister_fear",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773464114260,
+      "tag": "0002_tearful_zuras",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773504016876,
+      "tag": "0003_familiar_avengers",
+      "breakpoints": true
     }
   ]
 }

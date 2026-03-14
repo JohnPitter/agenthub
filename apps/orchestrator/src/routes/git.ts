@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { existsSync } from "fs";
 import { mkdir } from "fs/promises";
 import { join } from "path";
-import { REPOS_DIR } from "../lib/storage.js";
+import { userReposDir } from "../lib/storage.js";
 import { nanoid } from "nanoid";
 import { GitService } from "../git/git-service.js";
 import { logger } from "../lib/logger.js";
@@ -82,12 +82,14 @@ router.post("/projects/:id/git/init", async (req, res) => {
 
     // If project.path is a URL, clone it to a local directory first
     if (project.path.startsWith("http")) {
-      await mkdir(REPOS_DIR, { recursive: true });
+      const userId = req.user?.userId ?? "default";
+      const userDir = userReposDir(userId);
+      await mkdir(userDir, { recursive: true });
 
       const dirName = (project.name || "repo").replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
-      let targetPath = join(REPOS_DIR, dirName);
+      let targetPath = join(userDir, dirName);
       if (existsSync(targetPath)) {
-        targetPath = join(REPOS_DIR, `${dirName}-${nanoid(6)}`);
+        targetPath = join(userDir, `${dirName}-${nanoid(6)}`);
       }
 
       // Get credentials if available
@@ -111,7 +113,7 @@ router.post("/projects/:id/git/init", async (req, res) => {
         }
       }
 
-      await gitService.clone(project.path, targetPath, credentials);
+      await gitService.clone(project.path, targetPath, credentials, { depth: 1 });
 
       // Update project.path to the local directory
       await db

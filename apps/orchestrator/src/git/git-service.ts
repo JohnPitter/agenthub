@@ -24,6 +24,7 @@ export class GitService {
     repoUrl: string,
     targetPath: string,
     credentials?: { type: "ssh" | "https"; token?: string; sshKeyPath?: string },
+    options?: { depth?: number },
   ): Promise<void> {
     let url = repoUrl;
     if (credentials?.type === "https" && credentials.token) {
@@ -38,7 +39,13 @@ export class GitService {
       env.GIT_SSH_COMMAND = `ssh -i "${credentials.sshKeyPath}" -o StrictHostKeyChecking=no`;
     }
 
-    const result = await execFileNoThrow("git", ["clone", url, targetPath], {
+    const args = ["clone"];
+    if (options?.depth) {
+      args.push("--depth", String(options.depth));
+    }
+    args.push(url, targetPath);
+
+    const result = await execFileNoThrow("git", args, {
       timeout: 120000,
       env,
     });

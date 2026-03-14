@@ -10,6 +10,9 @@ interface Plan {
   priceMonthly: string;
   features: string[];
   isDefault: boolean;
+  maxStorageMb: number;
+  repoTtlDays: number;
+  allowedModels: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.0] - 2026-03-14
+
+### Fase 19: Storage Management + User Isolation
+
+#### Added
+
+- **User-scoped storage** — Cloned repos isolated per user under `REPOS_DIR/<userId>/`, preventing conflicts between users
+- **Shallow clones by default** — `git clone --depth 1` reduces storage usage by ~70-90%; `git-service.ts:clone()` now accepts `options.depth`
+- **Storage quotas per plan** — New `plans.maxStorageMb` and `plans.repoTtlDays` columns; quota checked before every clone operation
+- **StorageService** (`apps/orchestrator/src/services/storage-service.ts`) — Business logic for usage tracking, quota enforcement, TTL cleanup, re-clone
+- **Storage API endpoints** (`apps/orchestrator/src/routes/storage.ts`):
+  - `GET /api/storage/usage` — Returns user's disk usage vs. plan limits
+  - `DELETE /api/storage/projects/:id/clone` — Removes local clone, keeps DB record
+  - `POST /api/storage/projects/:id/reclone` — Re-clones previously cleaned project
+- **Automatic cleanup scheduler** (`apps/orchestrator/src/tasks/storage-cleanup.ts`) — Runs every 6h, removes repos inactive beyond plan TTL; skips projects with active tasks
+- **Storage utility functions** (`apps/orchestrator/src/lib/storage.ts`):
+  - `userReposDir(userId)` — Path-traversal-safe user directory
+  - `isPathWithinRepos(path)` — Validates path is within allowed directory
+  - `getDirectorySizeMb(path)` — Cross-platform directory size calculation
+- **StorageUsageBar component** (`apps/web/src/components/common/storage-usage-bar.tsx`) — Sidebar widget showing storage usage with color-coded progress bar
+- **Shared types** (`packages/shared/src/types/storage.ts`) — `StorageUsage` and `StorageQuota` interfaces
+- **61 new tests** across 4 test suites: storage utils (18), storage service (28), storage cleanup (5), storage routes (10)
+- **Drizzle migration** `0002_tearful_zuras.sql` — Adds 5 new columns across `plans` and `projects` tables
+
+#### Changed
+
+- **`projects.ownerId`** — Now populated on `POST /create` and `POST /import` (was always null before)
+- **`cloneGitHubRepo()`** — Accepts `userId` parameter, clones to user-scoped directory
+- **`agent-manager.ts:autoCloneProject()`** — Uses `userReposDir(ownerId)` and shallow clone
+- **`GET /api/projects/:id`** — Touches `lastAccessedAt` on access (fire-and-forget)
+- **Admin plans form** — Added "Max Storage (MB)" and "TTL Repos (dias)" fields
+- **Admin plans table** — Added Storage and TTL columns
+
+#### Fixed
+
+- **`.btn-primary` missing padding** — Added `padding: 10px 20px` to match `.btn-secondary`, fixing collapsed buttons in admin panel
+- **Test helpers** — Updated `createTestProject` and inline test handlers with new schema fields; fixed SQLite boolean binding
+
+#### Security
+
+- `userReposDir()` sanitizes userId to prevent path traversal
+- `isPathWithinRepos()` validates paths before `rm -rf` operations
+- Cleanup skips projects with active tasks to prevent data loss
+- Re-clone validates quota before allowing disk usage increase
+
+##### Stats
+- Files created: 5
+- Files modified: 14
+- Tests added: 61
+- Migration: 1
+
 ## [0.28.0] - 2026-02-20
 
 ### Fase 28: Automatic Workflow Triggering via Kanban Drag

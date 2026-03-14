@@ -10,25 +10,9 @@ import { useWorkflowStore } from "../stores/workflow-store";
 import { useWorkspaceStore } from "../stores/workspace-store";
 import { cn } from "../lib/utils";
 import type { Agent, AgentWorkflow } from "@agenthub/shared";
+import { getModelLabel } from "@agenthub/shared";
 
 type AgentsTab = "agentes" | "workflow";
-
-const MODEL_LABELS: Record<string, string> = {
-  "claude-opus-4-6": "Opus 4.6",
-  "claude-sonnet-4-6": "Sonnet 4.6",
-  "claude-sonnet-4-5-20250929": "Sonnet 4.5",
-  "claude-haiku-4-5-20251001": "Haiku 4.5",
-  "gpt-5.3-codex": "GPT-5.3 Codex",
-  "gpt-5.2-codex": "GPT-5.2 Codex",
-  "gpt-5.1-codex": "GPT-5.1 Codex",
-  "gpt-5-codex-mini": "GPT-5 Codex Mini",
-  "gpt-4.1": "GPT-4.1",
-  "gpt-4.1-mini": "GPT-4.1 Mini",
-  "gpt-4.1-nano": "GPT-4.1 Nano",
-  "o3": "o3",
-  "o4-mini": "o4-mini",
-  "codex-mini": "Codex Mini",
-};
 
 const WORKFLOW_STORAGE_KEY = "agenthub:workflow:v5";
 
@@ -240,7 +224,7 @@ export function AgentsPage() {
                         </span>
                         <span className="text-neutral-fg-disabled">·</span>
                         <span className="text-[12px] font-medium text-neutral-fg3 bg-neutral-bg2 px-2 py-0.5 rounded-md">
-                          {MODEL_LABELS[selected.model] ?? selected.model}
+                          {getModelLabel(selected.model)}
                         </span>
                       </div>
                     </div>

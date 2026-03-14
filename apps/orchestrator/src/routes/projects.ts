@@ -3,7 +3,9 @@ import { db, schema } from "@agenthub/database";
 import { eq, desc, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { join } from "path";
-import { REPOS_DIR } from "../lib/storage.js";
+import { userReposDir } from "../lib/storage.js";
+import { storageService } from "../services/storage-service.js";
+import { getDirectorySizeMb } from "../lib/storage.js";
 import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import {
@@ -53,19 +55,21 @@ async function resolveAccessToken(
   }
 }
 
-/** Clone a GitHub repo into REPOS_DIR/<name> and return the local path. */
+/** Clone a GitHub repo into userReposDir/<name> and return the local path. */
 async function cloneGitHubRepo(
   cloneUrl: string,
   projectName: string,
   accessToken: string,
+  userId: string,
 ): Promise<string> {
-  await mkdir(REPOS_DIR, { recursive: true });
+  const userDir = userReposDir(userId);
+  await mkdir(userDir, { recursive: true });
   const dirName = projectName.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
-  let targetPath = join(REPOS_DIR, dirName);
+  let targetPath = join(userDir, dirName);
   if (existsSync(targetPath)) {
-    targetPath = join(REPOS_DIR, `${dirName}-${nanoid(6)}`);
+    targetPath = join(userDir, `${dirName}-${nanoid(6)}`);
   }
-  await git.clone(cloneUrl, targetPath, { type: "https", token: accessToken });
+  await git.clone(cloneUrl, targetPath, { type: "https", token: accessToken }, { depth: 1 });
   return targetPath;
 }
 
@@ -161,8 +165,15 @@ projectsRouter.post("/create", async (req, res) => {
       return res.status(400).json({ error: "errorNameRequired" });
     }
 
-    const accessToken = await resolveAccessToken(req.user?.userId, res);
+    const userId = req.user?.userId;
+    const accessToken = await resolveAccessToken(userId, res);
     if (!accessToken) return;
+
+    // Check storage quota
+    const quota = await storageService.canCloneRepo(userId!);
+    if (!quota.allowed) {
+      return res.status(403).json({ error: quota.reason });
+    }
 
     // Create repo on GitHub
     let repoResult;
@@ -195,7 +206,7 @@ projectsRouter.post("/create", async (req, res) => {
     // Clone to local
     let localPath: string;
     try {
-      localPath = await cloneGitHubRepo(repoResult.clone_url, name.trim(), accessToken);
+      localPath = await cloneGitHubRepo(repoResult.clone_url, name.trim(), accessToken, userId!);
     } catch (cloneErr) {
       logger.error(`Failed to clone repo ${repoResult.clone_url}: ${cloneErr}`, "projects");
       return res.status(500).json({ error: "errorCloneFailed" });
@@ -204,24 +215,32 @@ projectsRouter.post("/create", async (req, res) => {
     // Detect stack from cloned repo
     const stack = detectStack(localPath);
 
+    // Measure disk size
+    const diskSizeMb = await getDirectorySizeMb(localPath);
+
+    const projectId = nanoid();
     const project = {
-      id: nanoid(),
+      id: projectId,
       name: name.trim(),
       path: localPath,
       stack: JSON.stringify(stack),
       icon: null,
       description: repoResult.description || description?.trim() || null,
       teamId: null,
+      ownerId: userId!,
       githubUrl: repoResult.html_url,
       githubOwner: slug?.owner ?? null,
       githubRepo: slug?.repo ?? null,
       status: "active" as const,
+      isShallowClone: true,
+      diskSizeMb: String(diskSizeMb),
+      lastAccessedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     await db.insert(schema.projects).values(project);
-    logger.info(`GitHub repo created and cloned: ${repoResult.full_name} → ${localPath}`, "projects");
+    logger.info(`GitHub repo created and cloned: ${repoResult.full_name} → ${localPath} (${diskSizeMb}MB)`, "projects");
     return res.status(201).json({ project });
   } catch (error) {
     logger.error(`Failed to create project: ${error}`, "projects-route");
@@ -239,8 +258,15 @@ projectsRouter.post("/import", async (req, res) => {
       return res.status(400).json({ error: "owner and repo are required" });
     }
 
-    const accessToken = await resolveAccessToken(req.user?.userId, res);
+    const userId = req.user?.userId;
+    const accessToken = await resolveAccessToken(userId, res);
     if (!accessToken) return;
+
+    // Check storage quota
+    const quota = await storageService.canCloneRepo(userId!);
+    if (!quota.allowed) {
+      return res.status(403).json({ error: quota.reason });
+    }
 
     // Check duplicate
     const existing = await db
@@ -256,7 +282,7 @@ projectsRouter.post("/import", async (req, res) => {
     // Clone to local
     let localPath: string;
     try {
-      localPath = await cloneGitHubRepo(resolvedCloneUrl, repo, accessToken);
+      localPath = await cloneGitHubRepo(resolvedCloneUrl, repo, accessToken, userId!);
     } catch (cloneErr) {
       logger.error(`Failed to clone imported repo ${resolvedCloneUrl}: ${cloneErr}`, "projects");
       return res.status(500).json({ error: "errorCloneFailed" });
@@ -271,6 +297,9 @@ projectsRouter.post("/import", async (req, res) => {
       resolvedDescription = await getRepoDescriptionREST(accessToken, owner, repo);
     }
 
+    // Measure disk size
+    const diskSizeMb = await getDirectorySizeMb(localPath);
+
     const project = {
       id: nanoid(),
       name: repo,
@@ -279,16 +308,20 @@ projectsRouter.post("/import", async (req, res) => {
       icon: null,
       description: resolvedDescription,
       teamId: null,
+      ownerId: userId!,
       githubUrl: htmlUrl || `https://github.com/${owner}/${repo}`,
       githubOwner: owner,
       githubRepo: repo,
       status: "active" as const,
+      isShallowClone: true,
+      diskSizeMb: String(diskSizeMb),
+      lastAccessedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     await db.insert(schema.projects).values(project);
-    logger.info(`GitHub repo imported: ${owner}/${repo} → ${localPath}`, "projects");
+    logger.info(`GitHub repo imported: ${owner}/${repo} → ${localPath} (${diskSizeMb}MB)`, "projects");
     return res.status(201).json({ project });
   } catch (error) {
     logger.error(`Failed to import project: ${error}`, "projects-route");
@@ -306,6 +339,9 @@ projectsRouter.get("/:id", async (req, res) => {
       .then(r => r[0]);
 
     if (!project) return res.status(404).json({ error: "Project not found" });
+
+    // Touch lastAccessedAt (fire-and-forget)
+    storageService.touchProject(project.id).catch(() => {});
 
     // Lazy backfill: enrich GitHub fields if missing
     if (!project.githubUrl && project.path && !project.path.startsWith("http")) {

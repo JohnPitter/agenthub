@@ -39,6 +39,7 @@ beforeAll(async () => {
 
   app.post("/api/projects", async (req, res) => {
     const { name, path, stack, icon, description } = req.body;
+    const now = new Date();
     const project = {
       id: nanoid(),
       name,
@@ -47,8 +48,11 @@ beforeAll(async () => {
       icon: icon ?? null,
       description: description ?? null,
       status: "active" as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      lastAccessedAt: now,
+      diskSizeMb: "0",
+      isShallowClone: 1,
+      createdAt: now,
+      updatedAt: now,
     };
     await testDb.insert(schema.projects).values(project);
     res.status(201).json({ project });

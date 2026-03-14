@@ -6,6 +6,7 @@ import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { AgentAvatar } from "../agents/agent-avatar";
+import { StorageUsageBar } from "../common/storage-usage-bar";
 import { TeamSwitcher } from "../teams/team-switcher";
 import { useTeamStore } from "../../stores/team-store";
 import { api } from "../../lib/utils";
@@ -33,9 +34,87 @@ const AGENT_STATUS_COLORS: Record<string, string> = {
   working: "bg-success",
 };
 
+interface PlanUsage {
+  plan: {
+    id: string;
+    name: string;
+    maxProjects: number;
+    maxTasksPerMonth: number;
+    priceMonthly: string;
+    features: string[];
+  } | null;
+  usage: {
+    projects: number;
+    tasksThisMonth: number;
+  };
+}
+
 function UsageWidget({ collapsed }: { collapsed: boolean }) {
-  if (collapsed) return null;
-  return null;
+  const [data, setData] = useState<PlanUsage | null>(null);
+
+  useEffect(() => {
+    api<PlanUsage>("/plans/my-usage").then(setData).catch(() => {});
+  }, []);
+
+  if (collapsed || !data) return null;
+
+  const plan = data.plan;
+  const projectPercent = plan ? Math.min((data.usage.projects / plan.maxProjects) * 100, 100) : 0;
+  const taskPercent = plan ? Math.min((data.usage.tasksThisMonth / plan.maxTasksPerMonth) * 100, 100) : 0;
+
+  const projectColor = projectPercent >= 90 ? "bg-danger" : projectPercent >= 70 ? "bg-warning" : "bg-success";
+  const taskColor = taskPercent >= 90 ? "bg-danger" : taskPercent >= 70 ? "bg-warning" : "bg-success";
+
+  return (
+    <div className="mx-7 mt-6 rounded-lg border border-stroke2 bg-neutral-bg3/50 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold text-neutral-fg2">
+          {plan ? plan.name : "Sem plano"}
+        </span>
+        {plan && (
+          <span className="text-[10px] font-medium text-brand tabular-nums">
+            {plan.priceMonthly === "0" ? "Free" : `$${plan.priceMonthly}/mês`}
+          </span>
+        )}
+      </div>
+
+      {plan && (
+        <div className="flex flex-col gap-2">
+          {/* Projects usage */}
+          <div>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[10px] text-neutral-fg3">Projetos</span>
+              <span className="text-[10px] text-neutral-fg-disabled tabular-nums">
+                {data.usage.projects}/{plan.maxProjects}
+              </span>
+            </div>
+            <div className="h-1 rounded-full bg-neutral-bg2 overflow-hidden">
+              <div className={cn("h-full rounded-full transition-all duration-500", projectColor)} style={{ width: `${projectPercent}%` }} />
+            </div>
+          </div>
+
+          {/* Tasks usage */}
+          <div>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[10px] text-neutral-fg3">Tasks/mês</span>
+              <span className="text-[10px] text-neutral-fg-disabled tabular-nums">
+                {data.usage.tasksThisMonth}/{plan.maxTasksPerMonth}
+              </span>
+            </div>
+            <div className="h-1 rounded-full bg-neutral-bg2 overflow-hidden">
+              <div className={cn("h-full rounded-full transition-all duration-500", taskColor)} style={{ width: `${taskPercent}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!plan && (
+        <Link to="/settings" className="text-[10px] text-brand hover:text-brand-hover transition-colors">
+          Selecionar plano →
+        </Link>
+      )}
+    </div>
+  );
 }
 
 export function AppSidebar() {
@@ -244,6 +323,9 @@ export function AppSidebar() {
           </p>
         </div>
       )}
+
+      {/* Storage usage */}
+      {!collapsed && <StorageUsageBar />}
 
       {/* Agent status indicators */}
       {agents.length > 0 && (

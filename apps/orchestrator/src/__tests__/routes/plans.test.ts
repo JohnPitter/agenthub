@@ -40,6 +40,8 @@ async function createTestPlan(overrides?: Record<string, unknown>) {
     description: "Test plan",
     maxProjects: 5,
     maxTasksPerMonth: 100,
+    maxStorageMb: 500,
+    repoTtlDays: 30,
     priceMonthly: "9.99",
     features: JSON.stringify(["feature-a"]),
     isDefault: 0,

@@ -35,7 +35,7 @@ router.get("/plans", async (_req, res) => {
 // POST /api/admin/plans — Create a plan
 router.post("/plans", async (req, res) => {
   try {
-    const { name, description, maxProjects, maxTasksPerMonth, priceMonthly, features, isDefault } = req.body;
+    const { name, description, maxProjects, maxTasksPerMonth, priceMonthly, features, isDefault, maxStorageMb, repoTtlDays, allowedModels } = req.body;
 
     if (!name || maxProjects == null || maxTasksPerMonth == null) {
       res.status(400).json({ error: "name, maxProjects, and maxTasksPerMonth are required" });
@@ -55,6 +55,9 @@ router.post("/plans", async (req, res) => {
       maxTasksPerMonth: maxTasksPerMonth,
       priceMonthly: priceMonthly ?? "0",
       features: features ?? [],
+      maxStorageMb: maxStorageMb ?? 500,
+      repoTtlDays: repoTtlDays ?? 30,
+      allowedModels: Array.isArray(allowedModels) ? allowedModels : [],
       isDefault: isDefault ?? false,
       createdAt: new Date(),
       updatedAt: new Date(),

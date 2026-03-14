@@ -22,6 +22,9 @@ const CREATE_STATEMENTS = [
     github_owner TEXT,
     github_repo TEXT,
     status TEXT NOT NULL DEFAULT 'active',
+    last_accessed_at INTEGER,
+    disk_size_mb TEXT DEFAULT '0',
+    is_shallow_clone INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
@@ -166,6 +169,9 @@ const CREATE_STATEMENTS = [
     max_tasks_per_month INTEGER NOT NULL DEFAULT 100,
     price_monthly TEXT NOT NULL DEFAULT '0',
     features TEXT DEFAULT '[]',
+    max_storage_mb INTEGER NOT NULL DEFAULT 500,
+    repo_ttl_days INTEGER NOT NULL DEFAULT 30,
+    allowed_models TEXT DEFAULT '[]',
     is_default INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -180,12 +186,12 @@ const CREATE_STATEMENTS = [
   )`,
   `CREATE TABLE IF NOT EXISTS notifications (
     id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    project_id TEXT,
     type TEXT NOT NULL,
     title TEXT NOT NULL,
-    message TEXT,
-    is_read INTEGER NOT NULL DEFAULT 0,
-    metadata TEXT,
+    body TEXT,
+    link TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS teams (
@@ -213,12 +219,13 @@ const CREATE_STATEMENTS = [
   )`,
   `CREATE TABLE IF NOT EXISTS docs (
     id TEXT PRIMARY KEY,
-    project_id TEXT,
     title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    file_path TEXT,
-    is_auto_generated INTEGER NOT NULL DEFAULT 0,
-    version INTEGER NOT NULL DEFAULT 1,
+    content TEXT NOT NULL DEFAULT '',
+    category TEXT,
+    icon TEXT,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    parent_id TEXT,
+    "order" INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
@@ -245,16 +252,16 @@ export interface TestContext {
 /**
  * Creates an in-memory SQLite database with all tables for testing.
  */
-export async function createTestDb() {
+export async function createTestDb(): Promise<{ db: ReturnType<typeof drizzle>; sqlite: InstanceType<typeof Database> }> {
   const sqlite = new Database(":memory:");
   sqlite.pragma("foreign_keys = ON");
-  const db = drizzle(sqlite, { schema });
+  const testDb = drizzle(sqlite, { schema });
 
   for (const stmt of CREATE_STATEMENTS) {
     sqlite.exec(stmt);
   }
 
-  return { db, sqlite };
+  return { db: testDb, sqlite };
 }
 
 /**
@@ -270,15 +277,25 @@ export function createTestApp(db: TestDb): Express {
  * Helper to create a test project in the database.
  */
 export async function createTestProject(db: TestDb, overrides?: Partial<typeof schema.projects.$inferInsert>) {
-  const project = {
+  const now = new Date();
+  const merged = {
     id: nanoid(),
     name: "Test Project",
     path: `/tmp/test-project-${nanoid(8)}`,
     stack: JSON.stringify(["typescript"]),
     status: "active" as const,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    lastAccessedAt: now,
+    diskSizeMb: "0",
+    isShallowClone: true as boolean,
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
+  };
+
+  // SQLite needs booleans as integers
+  const project = {
+    ...merged,
+    isShallowClone: merged.isShallowClone ? 1 : 0,
   };
 
   await db.insert(schema.projects).values(project);

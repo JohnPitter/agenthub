@@ -10,8 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "db:migrate": "pnpm --filter @agenthub/database migrate",
-    "db:seed": "pnpm --filter @agenthub/database seed",
+    "db:migrate": "node packages/database/dist/migrate.js",
+    "db:seed": "node packages/database/dist/seed.js",
     "audit:check": "pnpm audit --audit-level moderate",
     "audit:fix": "pnpm audit --fix"
   },

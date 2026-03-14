@@ -47,8 +47,8 @@ FROM node:20-alpine AS runtime
 
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-# Install nginx
-RUN apk add --no-cache nginx
+# Install nginx + git (required for cloning repos)
+RUN apk add --no-cache nginx git
 
 WORKDIR /app
 

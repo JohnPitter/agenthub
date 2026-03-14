@@ -1,4 +1,3 @@
-import { execFileNoThrow } from "../lib/exec-file.js";
 import { logger } from "../lib/logger.js";
 
 export interface PullRequest {
@@ -36,116 +35,118 @@ export interface PullRequestReview {
   submittedAt: string;
 }
 
-const DESCRIPTION_CACHE_TTL_MS = 10 * 60_000; // 10 minutes
-const descriptionCache = new Map<string, { value: string | null; expiresAt: number }>();
+const GITHUB_API = "https://api.github.com";
+const TIMEOUT_MS = 15_000;
+
+function headers(token: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "AgentHub",
+  };
+}
+
+async function githubFetch(
+  url: string,
+  token: string,
+  options?: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    return await fetch(url, {
+      ...options,
+      headers: { ...headers(token), ...options?.headers },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Map GitHub API response to our PullRequest interface
+function mapPR(pr: Record<string, unknown>): PullRequest {
+  const head = pr.head as Record<string, unknown> | undefined;
+  const base = pr.base as Record<string, unknown> | undefined;
+  const user = pr.user as Record<string, unknown> | undefined;
+  const labels = (pr.labels as Array<Record<string, unknown>>) ?? [];
+  const merged = pr.merged_at !== null && pr.merged_at !== undefined;
+
+  let state: "open" | "closed" | "merged" = pr.state as "open" | "closed";
+  if (merged) state = "merged";
+
+  return {
+    number: pr.number as number,
+    title: pr.title as string,
+    body: (pr.body as string) ?? "",
+    state,
+    url: pr.html_url as string,
+    headBranch: (head?.ref as string) ?? "",
+    baseBranch: (base?.ref as string) ?? "",
+    author: (user?.login as string) ?? "",
+    createdAt: pr.created_at as string,
+    updatedAt: pr.updated_at as string,
+    additions: (pr.additions as number) ?? 0,
+    deletions: (pr.deletions as number) ?? 0,
+    changedFiles: (pr.changed_files as number) ?? 0,
+    mergeable: pr.mergeable === true,
+    draft: (pr.draft as boolean) ?? false,
+    labels: labels.map((l) => (l.name as string) ?? ""),
+  };
+}
 
 export class GitHubService {
   /**
-   * Check if gh CLI is available
+   * Check if we can access GitHub API with the given token
    */
-  async isGhAvailable(): Promise<boolean> {
-    const result = await execFileNoThrow("gh", ["--version"], { timeout: 5000 });
-    return !result.error;
-  }
-
-  /**
-   * Check if gh is authenticated
-   */
-  async isAuthenticated(): Promise<boolean> {
-    const result = await execFileNoThrow("gh", ["auth", "status"], { timeout: 10000 });
-    return !result.error;
-  }
-
-  /**
-   * Get repo description (GitHub "About" field) from a local repo (cached 10min)
-   */
-  async getRepoDescription(projectPath: string): Promise<string | null> {
-    const cached = descriptionCache.get(projectPath);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
+  async isAvailable(token: string): Promise<boolean> {
+    try {
+      const res = await githubFetch(`${GITHUB_API}/user`, token);
+      return res.ok;
+    } catch {
+      return false;
     }
-
-    const result = await execFileNoThrow(
-      "gh",
-      ["repo", "view", "--json", "description", "-q", ".description"],
-      { cwd: projectPath, timeout: 15000 }
-    );
-
-    if (result.error) {
-      return null;
-    }
-
-    const value = result.stdout.trim() || null;
-    descriptionCache.set(projectPath, { value, expiresAt: Date.now() + DESCRIPTION_CACHE_TTL_MS });
-    return value;
   }
 
   /**
-   * Get repo owner/name from remote URL
-   */
-  async getRepoSlug(projectPath: string): Promise<string | null> {
-    const result = await execFileNoThrow(
-      "gh",
-      ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
-      { cwd: projectPath, timeout: 15000 }
-    );
-
-    if (result.error) {
-      return null;
-    }
-
-    return result.stdout.trim() || null;
-  }
-
-  /**
-   * List open pull requests for the repository
+   * List pull requests for the repository
    */
   async listPRs(
-    projectPath: string,
-    options?: { state?: "open" | "closed" | "merged" | "all"; limit?: number }
+    token: string,
+    owner: string,
+    repo: string,
+    options?: { state?: "open" | "closed" | "merged" | "all"; limit?: number },
   ): Promise<PullRequest[]> {
-    const state = options?.state ?? "open";
+    const requestedState = options?.state ?? "open";
+    // GitHub API only supports open/closed/all — "merged" requires post-filtering
+    const apiState =
+      requestedState === "merged" ? "closed" : requestedState;
     const limit = options?.limit ?? 20;
 
-    const args = [
-      "pr", "list",
-      "--state", state,
-      "--limit", String(limit),
-      "--json", "number,title,body,state,url,headRefName,baseRefName,author,createdAt,updatedAt,additions,deletions,changedFiles,isDraft,labels,mergeable",
-    ];
-
-    const result = await execFileNoThrow("gh", args, {
-      cwd: projectPath,
-      timeout: 30000,
-    });
-
-    if (result.error) {
-      logger.error(`Failed to list PRs: ${result.stderr}`, "github-service");
-      return [];
-    }
-
     try {
-      const raw = JSON.parse(result.stdout);
-      return raw.map((pr: Record<string, unknown>) => ({
-        number: pr.number as number,
-        title: pr.title as string,
-        body: pr.body as string,
-        state: (pr.state as string).toLowerCase() as "open" | "closed" | "merged",
-        url: pr.url as string,
-        headBranch: pr.headRefName as string,
-        baseBranch: pr.baseRefName as string,
-        author: (pr.author as Record<string, string>)?.login ?? "",
-        createdAt: pr.createdAt as string,
-        updatedAt: pr.updatedAt as string,
-        additions: (pr.additions as number) ?? 0,
-        deletions: (pr.deletions as number) ?? 0,
-        changedFiles: (pr.changedFiles as number) ?? 0,
-        mergeable: pr.mergeable === "MERGEABLE",
-        draft: (pr.isDraft as boolean) ?? false,
-        labels: ((pr.labels as Array<Record<string, string>>) ?? []).map((l) => l.name),
-      }));
-    } catch {
-      logger.error("Failed to parse PR list response", "github-service");
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls?state=${apiState}&per_page=${limit}&sort=updated&direction=desc`,
+        token,
+      );
+
+      if (!res.ok) {
+        logger.error(
+          `List PRs failed: ${res.status}`,
+          "github-service",
+        );
+        return [];
+      }
+
+      const raw = (await res.json()) as Array<Record<string, unknown>>;
+      let prs = raw.map(mapPR);
+
+      if (requestedState === "merged") {
+        prs = prs.filter((pr) => pr.state === "merged");
+      }
+
+      return prs;
+    } catch (err) {
+      logger.error(`Failed to list PRs: ${err}`, "github-service");
       return [];
     }
   }
@@ -153,40 +154,19 @@ export class GitHubService {
   /**
    * Get a single PR by number
    */
-  async getPR(projectPath: string, prNumber: number): Promise<PullRequest | null> {
-    const result = await execFileNoThrow(
-      "gh",
-      [
-        "pr", "view", String(prNumber),
-        "--json", "number,title,body,state,url,headRefName,baseRefName,author,createdAt,updatedAt,additions,deletions,changedFiles,isDraft,labels,mergeable",
-      ],
-      { cwd: projectPath, timeout: 15000 }
-    );
-
-    if (result.error) {
-      return null;
-    }
-
+  async getPR(
+    token: string,
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<PullRequest | null> {
     try {
-      const pr = JSON.parse(result.stdout);
-      return {
-        number: pr.number,
-        title: pr.title,
-        body: pr.body,
-        state: (pr.state as string).toLowerCase() as "open" | "closed" | "merged",
-        url: pr.url,
-        headBranch: pr.headRefName,
-        baseBranch: pr.baseRefName,
-        author: pr.author?.login ?? "",
-        createdAt: pr.createdAt,
-        updatedAt: pr.updatedAt,
-        additions: pr.additions ?? 0,
-        deletions: pr.deletions ?? 0,
-        changedFiles: pr.changedFiles ?? 0,
-        mergeable: pr.mergeable === "MERGEABLE",
-        draft: pr.isDraft ?? false,
-        labels: (pr.labels ?? []).map((l: Record<string, string>) => l.name),
-      };
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls/${prNumber}`,
+        token,
+      );
+      if (!res.ok) return null;
+      return mapPR((await res.json()) as Record<string, unknown>);
     } catch {
       return null;
     }
@@ -195,97 +175,165 @@ export class GitHubService {
   /**
    * Create a pull request
    */
-  async createPR(projectPath: string, data: PullRequestCreate): Promise<PullRequest | null> {
-    const args = [
-      "pr", "create",
-      "--title", data.title,
-      "--body", data.body,
-      "--head", data.headBranch,
-      "--base", data.baseBranch,
-    ];
+  async createPR(
+    token: string,
+    owner: string,
+    repo: string,
+    data: PullRequestCreate,
+  ): Promise<PullRequest | null> {
+    try {
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls`,
+        token,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: data.title,
+            body: data.body,
+            head: data.headBranch,
+            base: data.baseBranch,
+            draft: data.draft ?? false,
+          }),
+        },
+      );
 
-    if (data.draft) {
-      args.push("--draft");
+      if (!res.ok) {
+        const text = await res.text();
+        logger.error(
+          `Create PR failed: ${res.status} ${text}`,
+          "github-service",
+        );
+        throw new Error(`Failed to create PR: ${res.status} — ${text}`);
+      }
+
+      return mapPR((await res.json()) as Record<string, unknown>);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        err.message.startsWith("Failed to create PR")
+      ) {
+        throw err;
+      }
+      logger.error(`Create PR error: ${err}`, "github-service");
+      throw new Error(`Failed to create PR: ${err}`);
     }
-
-    const result = await execFileNoThrow("gh", args, {
-      cwd: projectPath,
-      timeout: 30000,
-    });
-
-    if (result.error) {
-      logger.error(`Failed to create PR: ${result.stderr}`, "github-service");
-      throw new Error(`Failed to create PR: ${result.stderr}`);
-    }
-
-    // gh pr create returns the URL — extract PR number
-    const urlMatch = result.stdout.trim().match(/\/pull\/(\d+)/);
-    if (!urlMatch) {
-      logger.error("Could not extract PR number from create output", "github-service");
-      return null;
-    }
-
-    const prNumber = parseInt(urlMatch[1], 10);
-    return this.getPR(projectPath, prNumber);
   }
 
   /**
    * Merge a pull request
    */
   async mergePR(
-    projectPath: string,
+    token: string,
+    owner: string,
+    repo: string,
     prNumber: number,
-    method: "merge" | "squash" | "rebase" = "squash"
+    method: "merge" | "squash" | "rebase" = "squash",
   ): Promise<boolean> {
-    const result = await execFileNoThrow(
-      "gh",
-      ["pr", "merge", String(prNumber), `--${method}`, "--delete-branch"],
-      { cwd: projectPath, timeout: 30000 }
-    );
+    try {
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls/${prNumber}/merge`,
+        token,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ merge_method: method }),
+        },
+      );
 
-    if (result.error) {
-      logger.error(`Failed to merge PR #${prNumber}: ${result.stderr}`, "github-service");
+      if (!res.ok) {
+        logger.error(
+          `Merge PR #${prNumber} failed: ${res.status}`,
+          "github-service",
+        );
+        return false;
+      }
+
+      // Delete branch after merge (best-effort)
+      try {
+        const prRes = await githubFetch(
+          `${GITHUB_API}/repos/${owner}/${repo}/pulls/${prNumber}`,
+          token,
+        );
+        if (prRes.ok) {
+          const prData = (await prRes.json()) as {
+            head?: { ref?: string };
+          };
+          if (prData.head?.ref) {
+            await githubFetch(
+              `${GITHUB_API}/repos/${owner}/${repo}/git/refs/heads/${prData.head.ref}`,
+              token,
+              { method: "DELETE" },
+            );
+          }
+        }
+      } catch {
+        /* branch deletion is best-effort */
+      }
+
+      return true;
+    } catch (err) {
+      logger.error(`Merge PR error: ${err}`, "github-service");
       return false;
     }
-
-    return true;
   }
 
   /**
    * Close a pull request
    */
-  async closePR(projectPath: string, prNumber: number): Promise<boolean> {
-    const result = await execFileNoThrow(
-      "gh",
-      ["pr", "close", String(prNumber)],
-      { cwd: projectPath, timeout: 15000 }
-    );
-
-    return !result.error;
+  async closePR(
+    token: string,
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<boolean> {
+    try {
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls/${prNumber}`,
+        token,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: "closed" }),
+        },
+      );
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 
   /**
    * Get PR reviews
    */
-  async getPRReviews(projectPath: string, prNumber: number): Promise<PullRequestReview[]> {
-    const result = await execFileNoThrow(
-      "gh",
-      [
-        "api",
-        `repos/{owner}/{repo}/pulls/${prNumber}/reviews`,
-        "--jq", ".[] | {id: .id, user: .user.login, state: .state, body: .body, submittedAt: .submitted_at}",
-      ],
-      { cwd: projectPath, timeout: 15000 }
-    );
-
-    if (result.error) {
-      return [];
-    }
-
+  async getPRReviews(
+    token: string,
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<PullRequestReview[]> {
     try {
-      // Each line is a JSON object
-      const lines = result.stdout.trim().split("\n").filter(Boolean);
-      return lines.map((line) => JSON.parse(line));
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+        token,
+      );
+      if (!res.ok) return [];
+
+      const raw = (await res.json()) as Array<{
+        id: number;
+        user: { login: string };
+        state: string;
+        body: string;
+        submitted_at: string;
+      }>;
+
+      return raw.map((r) => ({
+        id: r.id,
+        user: r.user.login,
+        state: r.state as PullRequestReview["state"],
+        body: r.body ?? "",
+        submittedAt: r.submitted_at,
+      }));
     } catch {
       return [];
     }
@@ -294,38 +342,65 @@ export class GitHubService {
   /**
    * Get CI checks status for a PR
    */
-  async getPRChecks(projectPath: string, prNumber: number): Promise<{
+  async getPRChecks(
+    token: string,
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<{
     status: "pass" | "fail" | "pending" | "none";
     checks: Array<{ name: string; status: string; conclusion: string }>;
   }> {
-    const result = await execFileNoThrow(
-      "gh",
-      ["pr", "checks", String(prNumber), "--json", "name,state,conclusion"],
-      { cwd: projectPath, timeout: 15000 }
-    );
-
-    if (result.error) {
-      return { status: "none", checks: [] };
-    }
-
     try {
-      const checks = JSON.parse(result.stdout) as Array<{ name: string; state: string; conclusion: string }>;
+      // Get PR head SHA first
+      const prRes = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls/${prNumber}`,
+        token,
+      );
+      if (!prRes.ok) return { status: "none", checks: [] };
+
+      const prData = (await prRes.json()) as {
+        head?: { sha?: string };
+      };
+      const sha = prData.head?.sha;
+      if (!sha) return { status: "none", checks: [] };
+
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/commits/${sha}/check-runs`,
+        token,
+      );
+      if (!res.ok) return { status: "none", checks: [] };
+
+      const data = (await res.json()) as {
+        check_runs: Array<{
+          name: string;
+          status: string;
+          conclusion: string | null;
+        }>;
+      };
+      const checks = data.check_runs ?? [];
 
       if (checks.length === 0) return { status: "none", checks: [] };
 
-      const hasFail = checks.some((c) => c.conclusion === "FAILURE" || c.conclusion === "ERROR");
-      const hasPending = checks.some((c) => c.state === "PENDING" || c.state === "QUEUED" || c.state === "IN_PROGRESS");
-
-      let status: "pass" | "fail" | "pending" | "none" = "pass";
-      if (hasFail) status = "fail";
-      else if (hasPending) status = "pending";
+      const hasFail = checks.some(
+        (c) =>
+          c.conclusion === "failure" || c.conclusion === "timed_out",
+      );
+      const hasPending = checks.some(
+        (c) => c.status === "queued" || c.status === "in_progress",
+      );
+      const status = hasFail
+        ? "fail"
+        : hasPending
+          ? "pending"
+          : "pass";
 
       return {
         status,
         checks: checks.map((c) => ({
           name: c.name,
-          status: c.state,
-          conclusion: c.conclusion,
+          status: c.status,
+          conclusion: c.conclusion ?? "",
         })),
       };
     } catch {
@@ -336,46 +411,65 @@ export class GitHubService {
   /**
    * Find PR for a specific branch
    */
-  async findPRForBranch(projectPath: string, branch: string): Promise<PullRequest | null> {
-    const result = await execFileNoThrow(
-      "gh",
-      [
-        "pr", "list",
-        "--head", branch,
-        "--state", "all",
-        "--limit", "1",
-        "--json", "number,title,body,state,url,headRefName,baseRefName,author,createdAt,updatedAt,additions,deletions,changedFiles,isDraft,labels,mergeable",
-      ],
-      { cwd: projectPath, timeout: 15000 }
-    );
+  async findPRForBranch(
+    token: string,
+    owner: string,
+    repo: string,
+    branch: string,
+  ): Promise<PullRequest | null> {
+    try {
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}/pulls?head=${owner}:${branch}&state=all&per_page=1`,
+        token,
+      );
+      if (!res.ok) return null;
 
-    if (result.error) return null;
+      const prs = (await res.json()) as Array<Record<string, unknown>>;
+      return prs.length > 0 ? mapPR(prs[0]) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get repo description via REST API (cached 10min)
+   */
+  async getRepoDescription(
+    token: string,
+    owner: string,
+    repo: string,
+  ): Promise<string | null> {
+    const cacheKey = `${owner}/${repo}`;
+    const cached = descriptionCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
 
     try {
-      const prs = JSON.parse(result.stdout);
-      if (prs.length === 0) return null;
+      const res = await githubFetch(
+        `${GITHUB_API}/repos/${owner}/${repo}`,
+        token,
+      );
+      if (!res.ok) return null;
 
-      const pr = prs[0];
-      return {
-        number: pr.number,
-        title: pr.title,
-        body: pr.body,
-        state: (pr.state as string).toLowerCase() as "open" | "closed" | "merged",
-        url: pr.url,
-        headBranch: pr.headRefName,
-        baseBranch: pr.baseRefName,
-        author: pr.author?.login ?? "",
-        createdAt: pr.createdAt,
-        updatedAt: pr.updatedAt,
-        additions: pr.additions ?? 0,
-        deletions: pr.deletions ?? 0,
-        changedFiles: pr.changedFiles ?? 0,
-        mergeable: pr.mergeable === "MERGEABLE",
-        draft: pr.isDraft ?? false,
-        labels: (pr.labels ?? []).map((l: Record<string, string>) => l.name),
+      const data = (await res.json()) as {
+        description?: string | null;
       };
+      const value = data.description?.trim() || null;
+
+      descriptionCache.set(cacheKey, {
+        value,
+        expiresAt: Date.now() + DESCRIPTION_CACHE_TTL_MS,
+      });
+      return value;
     } catch {
       return null;
     }
   }
 }
+
+const DESCRIPTION_CACHE_TTL_MS = 10 * 60_000; // 10 minutes
+const descriptionCache = new Map<
+  string,
+  { value: string | null; expiresAt: number }
+>();

@@ -410,20 +410,87 @@ export function setupSocketHandlers(
 }
 
 /**
- * Auto-create PR after a successful push if autoPR is enabled in git config.
+ * Resolve GitHub context (token, owner, repo) for a project via its owner.
  */
-async function tryAutoPR(task: { id: string; projectId: string; title: string; branch: string | null }, projectPath: string, branchName: string, config: Record<string, unknown>) {
+async function resolveGitHubContextForProject(
+  projectId: string,
+): Promise<{ token: string; owner: string; repo: string } | null> {
+  const project = await db
+    .select()
+    .from(schema.projects)
+    .where(eq(schema.projects.id, projectId))
+    .then((r) => r[0]);
+  if (!project) return null;
+
+  // Resolve owner/repo
+  let ghOwner = project.githubOwner;
+  let ghRepo = project.githubRepo;
+
+  if (!ghOwner || !ghRepo) {
+    if (project.githubUrl) {
+      const { parseGitHubRepoSlug } = await import("../services/github-service.js");
+      const slug = parseGitHubRepoSlug(project.githubUrl);
+      if (slug) {
+        ghOwner = slug.owner;
+        ghRepo = slug.repo;
+      }
+    }
+
+    if ((!ghOwner || !ghRepo) && project.path && !project.path.startsWith("http")) {
+      try {
+        const remoteUrl = await gitService.getRemoteUrl(project.path);
+        if (remoteUrl) {
+          const { parseGitHubRepoSlug } = await import("../services/github-service.js");
+          const slug = parseGitHubRepoSlug(remoteUrl);
+          if (slug) {
+            ghOwner = slug.owner;
+            ghRepo = slug.repo;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  if (!ghOwner || !ghRepo) return null;
+
+  // Get project owner's token
+  if (!project.ownerId) return null;
+  const user = await db
+    .select({ accessToken: schema.users.accessToken })
+    .from(schema.users)
+    .where(eq(schema.users.id, project.ownerId))
+    .then((r) => r[0]);
+
+  if (!user?.accessToken) return null;
 
   try {
+    const token = safeDecrypt(user.accessToken);
+    return { token, owner: ghOwner, repo: ghRepo };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Auto-create PR after a successful push if autoPR is enabled in git config.
+ */
+async function tryAutoPR(task: { id: string; projectId: string; title: string; branch: string | null }, _projectPath: string, branchName: string, config: Record<string, unknown>) {
+
+  try {
+    const ctx = await resolveGitHubContextForProject(task.projectId);
+    if (!ctx) {
+      logger.debug(`No GitHub context available for project ${task.projectId}, skipping auto-PR`, "socket");
+      return;
+    }
+
     // Check if a PR already exists for this branch
-    const existingPR = await githubService.findPRForBranch(projectPath, branchName);
+    const existingPR = await githubService.findPRForBranch(ctx.token, ctx.owner, ctx.repo, branchName);
     if (existingPR) {
       logger.debug(`PR already exists for branch ${branchName}: #${existingPR.number}`, "socket");
       return;
     }
 
     const baseBranch = (config.defaultBranch as string) || "main";
-    const pr = await githubService.createPR(projectPath, {
+    const pr = await githubService.createPR(ctx.token, ctx.owner, ctx.repo, {
       title: task.title,
       body: `Automated PR for task \`${task.id}\`\n\nBranch: \`${branchName}\` → \`${baseBranch}\``,
       headBranch: branchName,

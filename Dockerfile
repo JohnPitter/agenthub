@@ -47,8 +47,12 @@ FROM node:20-alpine AS runtime
 
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-# Install nginx + git (required for cloning repos)
-RUN apk add --no-cache nginx git
+# Install nginx + git + chromium (for WhatsApp Web.js / Puppeteer)
+RUN apk add --no-cache nginx git chromium nss freetype harfbuzz ca-certificates ttf-freefont
+
+# Tell Puppeteer to use system Chromium instead of downloading its own
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 WORKDIR /app
 

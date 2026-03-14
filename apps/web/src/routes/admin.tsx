@@ -567,7 +567,7 @@ function OpenRouterTab() {
                     </div>
                     <div className="flex items-center gap-3 shrink-0 ml-3">
                       <span className="text-[10px] text-neutral-fg3 tabular-nums">
-                        ${model.pricing.prompt}/M in
+                        ${(parseFloat(model.pricing.prompt) * 1_000_000).toFixed(2)}/M in
                       </span>
                       <div className={cn(
                         "h-4 w-4 rounded border-2 flex items-center justify-center transition-colors",

@@ -102,7 +102,7 @@ if (process.env.NODE_ENV === "production") {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const webDist = path.resolve(__dirname, "../../apps/web/dist");
   app.use(express.static(webDist));
-  app.get("*", (req, res, next) => {
+  app.get("{*path}", (req, res, next) => {
     if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) return next();
     res.sendFile(path.join(webDist, "index.html"));
   });

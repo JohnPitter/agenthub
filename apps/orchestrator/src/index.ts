@@ -100,7 +100,7 @@ app.get("/api/health", (_req, res) => {
 // In production, serve the web frontend (SPA)
 if (process.env.NODE_ENV === "production") {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const webDist = path.resolve(__dirname, "../../apps/web/dist");
+  const webDist = path.resolve(process.cwd(), "apps/web/dist");
   app.use(express.static(webDist));
   app.get("{*path}", (req, res, next) => {
     if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) return next();

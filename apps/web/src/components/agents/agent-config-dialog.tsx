@@ -9,7 +9,7 @@ import { api } from "../../lib/utils";
 
 interface AgentConfigDialogProps {
   agent: Agent;
-  onSave: (agentId: string, updates: Partial<Agent>) => void;
+  onSave: (agentId: string, updates: Partial<Agent>) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -76,8 +76,8 @@ export function AgentConfigDialog({ agent, onSave, onClose }: AgentConfigDialogP
     );
   };
 
-  const handleSave = () => {
-    onSave(agent.id, {
+  const handleSave = async () => {
+    await onSave(agent.id, {
       model,
       level,
       avatar: avatar || undefined,

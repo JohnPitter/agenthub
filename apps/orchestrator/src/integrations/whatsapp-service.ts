@@ -6,6 +6,7 @@ import fs from "fs";
 import { db, schema } from "@agenthub/database";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
+import { STORAGE_BASE } from "../lib/storage.js";
 import { eventBus } from "../realtime/event-bus.js";
 import { handleReceptionistMessage, type ContentBlock, type ReceptionistAction } from "../agents/receptionist-service.js";
 import {
@@ -19,7 +20,25 @@ import {
   listProjects,
 } from "./whatsapp-ops.js";
 
-const TOKEN_DIR = path.join(process.cwd(), "data", "whatsapp-tokens");
+const TOKEN_DIR = path.join(STORAGE_BASE, "whatsapp-tokens");
+
+/** Safely extract a serialized WID string from any value (string, Wid object, etc.) */
+function serializeWid(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") {
+    return value.includes("@") ? value : `${value.replace(/\D/g, "")}@c.us`;
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    // Try _serialized first (Wid object standard field)
+    if (typeof obj._serialized === "string" && obj._serialized) return obj._serialized;
+    // Try user + server
+    if (typeof obj.user === "string" && typeof obj.server === "string") return `${obj.user}@${obj.server}`;
+    // Try id field
+    if (typeof obj.id === "string" && obj.id) return obj.id;
+  }
+  return null;
+}
 
 const STATUS_EMOJI: Record<string, string> = {
   created: "📋", assigned: "📌", in_progress: "🔄", review: "👀",
@@ -172,11 +191,8 @@ export class WhatsAppService {
       try {
         if (msg.fromMe) return;
 
-        // Normalize WID — msg.from can be a string or a Wid object
-        const rawFrom = msg.from;
-        const from: string = typeof rawFrom === "string"
-          ? rawFrom
-          : (rawFrom as unknown as { _serialized?: string })._serialized ?? String(rawFrom);
+        // Normalize WID — extract serialized string from from/chatId
+        const from: string = serializeWid(msg.from) || serializeWid(msg.chatId) || String(msg.from);
 
         // Whitelist check — only allow messages from the authorized number
         if (this.config.allowedNumber) {
@@ -719,20 +735,10 @@ export class WhatsAppService {
       throw new Error("WhatsApp not connected");
     }
 
-    // Normalize WID — to can be a string or a Wid object
-    let chatId: string;
-    if (typeof to === "string") {
-      chatId = to;
-    } else if (to && typeof to === "object") {
-      const wid = to as { _serialized?: string; user?: string; server?: string };
-      chatId = wid._serialized ?? (wid.user && wid.server ? `${wid.user}@${wid.server}` : String(to));
-    } else {
-      chatId = String(to);
-    }
-
-    // Ensure chatId has @c.us suffix for regular contacts
-    if (chatId && !chatId.includes("@")) {
-      chatId = `${chatId.replace(/\D/g, "")}@c.us`;
+    const chatId = serializeWid(to);
+    if (!chatId) {
+      logger.error(`Cannot send message: invalid WID value: ${JSON.stringify(to)}`, "whatsapp");
+      return;
     }
 
     try {

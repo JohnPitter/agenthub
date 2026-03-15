@@ -336,7 +336,47 @@ export class WhatsAppService {
     // Execute action if present
     if (response.parsedAction) {
       await this.executeAction(from, contactName, response.parsedAction);
+    } else if (this.looksLikeTaskRequest(text)) {
+      // Fallback: if the model didn't emit a JSON action but the user
+      // clearly asked for a feature/fix/task, create it automatically
+      logger.info(`Auto-creating task from user message (no JSON action detected): ${text.slice(0, 80)}`, "whatsapp");
+      const category = this.detectCategory(text);
+      const action: ReceptionistAction = {
+        action: "create_task",
+        title: text.length > 100 ? text.slice(0, 97) + "..." : text,
+        description: text,
+        priority: "medium",
+        category,
+      };
+      await this.executeAction(from, contactName, action);
     }
+  }
+
+  /** Detect if user message looks like a task/feature/bug request */
+  private looksLikeTaskRequest(text: string): boolean {
+    const lower = text.toLowerCase();
+    // Short messages are usually conversation, not task requests
+    if (lower.length < 20) return false;
+    // Greetings and questions are not tasks
+    if (/^(oi|olá|ola|hi|hello|hey|e aí|tudo bem|bom dia|boa tarde|boa noite)/i.test(lower)) return false;
+    if (/^(o que|como|quando|onde|quem|qual|por que|porque)/i.test(lower)) return false;
+    // Imperative verbs or technical keywords suggest a task
+    const taskPatterns = [
+      /\b(implement|cria|adiciona|faz|resolve|corrig|fix|add|build|refactor|atualiz|melhora|otimiz|remov|delet)/i,
+      /\b(arrastar|drag|drop|upload|download|botão|button|tela|página|componente|endpoint|api|função)/i,
+      /\b(bug|erro|error|quebr|crash|falha|fail|lento|slow|feature|funcionalidade)/i,
+    ];
+    return taskPatterns.some(p => p.test(lower));
+  }
+
+  /** Detect task category from text */
+  private detectCategory(text: string): string {
+    const lower = text.toLowerCase();
+    if (/\b(bug|erro|error|fix|corrig|quebr|crash|falha)/i.test(lower)) return "bug";
+    if (/\b(refactor|melhora|otimiz|limpa|clean)/i.test(lower)) return "refactor";
+    if (/\b(test|teste|cobertura|coverage)/i.test(lower)) return "test";
+    if (/\b(doc|documentação|readme)/i.test(lower)) return "docs";
+    return "feature";
   }
 
   private async executeAction(
@@ -391,11 +431,20 @@ export class WhatsAppService {
 
       await this.sendMessage(from, result);
 
-      // After task creation, offer real-time tracking
+      // After task creation, auto-assign to start workflow + offer tracking
       if (action.action === "create_task" && !result.startsWith("❌")) {
         const idMatch = result.match(/\*ID:\*\s*`([^`]+)`/);
         if (idMatch) {
-          await this.offerTaskTracking(from, idMatch[1], action.title as string);
+          const taskId = idMatch[1];
+          // Auto-move to "assigned" to trigger the agent workflow
+          const assignResult = await advanceTaskStatus(taskId, "assigned");
+          if (!assignResult.startsWith("❌")) {
+            await this.sendMessage(from, "🚀 *Workflow iniciado!* O Tech Lead já está analisando a task.");
+            await this.offerTaskTracking(from, taskId, action.title as string);
+          } else {
+            logger.warn(`Could not auto-assign task ${taskId}: ${assignResult}`, "whatsapp");
+            await this.offerTaskTracking(from, taskId, action.title as string);
+          }
         }
       }
 

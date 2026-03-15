@@ -61,7 +61,7 @@ export class WhatsAppService {
   private client: Whatsapp | null = null;
   private config: WhatsAppServiceConfig;
   private integrationId: string;
-  private chromeTmpDir: string | null = null;
+
   private isConnecting = false;
   private listenersAttached = false;
 
@@ -72,7 +72,7 @@ export class WhatsAppService {
   /** whatsappNumber → project list — pending numbered project selection */
   private pendingProjectSelection = new Map<string, { projects: { id: string; name: string }[]; timestamp: number }>();
   /** whatsappNumber → selected project — user already picked a project for next create_task */
-  private selectedProject = new Map<string, { id: string; name: string }>();
+  private selectedProject = new Map<string, { id: string; name: string; timestamp: number }>();
 
   constructor(config: WhatsAppServiceConfig, integrationId: string) {
     this.config = config;
@@ -332,8 +332,16 @@ export class WhatsAppService {
     // Inject selected project context so receptionist doesn't ask again
     let enrichedContent = content;
     const selectedProj = this.selectedProject.get(from);
-    if (selectedProj && typeof enrichedContent === "string") {
-      enrichedContent = `[SYSTEM: User already selected project "${selectedProj.name}" (ID: ${selectedProj.id}). Use this projectId for create_task. Do NOT call list_projects again.]\n\n${enrichedContent}`;
+    if (selectedProj && Date.now() - selectedProj.timestamp > 5 * 60 * 1000) {
+      this.selectedProject.delete(from); // expired
+    }
+    if (selectedProj && this.selectedProject.has(from)) {
+      const systemMsg = `[SYSTEM: User already selected project "${selectedProj.name}" (ID: ${selectedProj.id}). Use this projectId for create_task. Do NOT call list_projects again.]`;
+      if (typeof enrichedContent === "string") {
+        enrichedContent = `${systemMsg}\n\n${enrichedContent}`;
+      } else if (Array.isArray(enrichedContent)) {
+        enrichedContent = [{ type: "text" as const, text: systemMsg }, ...enrichedContent];
+      }
     }
 
     const response = await handleReceptionistMessage(
@@ -440,6 +448,18 @@ export class WhatsAppService {
           const assignResult = await advanceTaskStatus(taskId, "assigned");
           if (!assignResult.startsWith("❌")) {
             await this.sendMessage(from, "🚀 *Workflow iniciado!* O Tech Lead já está analisando a task.");
+
+            // Actually trigger the workflow
+            const { agentManager } = await import("../agents/agent-manager.js");
+            const techLeadAgent = await db.select().from(schema.agents)
+              .where(and(eq(schema.agents.role, "tech_lead"), eq(schema.agents.isActive, true)))
+              .then(r => r[0]);
+            if (techLeadAgent) {
+              agentManager.runWorkflow(taskId, techLeadAgent.id).catch(err =>
+                logger.error(`Failed to start workflow for task ${taskId}: ${err}`, "whatsapp")
+              );
+            }
+
             await this.offerTaskTracking(from, taskId, action.title as string);
           } else {
             logger.warn(`Could not auto-assign task ${taskId}: ${assignResult}`, "whatsapp");
@@ -549,8 +569,10 @@ export class WhatsAppService {
       // Offer real-time tracking
       await this.offerTaskTracking(from, taskId, taskTitle);
 
-      // Start the full workflow (Tech Lead → Architect → Dev)
-      await agentManager.runWorkflow(taskId, techLead.id);
+      // Start the full workflow (Tech Lead → Architect → Dev) — fire-and-forget
+      agentManager.runWorkflow(taskId, techLead.id).catch(err =>
+        logger.error(`Workflow failed for task ${taskId}: ${err}`, "whatsapp")
+      );
 
       logger.info(`WhatsApp message from ${contactName} routed to ${techLead.name} (task ${taskId})`, "whatsapp");
     } catch (error) {
@@ -728,13 +750,15 @@ export class WhatsAppService {
 
     const num = parseInt(text.trim(), 10);
     if (isNaN(num) || num < 1 || num > pending.projects.length) {
-      // Not a valid number — clear pending and let normal routing handle it
-      return false;
+      await this.sendMessage(from,
+        `⚠️ Responda com um número entre *1* e *${pending.projects.length}*, ou envie /help para cancelar.`
+      );
+      return true; // consume the message, don't pass to receptionist
     }
 
     const selected = pending.projects[num - 1];
     this.pendingProjectSelection.delete(from);
-    this.selectedProject.set(from, selected);
+    this.selectedProject.set(from, { ...selected, timestamp: Date.now() });
 
     await this.sendMessage(
       from,
@@ -911,33 +935,30 @@ export class WhatsAppService {
     const sessionDir = path.join(TOKEN_DIR, `agenthub-${this.integrationId}`);
     try {
       if (!fs.existsSync(sessionDir)) return;
-
-      // Delete all Singleton* files recursively using find + rm
-      const { execFileSync } = require("child_process");
-      execFileSync("find", [sessionDir, "-name", "Singleton*", "-delete"], { timeout: 5000 });
-      logger.info(`Cleaned Chromium singleton locks in ${sessionDir}`, "whatsapp");
-    } catch (error) {
-      // Fallback: manual cleanup
-      try {
-        const clean = (dir: string, depth: number) => {
-          if (depth > 4) return;
+      let cleaned = 0;
+      const cleanDir = (dir: string, depth: number) => {
+        if (depth > 5) return;
+        try {
           for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const fp = path.join(dir, entry.name);
             if (entry.isFile() && entry.name.startsWith("Singleton")) {
               fs.unlinkSync(fp);
-              logger.info(`Removed lock: ${fp}`, "whatsapp");
-            } else if (entry.isDirectory()) {
-              clean(fp, depth + 1);
+              cleaned++;
+            } else if (entry.isDirectory() && entry.name !== "node_modules") {
+              cleanDir(fp, depth + 1);
             }
           }
-        };
-        clean(sessionDir, 0);
-      } catch {
-        logger.warn(`Failed to clean Chromium locks: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
+        } catch { /* ignore permission errors */ }
+      };
+      cleanDir(sessionDir, 0);
+      if (cleaned > 0) {
+        logger.info(`Removed ${cleaned} Chromium lock file(s)`, "whatsapp");
       }
+    } catch (error) {
+      logger.warn(`Failed to clean Chromium locks: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
     }
 
-    // Also clean any leftover chrome-tmp-* directories from old approach
+    // Clean leftover chrome-tmp-* dirs from old approach
     try {
       for (const entry of fs.readdirSync(TOKEN_DIR, { withFileTypes: true })) {
         if (entry.isDirectory() && entry.name.startsWith("chrome-tmp-")) {

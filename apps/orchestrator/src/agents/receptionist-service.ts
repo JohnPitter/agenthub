@@ -70,10 +70,10 @@ function parseAction(text: string): ReceptionistAction | null {
 }
 
 function cleanResponseText(text: string): string {
-  // Remove any JSON action line and surrounding code block markers
+  // Remove JSON action blocks (single line, code block, or multi-line)
   return text
-    .replace(/```json?\s*\n?\s*\{"action"[^}]*\}\s*\n?\s*```/g, "")
-    .replace(/\n\s*\{"action"[^}]*\}\s*$/m, "")
+    .replace(/```json?\s*\n?[\s\S]*?\{"action"[\s\S]*?\}[\s\S]*?```/g, "")
+    .replace(/\n?\s*\{"action"\s*:[\s\S]*?\}\s*$/m, "")
     .trim();
 }
 

@@ -44,31 +44,37 @@ function addToHistory(contactId: string, entry: ConversationEntry): void {
 }
 
 function parseAction(text: string): ReceptionistAction | null {
+  // Try last line first (ideal format)
   const lines = text.trim().split("\n");
-  const lastLine = lines[lines.length - 1].trim();
-  try {
-    const parsed = JSON.parse(lastLine);
-    if (parsed && typeof parsed.action === "string") {
-      return parsed as ReceptionistAction;
-    }
-  } catch {
-    /* not JSON — normal response */
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim().replace(/^```json?\s*/, "").replace(/```\s*$/, "");
+    if (!line.startsWith("{")) continue;
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && typeof parsed.action === "string") {
+        return parsed as ReceptionistAction;
+      }
+    } catch { /* not valid JSON */ }
+  }
+  // Fallback: extract JSON object from anywhere in the text
+  const jsonMatch = text.match(/\{"action"\s*:\s*"[^"]+?"[^}]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed && typeof parsed.action === "string") {
+        return parsed as ReceptionistAction;
+      }
+    } catch { /* not valid JSON */ }
   }
   return null;
 }
 
 function cleanResponseText(text: string): string {
-  const lines = text.trim().split("\n");
-  const lastLine = lines[lines.length - 1].trim();
-  try {
-    const parsed = JSON.parse(lastLine);
-    if (parsed && typeof parsed.action === "string") {
-      return lines.slice(0, -1).join("\n").trim();
-    }
-  } catch {
-    /* not JSON */
-  }
-  return text;
+  // Remove any JSON action line and surrounding code block markers
+  return text
+    .replace(/```json?\s*\n?\s*\{"action"[^}]*\}\s*\n?\s*```/g, "")
+    .replace(/\n\s*\{"action"[^}]*\}\s*$/m, "")
+    .trim();
 }
 
 /**

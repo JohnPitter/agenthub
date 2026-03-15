@@ -45,6 +45,37 @@ function formatDate(date: Date | null | undefined): string {
   return d.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Resolve a project by ID or name (case-insensitive, supports partial match).
+ */
+async function resolveProjectId(
+  projectIdOrName: string,
+): Promise<{ id: string; name: string } | null> {
+  // Try exact ID match first
+  const byId = await db
+    .select({ id: schema.projects.id, name: schema.projects.name })
+    .from(schema.projects)
+    .where(eq(schema.projects.id, projectIdOrName))
+    .then((r) => r[0]);
+  if (byId) return byId;
+
+  // Try by name (case-insensitive exact, then partial)
+  const allProjects = await db
+    .select({ id: schema.projects.id, name: schema.projects.name })
+    .from(schema.projects);
+
+  const lower = projectIdOrName.toLowerCase();
+  const exactMatch = allProjects.find((p) => p.name.toLowerCase() === lower);
+  if (exactMatch) return exactMatch;
+
+  const partialMatch = allProjects.find((p) =>
+    p.name.toLowerCase().includes(lower),
+  );
+  return partialMatch ?? null;
+}
+
 // ─── Public Functions ────────────────────────────────────────────────
 
 /**
@@ -231,21 +262,23 @@ export async function getTaskDetail(taskId: string): Promise<string> {
 
 /**
  * Create a new task.
+ * Accepts project ID or project name (case-insensitive, partial match).
  */
 export async function createTask(
-  projectId: string,
+  projectIdOrName: string,
   title: string,
   description?: string,
   priority?: string,
 ): Promise<string> {
   try {
-    // Validate project exists
-    const project = await db.select().from(schema.projects)
-      .where(eq(schema.projects.id, projectId)).then(r => r[0]);
+    // Resolve project by ID or name
+    const project = await resolveProjectId(projectIdOrName);
 
     if (!project) {
-      return `\u{274C} Project \`${projectId}\` not found.`;
+      return `\u{274C} Project \`${projectIdOrName}\` not found.`;
     }
+
+    const projectId = project.id;
 
     const validPriorities = ["low", "medium", "high", "urgent"] as const;
     type ValidPriority = (typeof validPriorities)[number];

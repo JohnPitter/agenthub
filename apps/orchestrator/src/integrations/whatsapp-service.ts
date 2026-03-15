@@ -70,6 +70,10 @@ export class WhatsAppService {
   private taskWatchers = new Map<string, TaskWatcher>();
   /** whatsappNumber → taskId — pending "do you want to track?" confirmations */
   private pendingTrackConfirmations = new Map<string, string>();
+  /** whatsappNumber → project list — pending numbered project selection */
+  private pendingProjectSelection = new Map<string, { projects: { id: string; name: string }[]; timestamp: number }>();
+  /** whatsappNumber → selected project — user already picked a project for next create_task */
+  private selectedProject = new Map<string, { id: string; name: string }>();
 
   constructor(config: WhatsAppServiceConfig, integrationId: string) {
     this.config = config;
@@ -272,6 +276,9 @@ export class WhatsAppService {
     text: string,
     content: string | ContentBlock[],
   ): Promise<void> {
+    // Check if this is a response to a pending project selection (numbered list)
+    if (await this.handleProjectSelection(from, text)) return;
+
     // Check if this is a response to a tracking confirmation
     if (this.handleTrackConfirmation(from, text)) return;
 
@@ -362,17 +369,44 @@ export class WhatsAppService {
         case "get_task":
           result = await getTaskDetail(action.taskId as string);
           break;
-        case "list_projects":
-          result = await listProjects();
+        case "list_projects": {
+          const projects = await db
+            .select({ id: schema.projects.id, name: schema.projects.name })
+            .from(schema.projects);
+          if (projects.length === 0) {
+            result = "📁 Nenhum projeto encontrado.";
+          } else {
+            let msg = "📁 *Projetos disponíveis:*\n\n";
+            projects.forEach((p, i) => {
+              msg += `*${i + 1}.* ${p.name}\n`;
+            });
+            msg += "\n_Responda com o número do projeto._";
+            this.pendingProjectSelection.set(from, {
+              projects: projects.map((p) => ({ id: p.id, name: p.name })),
+              timestamp: Date.now(),
+            });
+            result = msg;
+          }
           break;
-        case "create_task":
+        }
+        case "create_task": {
+          // Use projectId from action, or previously selected project, or default
+          let targetProjectId = action.projectId as string | undefined;
+          if (!targetProjectId) {
+            const selected = this.selectedProject.get(from);
+            if (selected) {
+              targetProjectId = selected.id;
+              this.selectedProject.delete(from);
+            }
+          }
           result = await createTask(
-            (action.projectId as string) || projectId,
+            targetProjectId || projectId,
             action.title as string,
             action.description as string | undefined,
             action.priority as string | undefined,
           );
           break;
+        }
         case "advance_status":
           result = await advanceTaskStatus(action.taskId as string, action.status as string);
           break;
@@ -677,6 +711,43 @@ export class WhatsAppService {
         this.pendingTrackConfirmations.delete(`title:${taskId}`);
       }
     }, 2 * 60 * 1000);
+  }
+
+  /**
+   * Check if incoming message is a numbered reply to a project selection list.
+   * Returns true if handled (caller should skip normal routing).
+   */
+  private async handleProjectSelection(from: string, text: string): Promise<boolean> {
+    const pending = this.pendingProjectSelection.get(from);
+    if (!pending) return false;
+
+    // Expire after 5 minutes
+    if (Date.now() - pending.timestamp > 5 * 60 * 1000) {
+      this.pendingProjectSelection.delete(from);
+      return false;
+    }
+
+    const num = parseInt(text.trim(), 10);
+    if (isNaN(num) || num < 1 || num > pending.projects.length) {
+      // Not a valid number — clear pending and let normal routing handle it
+      return false;
+    }
+
+    const selected = pending.projects[num - 1];
+    this.pendingProjectSelection.delete(from);
+    this.selectedProject.set(from, selected);
+
+    await this.sendMessage(
+      from,
+      `✅ Projeto *${selected.name}* selecionado.\n\n` +
+        `Agora me diga:\n` +
+        `1. *Título* da tarefa\n` +
+        `2. *Descrição* detalhada\n` +
+        `3. *Prioridade* (low/medium/high/urgent)`,
+    );
+
+    logger.info(`Project selected via WhatsApp: ${selected.name} (${selected.id}) by ${from}`, "whatsapp");
+    return true;
   }
 
   /**

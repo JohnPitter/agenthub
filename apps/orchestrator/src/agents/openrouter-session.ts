@@ -19,6 +19,48 @@ const execFileAsync = promisify(execFile);
 
 const MAX_TURNS = 50;
 
+/**
+ * Estimate cost based on model name and token counts.
+ * Pricing per million tokens (approximate, based on common OpenRouter models).
+ */
+function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
+  // [inputPricePerMillion, outputPricePerMillion]
+  const pricing: Record<string, [number, number]> = {
+    "opus": [15, 75],
+    "sonnet": [3, 15],
+    "haiku": [0.25, 1.25],
+    "gpt-4o-mini": [0.15, 0.6],
+    "gpt-4o": [2.5, 10],
+    "gpt-4-turbo": [10, 30],
+    "gpt-4": [30, 60],
+    "gpt-3.5": [0.5, 1.5],
+    "o1-mini": [3, 12],
+    "o1": [15, 60],
+    "o3-mini": [1.1, 4.4],
+    "gemini-2.0-flash": [0.1, 0.4],
+    "gemini-2.5-pro": [1.25, 10],
+    "gemini-pro": [0.5, 1.5],
+    "gemini-flash": [0.075, 0.3],
+    "deepseek": [0.27, 1.1],
+    "llama": [0.2, 0.2],
+    "mistral": [0.2, 0.6],
+    "qwen": [0.15, 0.6],
+  };
+
+  const modelLower = model.toLowerCase();
+  let inPrice = 3;  // default to sonnet-tier
+  let outPrice = 15;
+
+  for (const [key, prices] of Object.entries(pricing)) {
+    if (modelLower.includes(key)) {
+      [inPrice, outPrice] = prices;
+      break;
+    }
+  }
+
+  return (inputTokens * inPrice / 1_000_000) + (outputTokens * outPrice / 1_000_000);
+}
+
 const TOOL_DEFINITIONS: ChatCompletionTool[] = [
   {
     type: "function",
@@ -370,11 +412,8 @@ export class OpenRouterSession {
         errors.push(`Agent loop exceeded maximum of ${MAX_TURNS} turns`);
       }
 
-      // Calculate cost from OpenRouter usage headers or response
-      // OpenRouter includes cost in the x-openrouter-cost header or in usage
-      // For now, estimate from token counts (OpenRouter pricing varies by model)
-      // The actual cost tracking is best done via OpenRouter dashboard
-      totalCost = 0; // Will be updated when we have pricing data
+      // Estimate cost from token counts and model pricing
+      totalCost = estimateCost(agent.model, totalInputTokens, totalOutputTokens);
 
     } catch (err: unknown) {
       let errorMsg: string;
@@ -434,7 +473,7 @@ export class OpenRouterSession {
       "openrouter-session",
     );
 
-    return { result: resultText, cost: totalCost, duration, isError, errors };
+    return { result: resultText, cost: totalCost, duration, isError, errors, tokensUsed };
   }
 
   private parseArgs(argsJson: string): Record<string, unknown> | null {

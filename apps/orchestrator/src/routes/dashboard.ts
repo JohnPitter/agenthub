@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, desc, count, max, sql, and, ne } from "drizzle-orm";
+import { eq, desc, count, max, sql, and, ne, gte } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
 export const dashboardRouter: ReturnType<typeof Router> = Router();
@@ -12,6 +12,7 @@ dashboardRouter.get("/stats", async (req, res) => {
   const pageSize = Math.min(50, Math.max(1, parseInt(req.query.activityPageSize as string) || 10));
 
   const weekAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [projectRows, agentRows, taskRows, recentLogs, activityTotal, tasksByProject, agentsByProject, agentDetailsByProject, weeklyRows, recentCompleted] = await Promise.all([
     db.select({ total: count() }).from(schema.projects),
@@ -42,10 +43,11 @@ dashboardRouter.get("/stats", async (req, res) => {
       .leftJoin(schema.agents, eq(schema.taskLogs.agentId, schema.agents.id))
       .leftJoin(schema.tasks, eq(schema.taskLogs.taskId, schema.tasks.id))
       .leftJoin(schema.projects, eq(schema.tasks.projectId, schema.projects.id))
+      .where(gte(schema.taskLogs.createdAt, thirtyDaysAgo))
       .orderBy(desc(schema.taskLogs.createdAt))
       .limit(pageSize)
       .offset(page * pageSize),
-    db.select({ total: count() }).from(schema.taskLogs),
+    db.select({ total: count() }).from(schema.taskLogs).where(gte(schema.taskLogs.createdAt, thirtyDaysAgo)),
     // Task count + last activity per project
     db
       .select({

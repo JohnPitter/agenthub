@@ -1410,6 +1410,7 @@ class AgentManager {
         await db.update(schema.tasks).set({
           result: result.result ?? null,
           costUsd: result.cost.toString(),
+          tokensUsed: result.tokensUsed,
           updatedAt: new Date(),
         }).where(eq(schema.tasks.id, taskId));
 

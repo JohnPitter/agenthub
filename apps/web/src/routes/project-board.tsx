@@ -68,7 +68,12 @@ export function ProjectBoard() {
         }
         return prev.map((t) =>
           t.id === data.taskId
-            ? { ...t, status: data.status as TaskStatus, updatedAt: new Date() }
+            ? {
+                ...t,
+                status: data.status as TaskStatus,
+                ...(data.agentId ? { assignedAgentId: data.agentId } : {}),
+                updatedAt: new Date(),
+              }
             : t
         );
       });

@@ -14,4 +14,5 @@ export interface SessionResult {
   duration: number;
   isError: boolean;
   errors: string[];
+  tokensUsed: number;
 }

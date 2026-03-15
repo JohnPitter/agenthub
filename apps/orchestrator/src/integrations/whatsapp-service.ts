@@ -866,37 +866,42 @@ export class WhatsAppService {
   }
 
   /**
-   * Delete the entire Chromium user-data-dir for this session to prevent
-   * stale profile locks from a previous container blocking launch.
-   * The wppconnect session token (stored separately) is preserved.
+   * Remove Chromium's singleton lock files from the session directory.
+   * These locks contain the old container's hostname and block browser launch
+   * after a redeploy. The WhatsApp session data (stored in Chromium's
+   * localStorage/IndexedDB) must be preserved to avoid re-scanning QR code.
    */
   private cleanChromiumProfile(): void {
     try {
       const sessionDir = path.join(TOKEN_DIR, `agenthub-${this.integrationId}`);
       if (!fs.existsSync(sessionDir)) return;
 
-      // The Chromium profile is stored under Default/ or chrome_profile/ inside the session dir.
-      // Delete everything EXCEPT the wppconnect token files (*.data.json, *.session.json).
-      const entries = fs.readdirSync(sessionDir, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(sessionDir, entry.name);
-        // Keep wppconnect token/session files
-        if (entry.isFile() && (entry.name.endsWith(".json") || entry.name.endsWith(".json.bak"))) {
-          continue;
-        }
-        // Delete everything else (Chromium profile dirs, lock files, etc.)
+      const lockFiles = ["SingletonLock", "SingletonCookie", "SingletonSocket"];
+      let cleaned = 0;
+
+      // Recursively find and delete lock files at any depth
+      const cleanDir = (dir: string, depth: number) => {
+        if (depth > 5) return;
         try {
-          if (entry.isDirectory()) {
-            fs.rmSync(fullPath, { recursive: true, force: true });
-          } else {
-            fs.unlinkSync(fullPath);
+          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isFile() && lockFiles.includes(entry.name)) {
+              fs.unlinkSync(fullPath);
+              cleaned++;
+            } else if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+              cleanDir(fullPath, depth + 1);
+            }
           }
-          logger.debug(`Cleaned Chromium artifact: ${entry.name}`, "whatsapp");
-        } catch { /* ignore individual file errors */ }
+        } catch { /* ignore permission errors */ }
+      };
+
+      cleanDir(sessionDir, 0);
+
+      if (cleaned > 0) {
+        logger.info(`Removed ${cleaned} Chromium lock file(s) for session ${this.integrationId}`, "whatsapp");
       }
-      logger.info("Cleaned Chromium profile for fresh launch", "whatsapp");
     } catch (error) {
-      logger.warn(`Failed to clean Chromium profile: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
+      logger.warn(`Failed to clean Chromium locks: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
     }
   }
 

@@ -87,6 +87,11 @@ export function ProjectBoard() {
         });
       }
     },
+    onTaskDeleted: (data) => {
+      if (data.taskId) {
+        setTasks((prev) => prev.filter((t) => t.id !== data.taskId));
+      }
+    },
     onTaskUpdated: (data) => {
       const task = data.task as Task;
       if (task) {

@@ -24,7 +24,14 @@ export interface EventMap {
   "workflow:phase": { taskId: string; projectId: string; phase: string; agentId: string; agentName: string; detail?: string };
   "board:activity": { projectId: string; agentId: string; action: string; detail: string; timestamp: number };
   "board:agent_cursor": { projectId: string; agentId: string; filePath?: string; lineNumber?: number; action: string };
+  "task:deleted": { taskId: string; projectId: string };
+  "project:created": { project: unknown };
+  "project:updated": { project: unknown };
+  "project:deleted": { projectId: string };
+  "agent:created": { agent: unknown };
   "agent:updated": { agent: Record<string, unknown> };
+  "agent:deleted": { agentId: string };
+  "storage:updated": { userId: string };
   "integration:status": { type: "whatsapp" | "telegram"; status: "disconnected" | "connecting" | "connected" | "error"; qr?: string };
   "integration:message": { type: "whatsapp" | "telegram"; from: string; content: string };
   "devserver:output": { projectId: string; line: string; stream: "stdout" | "stderr"; timestamp: number };

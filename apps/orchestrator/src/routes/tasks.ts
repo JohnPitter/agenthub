@@ -101,6 +101,7 @@ tasksRouter.post("/", async (req, res) => {
   };
 
   await db.insert(schema.tasks).values(task);
+  eventBus.emit("task:created", { task });
   res.status(201).json({ task });
 });
 
@@ -155,6 +156,10 @@ tasksRouter.patch("/:id", async (req, res) => {
   await db.update(schema.tasks).set(updates).where(eq(schema.tasks.id, req.params.id));
 
   const task = await db.select().from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).then(r => r[0]);
+
+  if (task) {
+    eventBus.emit("task:updated", { task });
+  }
 
   // Fire-and-forget: start workflow when task moves to "assigned" (Ready for Dev)
   if (req.body.status === "assigned" && task && techLeadId) {
@@ -274,7 +279,18 @@ tasksRouter.patch("/:id", async (req, res) => {
 
 // DELETE /api/tasks/:id
 tasksRouter.delete("/:id", async (req, res) => {
+  const taskToDelete = await db
+    .select({ projectId: schema.tasks.projectId })
+    .from(schema.tasks)
+    .where(eq(schema.tasks.id, req.params.id))
+    .then(r => r[0]);
+
   await db.delete(schema.tasks).where(eq(schema.tasks.id, req.params.id));
+
+  if (taskToDelete) {
+    eventBus.emit("task:deleted", { taskId: req.params.id, projectId: taskToDelete.projectId });
+  }
+
   res.json({ success: true });
 });
 

@@ -60,6 +60,7 @@ agentsRouter.post("/", async (req, res) => {
     };
 
     await db.insert(schema.agents).values(agent);
+    eventBus.emit("agent:created", { agent });
     res.status(201).json({ agent });
   } catch (error) {
     logger.error(`Failed to create agent: ${error}`, "agents-route");
@@ -103,6 +104,7 @@ agentsRouter.delete("/:id", async (req, res) => {
     if (agent.isDefault) return res.status(400).json({ error: "Cannot delete default agents" });
 
     await db.delete(schema.agents).where(eq(schema.agents.id, req.params.id));
+    eventBus.emit("agent:deleted", { agentId: req.params.id });
     res.json({ success: true });
   } catch (error) {
     logger.error(`Failed to delete agent: ${error}`, "agents-route");

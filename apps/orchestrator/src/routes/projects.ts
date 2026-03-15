@@ -18,6 +18,7 @@ import { detectStack } from "../lib/detect-stack.js";
 import { GitService } from "../git/git-service.js";
 import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
+import { eventBus } from "../realtime/event-bus.js";
 
 const git = new GitService();
 
@@ -240,6 +241,7 @@ projectsRouter.post("/create", async (req, res) => {
     };
 
     await db.insert(schema.projects).values(project);
+    eventBus.emit("project:created", { project });
     logger.info(`GitHub repo created and cloned: ${repoResult.full_name} → ${localPath} (${diskSizeMb}MB)`, "projects");
     return res.status(201).json({ project });
   } catch (error) {
@@ -321,6 +323,7 @@ projectsRouter.post("/import", async (req, res) => {
     };
 
     await db.insert(schema.projects).values(project);
+    eventBus.emit("project:created", { project });
     logger.info(`GitHub repo imported: ${owner}/${repo} → ${localPath} (${diskSizeMb}MB)`, "projects");
     return res.status(201).json({ project });
   } catch (error) {
@@ -410,6 +413,10 @@ projectsRouter.patch("/:id", async (req, res) => {
       .where(eq(schema.projects.id, req.params.id))
       .then(r => r[0]);
 
+    if (project) {
+      eventBus.emit("project:updated", { project });
+    }
+
     res.json({ project });
   } catch (error) {
     logger.error(`Failed to update project: ${error}`, "projects-route", { projectId: req.params.id });
@@ -421,6 +428,7 @@ projectsRouter.patch("/:id", async (req, res) => {
 projectsRouter.delete("/:id", async (req, res) => {
   try {
     await db.delete(schema.projects).where(eq(schema.projects.id, req.params.id));
+    eventBus.emit("project:deleted", { projectId: req.params.id });
     res.json({ success: true });
   } catch (error) {
     logger.error(`Failed to delete project: ${error}`, "projects-route", { projectId: req.params.id });

@@ -83,6 +83,21 @@ export function ProjectTasks() {
     onTaskGitBranch: handleTaskGitBranch,
     onTaskGitCommit: handleTaskGitCommit,
     onTaskReadyToCommit: handleTaskReadyToCommit,
+    onTaskCreated: (data) => {
+      const task = data.task as Task;
+      if (task && task.projectId === id) {
+        refetch();
+      }
+    },
+    onTaskDeleted: () => {
+      refetch();
+    },
+    onTaskUpdated: () => {
+      refetch();
+    },
+    onTaskStatus: () => {
+      refetch();
+    },
   });
 
   const handleCreate = useCallback(async (data: TaskFormData) => {

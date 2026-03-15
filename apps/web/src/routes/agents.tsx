@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Power, Settings, Users, GitBranch, Trash2 } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
+import { getSocket } from "../lib/socket";
 import { useAgents } from "../hooks/use-agents";
 import { AgentConfigDialog } from "../components/agents/agent-config-dialog";
 import { AgentAvatar } from "../components/agents/agent-avatar";
@@ -35,7 +36,7 @@ function saveWorkflowToStorage(wf: AgentWorkflow) {
 
 export function AgentsPage() {
   const { t } = useTranslation();
-  const { agents, toggleAgent, updateAgent, createAgent, deleteAgent } = useAgents();
+  const { agents, fetchAgents, toggleAgent, updateAgent, createAgent, deleteAgent } = useAgents();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState<AgentsTab>("agentes");
@@ -60,6 +61,20 @@ export function AgentsPage() {
       fetchWorkflows(activeProjectId);
     }
   }, [activeProjectId, activeTab, fetchWorkflows]);
+
+  // Real-time agent list updates via socket
+  useEffect(() => {
+    const socket = getSocket();
+    const handleAgentChange = () => { fetchAgents(); };
+    socket.on("agent:created", handleAgentChange);
+    socket.on("agent:deleted", handleAgentChange);
+    socket.on("agent:updated", handleAgentChange);
+    return () => {
+      socket.off("agent:created", handleAgentChange);
+      socket.off("agent:deleted", handleAgentChange);
+      socket.off("agent:updated", handleAgentChange);
+    };
+  }, [fetchAgents]);
 
   const activeCount = agents.filter((a) => a.isActive).length;
   const selected = agents.find((a) => a.id === selectedId) ?? agents[0] ?? null;

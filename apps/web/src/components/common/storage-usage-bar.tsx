@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { HardDrive } from "lucide-react";
+import { getSocket } from "../../lib/socket";
 import { api, cn } from "../../lib/utils";
 import type { StorageUsage } from "@agenthub/shared";
 
@@ -19,6 +20,14 @@ export function StorageUsageBar() {
   }, []);
 
   useEffect(() => { fetchUsage(); }, [fetchUsage]);
+
+  // Real-time storage updates via socket
+  useEffect(() => {
+    const socket = getSocket();
+    const handleStorageUpdated = () => { fetchUsage(); };
+    socket.on("storage:updated", handleStorageUpdated);
+    return () => { socket.off("storage:updated", handleStorageUpdated); };
+  }, [fetchUsage]);
 
   if (loading || !usage) return null;
 

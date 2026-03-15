@@ -14,6 +14,7 @@ import type {
   TaskStatusEvent,
   TaskCreatedEvent,
   TaskUpdatedEvent,
+  TaskDeletedEvent,
   TaskQueuedEvent,
   TaskGitBranchEvent,
   TaskGitCommitEvent,
@@ -38,6 +39,7 @@ interface SocketHandlers {
   onTaskStatus?: (data: TaskStatusEvent) => void;
   onTaskCreated?: (data: TaskCreatedEvent) => void;
   onTaskUpdated?: (data: TaskUpdatedEvent) => void;
+  onTaskDeleted?: (data: TaskDeletedEvent) => void;
   onTaskQueued?: (data: TaskQueuedEvent) => void;
   onTaskGitBranch?: (data: TaskGitBranchEvent) => void;
   onTaskGitCommit?: (data: TaskGitCommitEvent) => void;
@@ -76,6 +78,7 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     const onTaskStatus = (data: TaskStatusEvent) => handlersRef.current?.onTaskStatus?.(data);
     const onTaskCreated = (data: TaskCreatedEvent) => handlersRef.current?.onTaskCreated?.(data);
     const onTaskUpdated = (data: TaskUpdatedEvent) => handlersRef.current?.onTaskUpdated?.(data);
+    const onTaskDeleted = (data: TaskDeletedEvent) => handlersRef.current?.onTaskDeleted?.(data);
     const onTaskQueued = (data: TaskQueuedEvent) => handlersRef.current?.onTaskQueued?.(data);
     const onTaskGitBranch = (data: TaskGitBranchEvent) => handlersRef.current?.onTaskGitBranch?.(data);
     const onTaskGitCommit = (data: TaskGitCommitEvent) => handlersRef.current?.onTaskGitCommit?.(data);
@@ -97,6 +100,7 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
     socket.on("task:status", onTaskStatus);
     socket.on("task:created", onTaskCreated);
     socket.on("task:updated", onTaskUpdated);
+    socket.on("task:deleted", onTaskDeleted);
     socket.on("task:queued", onTaskQueued);
     socket.on("task:git_branch", onTaskGitBranch);
     socket.on("task:git_commit", onTaskGitCommit);
@@ -145,6 +149,7 @@ export function useSocket(projectId: string | undefined, handlers?: SocketHandle
       socket.off("task:status", onTaskStatus);
       socket.off("task:created", onTaskCreated);
       socket.off("task:updated", onTaskUpdated);
+      socket.off("task:deleted", onTaskDeleted);
       socket.off("task:queued", onTaskQueued);
       socket.off("task:git_branch", onTaskGitBranch);
       socket.off("task:git_commit", onTaskGitCommit);

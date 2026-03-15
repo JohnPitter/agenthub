@@ -26,7 +26,14 @@ export interface ServerToClientEvents {
   "board:agent_cursor": (data: BoardAgentCursorEvent) => void;
   "integration:status": (data: IntegrationStatusEvent) => void;
   "integration:message": (data: IntegrationMessageEvent) => void;
+  "task:deleted": (data: TaskDeletedEvent) => void;
+  "project:created": (data: ProjectCreatedEvent) => void;
+  "project:updated": (data: ProjectUpdatedEvent) => void;
+  "project:deleted": (data: ProjectDeletedEvent) => void;
+  "agent:created": (data: AgentCreatedEvent) => void;
   "agent:updated": (data: AgentUpdatedEvent) => void;
+  "agent:deleted": (data: AgentDeletedEvent) => void;
+  "storage:updated": (data: StorageUpdatedEvent) => void;
   "devserver:output": (data: DevServerOutputEvent) => void;
   "devserver:status": (data: DevServerStatusEvent) => void;
   "notification:new": (data: NotificationEvent) => void;
@@ -223,8 +230,37 @@ export interface TaskPRErrorEvent {
   error: string;
 }
 
+export interface TaskDeletedEvent {
+  taskId: string;
+  projectId: string;
+}
+
+export interface ProjectCreatedEvent {
+  project: unknown;
+}
+
+export interface ProjectUpdatedEvent {
+  project: unknown;
+}
+
+export interface ProjectDeletedEvent {
+  projectId: string;
+}
+
+export interface AgentCreatedEvent {
+  agent: unknown;
+}
+
 export interface AgentUpdatedEvent {
   agent: Record<string, unknown>;
+}
+
+export interface AgentDeletedEvent {
+  agentId: string;
+}
+
+export interface StorageUpdatedEvent {
+  userId: string;
 }
 
 export interface DevServerOutputEvent {

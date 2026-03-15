@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { LayoutDashboard, BarChart3, Users, ListTodo, Settings, Zap, FolderOpen, ChevronLeft, ChevronRight, BookOpen, Shield } from "lucide-react";
@@ -9,6 +9,7 @@ import { AgentAvatar } from "../agents/agent-avatar";
 import { StorageUsageBar } from "../common/storage-usage-bar";
 import { TeamSwitcher } from "../teams/team-switcher";
 import { useTeamStore } from "../../stores/team-store";
+import { getSocket } from "../../lib/socket";
 import { api } from "../../lib/utils";
 import { cn } from "../../lib/utils";
 import type { Agent, Project } from "@agenthub/shared";
@@ -132,12 +133,56 @@ export function AppSidebar() {
   const user = useAuthStore((s) => s.user);
   const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => {
+  const refetchProjects = useCallback(() => {
     const query = activeTeamId ? `?teamId=${activeTeamId}` : "";
     api<{ projects: Project[] }>(`/projects${query}`).then(({ projects }) => {
       setProjects(projects);
     }).catch(() => {});
   }, [setProjects, activeTeamId]);
+
+  useEffect(() => {
+    refetchProjects();
+  }, [refetchProjects]);
+
+  // Real-time project list updates via socket
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleProjectChange = () => {
+      refetchProjects();
+    };
+
+    socket.on("project:created", handleProjectChange);
+    socket.on("project:deleted", handleProjectChange);
+    socket.on("project:updated", handleProjectChange);
+
+    return () => {
+      socket.off("project:created", handleProjectChange);
+      socket.off("project:deleted", handleProjectChange);
+      socket.off("project:updated", handleProjectChange);
+    };
+  }, [refetchProjects]);
+
+  // Real-time agent list updates via socket
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleAgentChange = () => {
+      api<{ agents: Agent[] }>("/agents").then(({ agents }) => {
+        setAgents(agents);
+      }).catch(() => {});
+    };
+
+    socket.on("agent:created", handleAgentChange);
+    socket.on("agent:deleted", handleAgentChange);
+    socket.on("agent:updated", handleAgentChange);
+
+    return () => {
+      socket.off("agent:created", handleAgentChange);
+      socket.off("agent:deleted", handleAgentChange);
+      socket.off("agent:updated", handleAgentChange);
+    };
+  }, [setAgents]);
 
   // Load agents on mount so they persist across hard refreshes
   useEffect(() => {

@@ -662,8 +662,36 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
     io.to(`project:${data.projectId}`).emit("board:agent_cursor", data);
   });
 
+  eventBus.on("task:deleted", (data) => {
+    io.to(`project:${data.projectId}`).emit("task:deleted", data);
+  });
+
+  eventBus.on("project:created", (data) => {
+    io.emit("project:created", data);
+  });
+
+  eventBus.on("project:updated", (data) => {
+    io.emit("project:updated", data);
+  });
+
+  eventBus.on("project:deleted", (data) => {
+    io.emit("project:deleted", data);
+  });
+
+  eventBus.on("agent:created", (data) => {
+    io.emit("agent:created", data);
+  });
+
   eventBus.on("agent:updated", (data) => {
     io.emit("agent:updated", data);
+  });
+
+  eventBus.on("agent:deleted", (data) => {
+    io.emit("agent:deleted", data);
+  });
+
+  eventBus.on("storage:updated", (data) => {
+    io.emit("storage:updated", data);
   });
 
   eventBus.on("integration:status", (data) => {

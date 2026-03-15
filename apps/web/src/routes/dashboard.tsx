@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
+import { getSocket } from "../lib/socket";
 import { api, formatRelativeTime } from "../lib/utils";
 import { cn } from "../lib/utils";
 import { getStackIcon } from "@agenthub/shared";
@@ -168,11 +169,35 @@ export function Dashboard() {
   const [activityPage, setActivityPage] = useState(0);
   const ACTIVITY_PAGE_SIZE = 10;
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
     api<DashboardStats>(`/dashboard/stats?activityPage=${activityPage}&activityPageSize=${ACTIVITY_PAGE_SIZE}`)
       .then(setStats)
       .catch(() => {});
   }, [activityPage]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Real-time dashboard updates via socket
+  useEffect(() => {
+    const socket = getSocket();
+    const handleChange = () => { fetchStats(); };
+
+    socket.on("task:created", handleChange);
+    socket.on("task:deleted", handleChange);
+    socket.on("task:status", handleChange);
+    socket.on("project:created", handleChange);
+    socket.on("project:deleted", handleChange);
+
+    return () => {
+      socket.off("task:created", handleChange);
+      socket.off("task:deleted", handleChange);
+      socket.off("task:status", handleChange);
+      socket.off("project:created", handleChange);
+      socket.off("project:deleted", handleChange);
+    };
+  }, [fetchStats]);
 
   const displayProjects = projects.slice(0, MAX_DASHBOARD_PROJECTS);
   const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);

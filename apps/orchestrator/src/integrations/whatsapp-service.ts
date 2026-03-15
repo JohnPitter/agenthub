@@ -843,8 +843,10 @@ export class WhatsAppService {
   }
 
   async sendMessage(to: string | unknown, content: string): Promise<void> {
-    if (!this.client) {
-      throw new Error("WhatsApp not connected");
+    const client = this.client;
+    if (!client) {
+      logger.warn("WhatsApp sendMessage skipped — client not connected", "whatsapp");
+      return; // Don't throw — the message handler may still be processing from a previous connection
     }
 
     const chatId = serializeWid(to);
@@ -854,7 +856,7 @@ export class WhatsAppService {
     }
 
     try {
-      await this.client.sendText(chatId, content);
+      await client.sendText(chatId, content);
       logger.info(`WhatsApp message sent to ${chatId}`, "whatsapp");
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

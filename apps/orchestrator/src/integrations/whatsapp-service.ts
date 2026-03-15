@@ -62,6 +62,7 @@ export class WhatsAppService {
   private client: Whatsapp | null = null;
   private config: WhatsAppServiceConfig;
   private integrationId: string;
+  private chromeTmpDir: string | null = null;
   private isConnecting = false;
   private listenersAttached = false;
 
@@ -102,6 +103,12 @@ export class WhatsAppService {
 
   private async startConnection(): Promise<void> {
     try {
+      // Use a fresh temporary userDataDir for Chromium to avoid stale lock files.
+      // The wppconnect session tokens are saved in folderNameToken independently.
+      const tmpDataDir = path.join(TOKEN_DIR, `chrome-tmp-${this.integrationId}-${Date.now()}`);
+      fs.mkdirSync(tmpDataDir, { recursive: true });
+      this.chromeTmpDir = tmpDataDir;
+
       this.client = await wppconnect.create({
         session: `agenthub-${this.integrationId}`,
         headless: true,
@@ -122,13 +129,13 @@ export class WhatsAppService {
         puppeteerOptions: {
           headless: true,
           executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+          userDataDir: tmpDataDir,
           args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--single-process",
-            "--disable-features=LockProfileCookieDatabase",
             "--no-first-run",
           ],
           protocolTimeout: 300000,
@@ -826,42 +833,24 @@ export class WhatsAppService {
   }
 
   /**
-   * Remove Chromium's singleton lock files from the session directory.
-   * These locks contain the old container's hostname and block browser launch
-   * after a redeploy. The WhatsApp session data (stored in Chromium's
-   * localStorage/IndexedDB) must be preserved to avoid re-scanning QR code.
+   * Clean up old temporary Chromium directories from previous sessions.
+   * Each connection creates a fresh chrome-tmp-* dir; old ones can be removed.
    */
   private cleanChromiumProfile(): void {
     try {
-      const sessionDir = path.join(TOKEN_DIR, `agenthub-${this.integrationId}`);
-      if (!fs.existsSync(sessionDir)) return;
-
-      const lockFiles = ["SingletonLock", "SingletonCookie", "SingletonSocket"];
+      const entries = fs.readdirSync(TOKEN_DIR, { withFileTypes: true });
       let cleaned = 0;
-
-      // Recursively find and delete lock files at any depth
-      const cleanDir = (dir: string, depth: number) => {
-        if (depth > 5) return;
-        try {
-          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-            const fullPath = path.join(dir, entry.name);
-            if (entry.isFile() && lockFiles.includes(entry.name)) {
-              fs.unlinkSync(fullPath);
-              cleaned++;
-            } else if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
-              cleanDir(fullPath, depth + 1);
-            }
-          }
-        } catch { /* ignore permission errors */ }
-      };
-
-      cleanDir(sessionDir, 0);
-
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name.startsWith(`chrome-tmp-${this.integrationId}-`)) {
+          fs.rmSync(path.join(TOKEN_DIR, entry.name), { recursive: true, force: true });
+          cleaned++;
+        }
+      }
       if (cleaned > 0) {
-        logger.info(`Removed ${cleaned} Chromium lock file(s) for session ${this.integrationId}`, "whatsapp");
+        logger.info(`Cleaned ${cleaned} old Chromium temp dir(s)`, "whatsapp");
       }
     } catch (error) {
-      logger.warn(`Failed to clean Chromium locks: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
+      logger.warn(`Failed to clean old Chrome dirs: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
     }
   }
 

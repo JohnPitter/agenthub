@@ -941,9 +941,13 @@ export class WhatsAppService {
         try {
           for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const fp = path.join(dir, entry.name);
-            if (entry.isFile() && entry.name.startsWith("Singleton")) {
-              fs.unlinkSync(fp);
-              cleaned++;
+            if (entry.name.startsWith("Singleton")) {
+              // SingletonLock is a SYMLINK on Linux, not a regular file!
+              // entry.isFile() returns false for symlinks — use lstatSync instead
+              try {
+                fs.unlinkSync(fp); // works for files, symlinks, and sockets
+                cleaned++;
+              } catch { /* ignore if already deleted */ }
             } else if (entry.isDirectory() && entry.name !== "node_modules") {
               cleanDir(fp, depth + 1);
             }
@@ -952,7 +956,9 @@ export class WhatsAppService {
       };
       cleanDir(sessionDir, 0);
       if (cleaned > 0) {
-        logger.info(`Removed ${cleaned} Chromium lock file(s)`, "whatsapp");
+        logger.info(`Removed ${cleaned} Chromium lock(s) in ${sessionDir}`, "whatsapp");
+      } else {
+        logger.debug(`No Chromium locks found in ${sessionDir}`, "whatsapp");
       }
     } catch (error) {
       logger.warn(`Failed to clean Chromium locks: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");

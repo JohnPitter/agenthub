@@ -189,18 +189,27 @@ tasksRouter.patch("/:id", async (req, res) => {
 
           logger.info(`Auto-pushed task ${task.id} branch ${branchName}`, "tasks-router");
 
-          // Create PR (always-on)
+          // Create PR (always-on) — resolve GitHub context for REST API
           const baseBranch = config.defaultBranch || "main";
           if (branchName !== baseBranch) {
-            const existingPR = await githubService.findPRForBranch(project.path, branchName);
-            if (!existingPR) {
-              const pr = await githubService.createPR(project.path, {
-                title: task.title as string,
-                body: `Automated PR for task \`${task.id}\`\n\nBranch: \`${branchName}\` → \`${baseBranch}\``,
-                headBranch: branchName,
-                baseBranch,
-                draft: false,
-              });
+            // Resolve token + owner/repo for GitHub REST API
+            const ghOwner = project.githubOwner;
+            const ghRepo = project.githubRepo;
+            const ownerUser = project.ownerId
+              ? await db.select({ accessToken: schema.users.accessToken }).from(schema.users).where(eq(schema.users.id, project.ownerId)).then(r => r[0])
+              : null;
+            const ghToken = ownerUser?.accessToken ? safeDecrypt(ownerUser.accessToken) : null;
+
+            if (ghToken && ghOwner && ghRepo) {
+              const existingPR = await githubService.findPRForBranch(ghToken, ghOwner, ghRepo, branchName);
+              if (!existingPR) {
+                const pr = await githubService.createPR(ghToken, ghOwner, ghRepo, {
+                  title: task.title as string,
+                  body: `Automated PR for task \`${task.id}\`\n\nBranch: \`${branchName}\` → \`${baseBranch}\``,
+                  headBranch: branchName,
+                  baseBranch,
+                  draft: false,
+                });
 
               if (pr) {
                 await db.insert(schema.taskLogs).values({
@@ -227,6 +236,9 @@ tasksRouter.patch("/:id", async (req, res) => {
 
                 logger.info(`Auto-PR created for task ${task.id}: #${pr.number}`, "tasks-router");
               }
+            }
+            } else {
+              logger.warn(`Cannot create PR for task ${task.id}: missing GitHub context`, "tasks-router");
             }
           }
         } catch (error) {

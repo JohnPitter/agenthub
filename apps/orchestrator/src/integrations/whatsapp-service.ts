@@ -128,6 +128,8 @@ export class WhatsAppService {
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--single-process",
+            "--disable-features=LockProfileCookieDatabase",
+            "--no-first-run",
           ],
           protocolTimeout: 300000,
         },
@@ -819,16 +821,36 @@ export class WhatsAppService {
       const sessionDir = path.join(TOKEN_DIR, `agenthub-${this.integrationId}`);
       if (!fs.existsSync(sessionDir)) return;
 
+      // Clean session-level locks
       for (const file of ["SingletonLock", "SingletonCookie", "SingletonSocket"]) {
         const lockPath = path.join(sessionDir, file);
         if (fs.existsSync(lockPath)) {
           fs.unlinkSync(lockPath);
-          logger.info(`Removed stale lock file: ${file}`, "whatsapp");
+          logger.info(`Removed stale lock: ${file}`, "whatsapp");
         }
       }
+
+      // Recursively clean all Chromium profile lock files within session dir
+      this.cleanLocksRecursive(sessionDir, 0);
     } catch (error) {
       logger.warn(`Failed to clean stale locks: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
     }
+  }
+
+  private cleanLocksRecursive(dir: string, depth: number): void {
+    if (depth > 4) return;
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isFile() && (entry.name === "SingletonLock" || entry.name === "SingletonCookie" || entry.name === "SingletonSocket" || entry.name === "lockfile")) {
+          fs.unlinkSync(fullPath);
+          logger.info(`Removed Chromium lock: ${fullPath}`, "whatsapp");
+        } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
+          this.cleanLocksRecursive(fullPath, depth + 1);
+        }
+      }
+    } catch { /* ignore permission errors */ }
   }
 
   private async updateIntegrationStatus(

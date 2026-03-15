@@ -333,50 +333,10 @@ export class WhatsAppService {
     // Send the receptionist's natural language response
     await this.sendMessage(from, response.text);
 
-    // Execute action if present
+    // Execute action if present — the receptionist AI decides when to emit actions
     if (response.parsedAction) {
       await this.executeAction(from, contactName, response.parsedAction);
-    } else if (this.looksLikeTaskRequest(text)) {
-      // Fallback: if the model didn't emit a JSON action but the user
-      // clearly asked for a feature/fix/task, create it automatically
-      logger.info(`Auto-creating task from user message (no JSON action detected): ${text.slice(0, 80)}`, "whatsapp");
-      const category = this.detectCategory(text);
-      const action: ReceptionistAction = {
-        action: "create_task",
-        title: text.length > 100 ? text.slice(0, 97) + "..." : text,
-        description: text,
-        priority: "medium",
-        category,
-      };
-      await this.executeAction(from, contactName, action);
     }
-  }
-
-  /** Detect if user message looks like a task/feature/bug request */
-  private looksLikeTaskRequest(text: string): boolean {
-    const lower = text.toLowerCase();
-    // Short messages are usually conversation, not task requests
-    if (lower.length < 20) return false;
-    // Greetings and questions are not tasks
-    if (/^(oi|olá|ola|hi|hello|hey|e aí|tudo bem|bom dia|boa tarde|boa noite)/i.test(lower)) return false;
-    if (/^(o que|como|quando|onde|quem|qual|por que|porque)/i.test(lower)) return false;
-    // Imperative verbs or technical keywords suggest a task
-    const taskPatterns = [
-      /\b(implement|cria|adiciona|faz|resolve|corrig|fix|add|build|refactor|atualiz|melhora|otimiz|remov|delet)/i,
-      /\b(arrastar|drag|drop|upload|download|botão|button|tela|página|componente|endpoint|api|função)/i,
-      /\b(bug|erro|error|quebr|crash|falha|fail|lento|slow|feature|funcionalidade)/i,
-    ];
-    return taskPatterns.some(p => p.test(lower));
-  }
-
-  /** Detect task category from text */
-  private detectCategory(text: string): string {
-    const lower = text.toLowerCase();
-    if (/\b(bug|erro|error|fix|corrig|quebr|crash|falha)/i.test(lower)) return "bug";
-    if (/\b(refactor|melhora|otimiz|limpa|clean)/i.test(lower)) return "refactor";
-    if (/\b(test|teste|cobertura|coverage)/i.test(lower)) return "test";
-    if (/\b(doc|documentação|readme)/i.test(lower)) return "docs";
-    return "feature";
   }
 
   private async executeAction(
@@ -400,7 +360,7 @@ export class WhatsAppService {
           break;
         case "create_task":
           result = await createTask(
-            projectId,
+            (action.projectId as string) || projectId,
             action.title as string,
             action.description as string | undefined,
             action.priority as string | undefined,

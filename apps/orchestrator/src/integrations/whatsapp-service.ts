@@ -742,24 +742,12 @@ export class WhatsAppService {
     }
 
     try {
-      // Primary: sendText
       await this.client.sendText(chatId, content);
       logger.info(`WhatsApp message sent to ${chatId}`, "whatsapp");
-    } catch (firstError) {
-      // Fallback: try sendMessage with raw chat API (different internal WID path)
-      try {
-        await (this.client as unknown as { sendMessage: (to: string, content: string) => Promise<unknown> }).sendMessage(chatId, content);
-        logger.info(`WhatsApp message sent via fallback to ${chatId}`, "whatsapp");
-      } catch (secondError) {
-        const msg = firstError instanceof Error ? firstError.message : String(firstError);
-        // Don't throw on WID errors — the message was likely processed but response failed
-        if (msg.includes("Invalid WID") || msg.includes("invalid wid")) {
-          logger.warn(`WhatsApp WID error (non-fatal) for ${chatId}: ${msg}`, "whatsapp");
-          return;
-        }
-        logger.error(`Failed to send WhatsApp message: ${msg}`, "whatsapp");
-        throw firstError;
-      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to send WhatsApp message to ${chatId}: ${msg}`, "whatsapp");
+      throw error;
     }
   }
 

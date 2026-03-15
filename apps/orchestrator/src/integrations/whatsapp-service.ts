@@ -17,7 +17,6 @@ import {
   listAgents,
   getProjectOverview,
   assignTaskToAgent,
-  listProjects,
 } from "./whatsapp-ops.js";
 
 const TOKEN_DIR = path.join(STORAGE_BASE, "whatsapp-tokens");
@@ -107,12 +106,6 @@ export class WhatsAppService {
 
   private async startConnection(): Promise<void> {
     try {
-      // Use a fresh temporary userDataDir for Chromium to avoid stale lock files.
-      // The wppconnect session tokens are saved in folderNameToken independently.
-      const tmpDataDir = path.join(TOKEN_DIR, `chrome-tmp-${this.integrationId}-${Date.now()}`);
-      fs.mkdirSync(tmpDataDir, { recursive: true });
-      this.chromeTmpDir = tmpDataDir;
-
       this.client = await wppconnect.create({
         session: `agenthub-${this.integrationId}`,
         headless: true,
@@ -133,7 +126,6 @@ export class WhatsAppService {
         puppeteerOptions: {
           headless: true,
           executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-          userDataDir: tmpDataDir,
           args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -337,11 +329,18 @@ export class WhatsAppService {
       return;
     }
 
+    // Inject selected project context so receptionist doesn't ask again
+    let enrichedContent = content;
+    const selectedProj = this.selectedProject.get(from);
+    if (selectedProj && typeof enrichedContent === "string") {
+      enrichedContent = `[SYSTEM: User already selected project "${selectedProj.name}" (ID: ${selectedProj.id}). Use this projectId for create_task. Do NOT call list_projects again.]\n\n${enrichedContent}`;
+    }
+
     const response = await handleReceptionistMessage(
       receptionist.id,
       this.config.projectId,
       from,
-      content,
+      enrichedContent,
     );
 
     // Send the receptionist's natural language response
@@ -904,25 +903,48 @@ export class WhatsAppService {
   }
 
   /**
-   * Clean up old temporary Chromium directories from previous sessions.
-   * Each connection creates a fresh chrome-tmp-* dir; old ones can be removed.
+   * Remove Chromium singleton lock files from the wppconnect session directory.
+   * These lock files store the previous container's hostname and block Chromium
+   * from launching after a redeploy. Uses rm -rf on Singleton* files.
    */
   private cleanChromiumProfile(): void {
+    const sessionDir = path.join(TOKEN_DIR, `agenthub-${this.integrationId}`);
     try {
-      const entries = fs.readdirSync(TOKEN_DIR, { withFileTypes: true });
-      let cleaned = 0;
-      for (const entry of entries) {
-        if (entry.isDirectory() && entry.name.startsWith(`chrome-tmp-${this.integrationId}-`)) {
+      if (!fs.existsSync(sessionDir)) return;
+
+      // Delete all Singleton* files recursively using find + rm
+      const { execFileSync } = require("child_process");
+      execFileSync("find", [sessionDir, "-name", "Singleton*", "-delete"], { timeout: 5000 });
+      logger.info(`Cleaned Chromium singleton locks in ${sessionDir}`, "whatsapp");
+    } catch (error) {
+      // Fallback: manual cleanup
+      try {
+        const clean = (dir: string, depth: number) => {
+          if (depth > 4) return;
+          for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const fp = path.join(dir, entry.name);
+            if (entry.isFile() && entry.name.startsWith("Singleton")) {
+              fs.unlinkSync(fp);
+              logger.info(`Removed lock: ${fp}`, "whatsapp");
+            } else if (entry.isDirectory()) {
+              clean(fp, depth + 1);
+            }
+          }
+        };
+        clean(sessionDir, 0);
+      } catch {
+        logger.warn(`Failed to clean Chromium locks: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
+      }
+    }
+
+    // Also clean any leftover chrome-tmp-* directories from old approach
+    try {
+      for (const entry of fs.readdirSync(TOKEN_DIR, { withFileTypes: true })) {
+        if (entry.isDirectory() && entry.name.startsWith("chrome-tmp-")) {
           fs.rmSync(path.join(TOKEN_DIR, entry.name), { recursive: true, force: true });
-          cleaned++;
         }
       }
-      if (cleaned > 0) {
-        logger.info(`Cleaned ${cleaned} old Chromium temp dir(s)`, "whatsapp");
-      }
-    } catch (error) {
-      logger.warn(`Failed to clean old Chrome dirs: ${error instanceof Error ? error.message : "Unknown"}`, "whatsapp");
-    }
+    } catch { /* ignore */ }
   }
 
   private async updateIntegrationStatus(

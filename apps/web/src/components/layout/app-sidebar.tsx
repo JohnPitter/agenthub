@@ -131,7 +131,23 @@ export function AppSidebar() {
   const { id: routeProjectId } = useParams();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
-  const [collapsed, setCollapsed] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+
+  // On tablet (md but not lg), default to collapsed
+  const [isTablet, setIsTablet] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const w = window.innerWidth;
+      setIsTablet(w >= 768 && w < 1024);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // On tablet: collapsed by default (user can expand via toggle button)
+  // On desktop: expanded by default (user can collapse via toggle button)
+  const collapsed = isTablet ? !desktopCollapsed : desktopCollapsed;
 
   const refetchProjects = useCallback(() => {
     const query = activeTeamId ? `?teamId=${activeTeamId}` : "";
@@ -204,13 +220,13 @@ export function AppSidebar() {
 
   return (
     <aside className={cn(
-      "relative flex shrink-0 flex-col rounded-2xl bg-neutral-bg2 border border-stroke shadow-2 transition-all duration-300",
+      "relative flex shrink-0 flex-col rounded-2xl bg-neutral-bg2 border border-stroke shadow-2 transition-all duration-300 h-full",
       collapsed ? "w-[76px]" : "w-[280px]"
     )}>
-      {/* Collapse button */}
+      {/* Collapse button — hidden on mobile (hamburger is used instead) */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3.5 top-7 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-bg3 border border-stroke text-neutral-fg3 hover:bg-brand-light hover:text-brand hover:border-stroke-active hover:shadow-glow transition-all duration-200"
+        onClick={() => setDesktopCollapsed(!desktopCollapsed)}
+        className="hidden md:flex absolute -right-3.5 top-7 z-20 h-7 w-7 items-center justify-center rounded-full bg-neutral-bg3 border border-stroke text-neutral-fg3 hover:bg-brand-light hover:text-brand hover:border-stroke-active hover:shadow-glow transition-all duration-200"
       >
         {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
       </button>

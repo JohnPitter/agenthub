@@ -490,15 +490,15 @@ export function SettingsPage() {
                 <dl className="flex flex-col divide-y divide-stroke2 card-glow overflow-hidden">
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">{t("settings.version")}</dt>
-                    <dd className="text-[13px] font-semibold text-brand">0.15.0</dd>
+                    <dd className="text-[13px] font-semibold text-brand">0.19.0</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">{t("settings.agentSdk")}</dt>
-                    <dd className="text-[13px] font-semibold text-neutral-fg1">Claude + OpenAI</dd>
+                    <dd className="text-[13px] font-semibold text-neutral-fg1">OpenRouter (OpenAI SDK)</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">{t("settings.database")}</dt>
-                    <dd className="text-[13px] font-semibold text-neutral-fg1">SQLite (libsql)</dd>
+                    <dd className="text-[13px] font-semibold text-neutral-fg1">PostgreSQL 16 + Drizzle ORM</dd>
                   </div>
                   <div className="flex items-center justify-between px-6 py-4">
                     <dt className="text-[13px] text-neutral-fg2">{t("settings.repository")}</dt>

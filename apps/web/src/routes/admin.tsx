@@ -228,8 +228,8 @@ function PlansTab() {
           <p className="text-[14px] text-neutral-fg3">Nenhum plano criado ainda</p>
         </div>
       ) : (
-        <div className="card-glow overflow-hidden">
-          <table className="w-full">
+        <div className="card-glow overflow-x-auto">
+          <table className="w-full min-w-[800px]">
             <thead>
               <tr className="border-b border-stroke2 bg-neutral-bg2/50">
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Nome</th>
@@ -305,8 +305,8 @@ function UsersTab() {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>
       ) : (
-        <div className="card-glow overflow-hidden">
-          <table className="w-full">
+        <div className="card-glow overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-stroke2 bg-neutral-bg2/50">
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">Usuário</th>
@@ -499,6 +499,26 @@ function OpenRouterTab() {
         )}
       </div>
 
+      {/* Enabled Models Summary */}
+      {config?.enabledModels && config.enabledModels.length > 0 && (
+        <div className="card-glow p-6">
+          <h4 className="text-[14px] font-semibold text-neutral-fg1 mb-3">
+            Modelos Habilitados ({config.enabledModels.length})
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            {config.enabledModels.map((m) => (
+              <div key={m.id} className="flex items-center gap-2 rounded-lg bg-neutral-bg2 p-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-neutral-fg1 truncate">{getModelLabel(m.id)}</p>
+                  <p className="text-[10px] text-neutral-fg3">{getModelProvider(m.id)}</p>
+                </div>
+                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-brand-light text-brand">{getModelCategory(m.id)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Models */}
       <div className="card-glow p-6">
         <div className="flex items-center justify-between mb-4">
@@ -626,7 +646,7 @@ function DashboardTab() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((stat) => (
           <div key={stat.label} className="card-glow p-5">
             <div className="flex items-center justify-between mb-2">
@@ -693,7 +713,7 @@ export function AdminPage() {
   return (
     <>
       <CommandBar>Admin Panel</CommandBar>
-      <div className="flex flex-col h-full overflow-y-auto px-8 py-8">
+      <div className="flex flex-col h-full overflow-y-auto px-4 py-4 md:px-8 md:py-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-light">
@@ -706,7 +726,7 @@ export function AdminPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-stroke2 pb-0">
+        <div className="flex gap-1 mb-6 border-b border-stroke2 pb-0 overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab.key}

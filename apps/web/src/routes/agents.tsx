@@ -162,9 +162,9 @@ export function AgentsPage() {
       </CommandBar>
 
       {activeTab === "agentes" ? (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
           {/* Left — Agent List */}
-          <nav className="w-[280px] shrink-0 border-r border-stroke2 bg-neutral-bg-subtle flex flex-col">
+          <nav className="w-full md:w-[280px] shrink-0 border-b md:border-b-0 md:border-r border-stroke2 bg-neutral-bg-subtle flex flex-col max-h-[40vh] md:max-h-none overflow-y-auto md:overflow-y-visible">
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
               <span className="section-heading !mb-0">{t("agents.title")}</span>
               <button
@@ -224,7 +224,7 @@ export function AgentsPage() {
           </nav>
 
           {/* Right — Agent Detail */}
-          <div className="flex-1 overflow-y-auto p-10">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
             {selected ? (
               <div className="mx-auto max-w-2xl animate-fade-up">
                 {/* Header */}

@@ -107,6 +107,11 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
           <span className="text-[10px] text-neutral-fg-disabled">{t("tasks.noneAssigned")}</span>
         )}
         <div className="flex items-center gap-1.5">
+          {task.costUsd && parseFloat(task.costUsd) > 0 && (
+            <span className="text-[9px] font-medium text-success tabular-nums">
+              ${parseFloat(task.costUsd).toFixed(2)}
+            </span>
+          )}
           {task.updatedAt && (
             <div className="flex items-center gap-1 text-[9px] text-neutral-fg-disabled">
               <Clock className="h-2.5 w-2.5" />

@@ -165,7 +165,7 @@ export function ProjectBoard() {
       </CommandBar>
 
       {/* Board content */}
-      <div className="flex-1 overflow-hidden p-8">
+      <div className="flex-1 overflow-hidden p-3 md:p-5 lg:p-8">
         {view === "kanban" ? (
           <KanbanBoard
             projectId={id || ""}

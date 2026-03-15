@@ -21,7 +21,7 @@ export function KanbanColumn({ id, title, tasks, agents, color, recentlyMoved, o
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
-    <div className="flex h-full min-w-[280px] flex-col">
+    <div className="flex h-full min-w-[280px] flex-col snap-center">
       {/* Column header */}
       <div className="mb-4 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">

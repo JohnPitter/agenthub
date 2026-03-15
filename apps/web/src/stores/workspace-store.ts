@@ -7,6 +7,7 @@ interface WorkspaceState {
   projects: Project[];
   agents: Agent[];
   chatPanelOpen: boolean;
+  mobileSidebarOpen: boolean;
   setActiveProject: (id: string | null) => void;
   setActiveTeamId: (id: string | null) => void;
   setProjects: (projects: Project[]) => void;
@@ -15,6 +16,8 @@ interface WorkspaceState {
   updateProject: (id: string, data: Partial<Project>) => void;
   removeProject: (id: string) => void;
   toggleChatPanel: () => void;
+  setMobileSidebarOpen: (open: boolean) => void;
+  toggleMobileSidebar: () => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -23,6 +26,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   projects: [],
   agents: [],
   chatPanelOpen: false,
+  mobileSidebarOpen: false,
   setActiveProject: (id) => set({ activeProjectId: id }),
   setActiveTeamId: (id) => set({ activeTeamId: id }),
   setProjects: (projects) => set({ projects }),
@@ -38,4 +42,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       activeProjectId: state.activeProjectId === id ? null : state.activeProjectId,
     })),
   toggleChatPanel: () => set((state) => ({ chatPanelOpen: !state.chatPanelOpen })),
+  setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+  toggleMobileSidebar: () => set((state) => ({ mobileSidebarOpen: !state.mobileSidebarOpen })),
 }));

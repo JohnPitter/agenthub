@@ -204,7 +204,7 @@ export function Dashboard() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="glass shrink-0 border-b border-stroke2 py-6 px-8">
+      <div className="glass shrink-0 border-b border-stroke2 py-4 px-4 md:py-6 md:px-8">
         <h1 className="text-display text-gradient">{t(getGreetingKey())}</h1>
         <p className="text-subtitle mt-1">
           {t("dashboard.projectCount", { count: projects.length })}
@@ -214,11 +214,11 @@ export function Dashboard() {
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-10">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
 
         {/* Stat cards grid */}
         {stats && (
-          <div className="grid grid-cols-5 gap-4 mb-8 animate-fade-up stagger-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8 animate-fade-up stagger-2">
             {STAT_ITEMS.map((item) => {
               const Icon = item.icon;
               const value = stats[item.key as keyof DashboardStats] as number;
@@ -358,8 +358,8 @@ export function Dashboard() {
 
             {/* Recent completed tasks table */}
             {stats.recentCompletedTasks?.length > 0 && (
-              <div className="card-glow mt-4 overflow-hidden">
-                <table className="w-full">
+              <div className="card-glow mt-4 overflow-x-auto">
+                <table className="w-full min-w-[600px]">
                   <thead>
                     <tr className="border-b border-stroke2 text-left">
                       <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("dashboard.completedTask")}</th>
@@ -408,8 +408,8 @@ export function Dashboard() {
                 </span>
               )}
             </div>
-            <div className="card-glow overflow-hidden">
-              <table className="w-full">
+            <div className="card-glow overflow-x-auto">
+              <table className="w-full min-w-[700px]">
                 <thead>
                   <tr className="border-b border-stroke2 text-left">
                     <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("dashboard.agent")}</th>

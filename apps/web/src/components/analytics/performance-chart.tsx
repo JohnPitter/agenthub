@@ -21,6 +21,14 @@ const CHART_COLORS = {
 };
 
 export function PerformanceChart({ data, type = "area" }: PerformanceChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-[300px] items-center justify-center text-[13px] text-neutral-fg3">
+        No data available for the selected period
+      </div>
+    );
+  }
+
   const formattedData = data.map((point) => ({
     ...point,
     displayDate: new Date(point.date).toLocaleDateString("en-US", {
@@ -29,12 +37,15 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
     }),
   }));
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: TrendDataPoint }> }) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; payload: TrendDataPoint }> }) => {
     if (active && payload && payload.length) {
+      const point = payload[0]?.payload;
+      if (!point) return null;
+      const getValue = (key: string) => payload.find((p) => p.dataKey === key)?.value ?? 0;
       return (
         <div className="bg-neutral-bg1 border border-stroke2 rounded-md shadow-4 p-3">
           <p className="text-[11px] font-semibold text-neutral-fg1 mb-1.5">
-            {new Date(payload[0].payload.date).toLocaleDateString("en-US", {
+            {new Date(point.date).toLocaleDateString("en-US", {
               weekday: "short",
               month: "short",
               day: "numeric",
@@ -44,17 +55,17 @@ export function PerformanceChart({ data, type = "area" }: PerformanceChartProps)
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-success" />
               <span className="text-[10px] text-neutral-fg3">Completed:</span>
-              <span className="text-[11px] font-semibold text-success">{payload[0].value}</span>
+              <span className="text-[11px] font-semibold text-success">{getValue("completed")}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-danger" />
               <span className="text-[10px] text-neutral-fg3">Failed:</span>
-              <span className="text-[11px] font-semibold text-danger">{payload[1].value}</span>
+              <span className="text-[11px] font-semibold text-danger">{getValue("failed")}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-brand" />
               <span className="text-[10px] text-neutral-fg3">Total:</span>
-              <span className="text-[11px] font-semibold text-brand">{payload[2].value}</span>
+              <span className="text-[11px] font-semibold text-brand">{getValue("total")}</span>
             </div>
           </div>
         </div>

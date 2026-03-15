@@ -240,12 +240,17 @@ export function ChatPanel() {
   return (
     <div
       className={cn(
-        "flex h-full transition-all duration-300 border-r border-stroke2",
-        chatPanelOpen ? (activeThread ? "w-[680px]" : "w-[360px]") : "w-0 overflow-hidden",
+        "flex transition-all duration-300 border-r border-stroke2",
+        // Mobile: full-screen overlay when open
+        chatPanelOpen
+          ? "fixed inset-0 z-50 md:relative md:inset-auto md:z-auto h-full"
+          : "w-0 overflow-hidden h-full",
+        chatPanelOpen && !activeThread && "md:w-[360px]",
+        chatPanelOpen && activeThread && "md:w-[680px]",
       )}
     >
       {/* Main chat column */}
-      <div className="flex h-full w-[360px] shrink-0 flex-col glass-strong">
+      <div className="flex h-full w-full md:w-[360px] shrink-0 flex-col glass-strong">
         {/* Header */}
         <div className="flex h-14 shrink-0 items-center justify-between px-4 border-b border-stroke2 bg-gradient-to-r from-brand-light/20 to-transparent">
           <div className="flex items-center gap-2.5">

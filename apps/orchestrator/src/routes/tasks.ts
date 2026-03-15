@@ -13,6 +13,7 @@ import { safeDecrypt } from "../lib/encryption";
 import { agentManager } from "../agents/agent-manager";
 import { eventBus } from "../realtime/event-bus";
 import { docGenerator } from "../agents/doc-generator.js";
+import { parseGitHubRepoSlug } from "../services/github-service.js";
 import { TASK_TRANSITIONS } from "@agenthub/shared";
 
 const gitService = new GitService();
@@ -212,8 +213,14 @@ tasksRouter.patch("/:id", async (req, res) => {
           const baseBranch = config.defaultBranch || "main";
           if (branchName !== baseBranch) {
             // Resolve token + owner/repo for GitHub REST API
-            const ghOwner = project.githubOwner;
-            const ghRepo = project.githubRepo;
+            let ghOwner = project.githubOwner;
+            let ghRepo = project.githubRepo;
+            if (!ghOwner || !ghRepo) {
+              if (project.githubUrl) {
+                const slug = parseGitHubRepoSlug(project.githubUrl);
+                if (slug) { ghOwner = slug.owner; ghRepo = slug.repo; }
+              }
+            }
             const ownerUser = project.ownerId
               ? await db.select({ accessToken: schema.users.accessToken }).from(schema.users).where(eq(schema.users.id, project.ownerId)).then(r => r[0])
               : null;

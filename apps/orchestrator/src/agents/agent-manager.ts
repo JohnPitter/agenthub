@@ -1328,6 +1328,10 @@ class AgentManager {
             branchName,
             baseBranch,
           });
+        } else {
+          // Branch exists — checkout to it so agent works on the right branch
+          await gitService.checkoutBranch(project.path, branchName);
+          logger.info(`Reusing existing git branch: ${branchName}`, "agent-manager");
         }
       }
     } catch (error) {

@@ -13,6 +13,7 @@ import { safeDecrypt } from "../lib/encryption";
 import { agentManager } from "../agents/agent-manager";
 import { eventBus } from "../realtime/event-bus";
 import { docGenerator } from "../agents/doc-generator.js";
+import { TASK_TRANSITIONS } from "@agenthub/shared";
 
 const gitService = new GitService();
 const githubService = new GitHubService();
@@ -125,6 +126,19 @@ tasksRouter.patch("/:id", async (req, res) => {
       return res.status(400).json({ error: "errorNoTechLead" });
     }
     techLeadId = techLead.id;
+  }
+
+  // Validate state machine transition before applying status change
+  const { status } = req.body;
+  if (status !== undefined) {
+    const currentTask = await db.select({ status: schema.tasks.status })
+      .from(schema.tasks).where(eq(schema.tasks.id, req.params.id)).then(r => r[0]);
+    if (currentTask) {
+      const allowed = TASK_TRANSITIONS[currentTask.status as keyof typeof TASK_TRANSITIONS];
+      if (allowed && !allowed.includes(status)) {
+        return res.status(400).json({ error: `Invalid transition: ${currentTask.status} → ${status}` });
+      }
+    }
   }
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };

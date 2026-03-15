@@ -197,6 +197,32 @@ export function setupSocketHandlers(
             logger.error(`Failed to check changed files for task ${taskId}: ${error}`, "socket");
           }
         }
+
+        // Push + auto-PR when task is approved (same as PATCH /tasks/:id done path)
+        if (task.branch) {
+          try {
+            const credentials = gitConfig.credentials
+              ? JSON.parse(safeDecrypt(gitConfig.credentials))
+              : undefined;
+
+            await gitService.push(project.path, task.branch, "origin", credentials);
+
+            eventBus.emit("task:git_push", {
+              taskId: task.id,
+              projectId: task.projectId,
+              branchName: task.branch,
+              commitSha: task.result?.match(/Committed as ([a-f0-9]+)/)?.[1] || "",
+              remote: "origin",
+            });
+
+            logger.info(`Auto-pushed approved task ${taskId} branch ${task.branch}`, "socket");
+
+            // Auto-PR after push
+            await tryAutoPR(task, project.path, task.branch, config);
+          } catch (error) {
+            logger.error(`Auto push+PR failed for approved task ${taskId}: ${error}`, "socket");
+          }
+        }
       }
     });
 

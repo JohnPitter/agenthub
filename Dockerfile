@@ -48,7 +48,7 @@ FROM node:20-alpine AS runtime
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 # Install nginx + git + chromium (for WhatsApp Web.js / Puppeteer)
-RUN apk add --no-cache nginx git chromium nss freetype harfbuzz ca-certificates ttf-freefont
+RUN apk add --no-cache nginx git chromium nss freetype harfbuzz ca-certificates ttf-freefont python3 make g++
 
 # Tell Puppeteer to use system Chromium instead of downloading its own
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser

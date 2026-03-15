@@ -206,6 +206,7 @@ export function MessageContent({ message }: { message: Message }) {
       );
 
     case "markdown":
+    case "text":
       return <MarkdownContent content={message.content} />;
 
     case "system":
@@ -219,6 +220,6 @@ export function MessageContent({ message }: { message: Message }) {
       );
 
     default:
-      return <p className="whitespace-pre-wrap text-[13px] text-neutral-fg1">{message.content}</p>;
+      return <MarkdownContent content={message.content} />;
   }
 }

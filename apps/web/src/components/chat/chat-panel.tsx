@@ -243,7 +243,7 @@ export function ChatPanel() {
         "flex transition-all duration-300 border-r border-stroke2",
         // Mobile: full-screen overlay when open
         chatPanelOpen
-          ? "fixed inset-0 z-50 md:relative md:inset-auto md:z-auto h-full"
+          ? "fixed inset-0 z-50 bg-neutral-bg1 md:relative md:inset-auto md:z-auto md:bg-transparent h-full"
           : "w-0 overflow-hidden h-full",
         chatPanelOpen && !activeThread && "md:w-[360px]",
         chatPanelOpen && activeThread && "md:w-[680px]",
@@ -281,7 +281,7 @@ export function ChatPanel() {
 
       {/* Thread panel */}
       {activeThread && (
-        <div className="h-full w-[320px] shrink-0">
+        <div className="h-full w-full md:w-[320px] shrink-0">
           <ThreadView
             parentMessage={activeThread}
             onClose={handleCloseThread}

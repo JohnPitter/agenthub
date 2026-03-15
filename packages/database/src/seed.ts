@@ -264,9 +264,30 @@ async function seed() {
   if ((existingPlans[0]?.value ?? 0) === 0) {
     const now = new Date();
     const defaultPlans = [
-      { id: nanoid(), name: "Free", description: "Plano gratuito para experimentar", maxProjects: 2, maxTasksPerMonth: 20, priceMonthly: "0", features: ["2 projetos", "20 tasks/mês"], isDefault: true, createdAt: now, updatedAt: now },
-      { id: nanoid(), name: "Pro", description: "Para desenvolvedores individuais", maxProjects: 10, maxTasksPerMonth: 200, priceMonthly: "29.90", features: ["10 projetos", "200 tasks/mês", "Todos os modelos"], isDefault: false, createdAt: now, updatedAt: now },
-      { id: nanoid(), name: "Team", description: "Para equipes de desenvolvimento", maxProjects: 50, maxTasksPerMonth: 1000, priceMonthly: "99.90", features: ["50 projetos", "1000 tasks/mês", "Todos os modelos", "Suporte prioritário"], isDefault: false, createdAt: now, updatedAt: now },
+      {
+        id: nanoid(), name: "Free", description: "Free tier to get started",
+        maxProjects: 2, maxTasksPerMonth: 20, maxStorageMb: 200,
+        priceMonthly: "0",
+        features: ["2 projects", "20 tasks/month", "Budget models only"],
+        allowedModels: ["anthropic/claude-haiku-4.5", "google/gemini-2.5-flash", "openai/gpt-4.1-nano", "deepseek/deepseek-chat-v3-0324"],
+        isDefault: true, createdAt: now, updatedAt: now,
+      },
+      {
+        id: nanoid(), name: "Pro", description: "For individual developers",
+        maxProjects: 10, maxTasksPerMonth: 200, maxStorageMb: 5000,
+        priceMonthly: "29",
+        features: ["10 projects", "200 tasks/month", "All balanced + coding models", "Priority support"],
+        allowedModels: ["anthropic/claude-haiku-4.5", "anthropic/claude-sonnet-4.6", "google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-4.1-nano", "openai/gpt-4.1", "deepseek/deepseek-chat-v3-0324", "mistralai/codestral-2501"],
+        isDefault: false, createdAt: now, updatedAt: now,
+      },
+      {
+        id: nanoid(), name: "Enterprise", description: "For teams and organizations",
+        maxProjects: -1, maxTasksPerMonth: -1, maxStorageMb: 50000,
+        priceMonthly: "99",
+        features: ["Unlimited projects", "Unlimited tasks", "All models including premium", "Priority support", "Dedicated infrastructure"],
+        allowedModels: [],
+        isDefault: false, createdAt: now, updatedAt: now,
+      },
     ];
     for (const plan of defaultPlans) {
       await db.insert(plans).values(plan);

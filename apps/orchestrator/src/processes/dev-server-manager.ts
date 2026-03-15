@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "child_process";
+import { spawn, spawnSync, type ChildProcess } from "child_process";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { eventBus } from "../realtime/event-bus.js";
@@ -78,6 +78,29 @@ class DevServerManager {
 
     // Detect package manager
     const pm = this.detectPackageManager(projectPath);
+
+    // Auto-install dependencies if node_modules doesn't exist
+    const nodeModulesPath = join(projectPath, "node_modules");
+    if (!existsSync(nodeModulesPath)) {
+      logger.info(`Installing dependencies for ${projectPath} using ${pm}`, "devserver");
+      const installArgs = pm === "yarn" ? [] : ["install"];
+      const isWin = process.platform === "win32";
+      const installResult = spawnSync(pm, installArgs, {
+        cwd: projectPath,
+        shell: isWin,
+        timeout: 300000, // 5 minutes for install
+        stdio: "pipe",
+        env: { ...process.env },
+      });
+
+      if (installResult.error || installResult.status !== 0) {
+        const stderr = installResult.stderr?.toString() ?? installResult.error?.message ?? "unknown error";
+        logger.error(`Failed to install dependencies: ${stderr}`, "devserver");
+        // Continue anyway — some projects may work without install
+      } else {
+        logger.info(`Dependencies installed successfully for ${projectPath}`, "devserver");
+      }
+    }
 
     const entry: DevServerEntry = {
       process: null!,

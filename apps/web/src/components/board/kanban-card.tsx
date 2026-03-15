@@ -53,7 +53,7 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
       {...listeners}
       onClick={() => !isDragging && onTaskClick?.(task)}
       className={cn(
-        "group cursor-grab card-interactive p-3 active:cursor-grabbing",
+        "group cursor-grab card-interactive p-3 active:cursor-grabbing min-w-0 overflow-hidden",
         isDragging && "opacity-40 shadow-glow ring-2 ring-brand/20",
         recentlyMoved && "animate-task-land",
         className
@@ -75,7 +75,7 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
           <AlertCircle className="h-3 w-3 text-danger" />
         )}
         {task.category && (
-          <span className="badge badge-neutral text-[9px] ml-auto">{task.category}</span>
+          <span className="badge badge-neutral text-[9px] ml-auto truncate max-w-[60px]">{task.category}</span>
         )}
       </div>
 
@@ -97,11 +97,11 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
       )}
 
       {/* Bottom row: agent + time + execute */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 min-w-0">
         {agent ? (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
             <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-5 !w-5 !text-[9px] !rounded" />
-            <span className="text-[10px] text-neutral-fg2 truncate max-w-[80px]">{agent.name}</span>
+            <span className="text-[10px] text-neutral-fg2 truncate max-w-[60px]">{agent.name}</span>
           </div>
         ) : (
           <span className="text-[10px] text-neutral-fg-disabled">{t("tasks.noneAssigned")}</span>

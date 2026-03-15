@@ -310,10 +310,10 @@ export function ProjectTasks() {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-[13px] text-neutral-fg2">
+                      <td className="px-5 py-3.5 text-[13px] text-neutral-fg2 truncate max-w-[120px]">
                         {agent?.name ?? "—"}
                       </td>
-                      <td className="px-5 py-3.5 text-[12px] text-neutral-fg3">
+                      <td className="px-5 py-3.5 text-[12px] text-neutral-fg3 truncate max-w-[150px]">
                         {task.category ?? "—"}
                       </td>
                       <td className="px-5 py-3.5 text-[11px] text-neutral-fg-disabled text-right whitespace-nowrap">

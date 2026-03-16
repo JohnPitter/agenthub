@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from "child_process";
 import type { ChildProcess } from "child_process";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, readdirSync } from "fs";
 import path from "path";
 const { join } = path;
 import { eventBus } from "../realtime/event-bus.js";
@@ -81,9 +81,11 @@ class DevServerManager {
     // Detect package manager
     const pm = this.detectPackageManager(projectPath);
 
-    // Auto-install dependencies if node_modules doesn't exist
-    const nodeModulesPath = join(projectPath, "node_modules");
-    if (!existsSync(nodeModulesPath)) {
+    // Auto-install dependencies if node_modules/.bin doesn't exist
+    // (node_modules may exist from a previous production install that skipped devDeps)
+    const binCheck = join(projectPath, "node_modules", ".bin");
+    const needsInstall = !existsSync(binCheck) || (() => { try { return readdirSync(binCheck).length === 0; } catch { return true; } })();
+    if (needsInstall) {
       logger.info(`Installing dependencies for ${projectPath} using ${pm}`, "devserver");
       const installArgs = pm === "yarn" ? [] : ["install"];
       const installResult = spawnSync(pm, installArgs, {

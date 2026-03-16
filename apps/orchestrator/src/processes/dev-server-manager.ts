@@ -2,7 +2,6 @@ import { spawnSync } from "child_process";
 import { readFileSync, existsSync, readdirSync } from "fs";
 import path from "path";
 const { join } = path;
-import type { Server } from "http";
 import { eventBus } from "../realtime/event-bus.js";
 import { logger } from "../lib/logger.js";
 
@@ -10,8 +9,8 @@ type DevServerStatus = "stopped" | "starting" | "running" | "error";
 
 interface DevServerEntry {
   process: null;
-  httpServer: Server;
-  port: number;
+  port: number | null;
+  outputDir?: string;
   status: DevServerStatus;
   logs: string[];
   projectPath: string;
@@ -98,37 +97,18 @@ class DevServerManager {
 
     logger.info(`Detected output directory: ${outputDir}`, "devserver");
 
-    // 4. Start Express static server on dynamic port
-    const port = await this.findAvailablePort();
-    const express = (await import("express")).default;
-    const app = express();
-    app.use(express.static(outputDir));
-
-    // SPA fallback
-    app.get("{*path}", (_req, res) => {
-      const indexPath = join(outputDir, "index.html");
-      if (existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).send("Not found");
-      }
-    });
-
-    const server = app.listen(port, () => {
-      logger.info(`Static preview for ${projectId} on port ${port}`, "devserver");
-    });
-
+    // 4. Store the output dir — served via API route (no separate port needed)
     this.servers.set(projectId, {
       process: null,
-      httpServer: server,
-      port,
+      port: null,
+      outputDir,
       status: "running",
-      logs: [`Serving ${outputDir} on port ${port}`],
+      logs: [`Build output: ${outputDir}`],
       projectPath,
     });
 
-    eventBus.emit("devserver:status", { projectId, status: "running", port });
-    eventBus.emit("devserver:output", { projectId, line: `Preview available at http://localhost:${port}`, stream: "stdout", timestamp: Date.now() });
+    eventBus.emit("devserver:status", { projectId, status: "running" });
+    eventBus.emit("devserver:output", { projectId, line: `Preview ready — serving from ${outputDir}`, stream: "stdout", timestamp: Date.now() });
 
     return { ok: true };
   }
@@ -137,16 +117,17 @@ class DevServerManager {
     const entry = this.servers.get(projectId);
     if (!entry) return { ok: true };
 
-    if (entry.httpServer) {
-      entry.httpServer.close();
-    }
-
     entry.status = "stopped";
     this.servers.delete(projectId);
     eventBus.emit("devserver:status", { projectId, status: "stopped" });
 
     logger.info(`Preview stopped for project ${projectId}`, "devserver");
     return { ok: true };
+  }
+
+  /** Get the build output directory for a project (used by preview route) */
+  getOutputDir(projectId: string): string | null {
+    return this.servers.get(projectId)?.outputDir ?? null;
   }
 
   getStatus(projectId: string): {
@@ -243,17 +224,6 @@ class DevServerManager {
     }
 
     return null;
-  }
-
-  private async findAvailablePort(): Promise<number> {
-    const net = await import("net");
-    return new Promise((resolve) => {
-      const server = net.createServer();
-      server.listen(0, () => {
-        const port = (server.address() as import("net").AddressInfo).port;
-        server.close(() => resolve(port));
-      });
-    });
   }
 
   private detectPackageManager(projectPath: string): string {

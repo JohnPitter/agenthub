@@ -186,7 +186,7 @@ export function ProjectPreview() {
                   <RefreshCw className="h-4 w-4" />
                 </button>
                 <a
-                  href={`http://localhost:${port}`}
+                  href={`/api/projects/${id}/preview/`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
@@ -247,12 +247,12 @@ export function ProjectPreview() {
           <>
             {/* Iframe area */}
             <div className="flex-1 bg-neutral-bg1 relative">
-              {isRunning && port ? (
+              {isRunning ? (
                 <iframe
                   key={iframeKey}
-                  src={`http://localhost:${port}`}
+                  src={`/api/projects/${id}/preview/`}
                   className="h-full w-full border-0"
-                  title="Dev Server Preview"
+                  title="Project Preview"
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
                 />
               ) : isStarting ? (

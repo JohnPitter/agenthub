@@ -91,7 +91,10 @@ class DevServerManager {
         shell: true,
         timeout: 300000, // 5 minutes for install
         stdio: "pipe",
-        env: { ...process.env },
+        env: {
+          ...process.env,
+          NODE_ENV: "development", // CRITICAL: production skips devDependencies (CLI tools like ng, vite)
+        },
       });
 
       if (installResult.error || installResult.status !== 0) {

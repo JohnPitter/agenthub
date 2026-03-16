@@ -1,4 +1,5 @@
-import { spawn, spawnSync, type ChildProcess } from "child_process";
+import { spawn, spawnSync } from "child_process";
+import type { ChildProcess } from "child_process";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 const { join } = path;
@@ -85,10 +86,9 @@ class DevServerManager {
     if (!existsSync(nodeModulesPath)) {
       logger.info(`Installing dependencies for ${projectPath} using ${pm}`, "devserver");
       const installArgs = pm === "yarn" ? [] : ["install"];
-      const isWin = process.platform === "win32";
       const installResult = spawnSync(pm, installArgs, {
         cwd: projectPath,
-        shell: isWin,
+        shell: true,
         timeout: 300000, // 5 minutes for install
         stdio: "pipe",
         env: { ...process.env },
@@ -117,7 +117,6 @@ class DevServerManager {
     // Read the actual script command from package.json and execute directly
     // This avoids npm/pnpm subshell PATH issues on Alpine Linux
     const binPath = path.join(projectPath, "node_modules", ".bin");
-    const envPath = `${binPath}:${process.env.PATH ?? ""}`;
 
     let scriptCmd = `${pm} run ${scriptName}`;
     try {

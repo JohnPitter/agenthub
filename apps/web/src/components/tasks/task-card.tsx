@@ -90,9 +90,9 @@ export function TaskCard({ task, agents, onEdit, onDelete, onViewChanges, onAppr
 
       {/* Git Branch Badge */}
       {task.branch && (
-        <div className="mt-3 flex items-center gap-2 rounded-md bg-purple-light px-3 py-1.5 w-fit">
-          <GitBranch className="h-3.5 w-3.5 text-purple-dark" />
-          <span className="text-[11px] font-semibold text-purple-dark">{task.branch}</span>
+        <div className="mt-3 flex items-center gap-2 rounded-md bg-purple-light px-3 py-1.5 max-w-full overflow-hidden">
+          <GitBranch className="h-3.5 w-3.5 text-purple-dark shrink-0" />
+          <span className="text-[11px] font-semibold text-purple-dark truncate">{task.branch}</span>
         </div>
       )}
 

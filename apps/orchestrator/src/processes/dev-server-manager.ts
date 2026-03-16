@@ -105,7 +105,7 @@ class DevServerManager {
     app.use(express.static(outputDir));
 
     // SPA fallback
-    app.get("*", (_req, res) => {
+    app.get("{*path}", (_req, res) => {
       const indexPath = join(outputDir, "index.html");
       if (existsSync(indexPath)) {
         res.sendFile(indexPath);

@@ -24,7 +24,7 @@ devServerRouter.post("/:id/dev-server/start", async (req, res) => {
     return res.status(400).json({ error: "Project has no path configured" });
   }
 
-  const result = devServerManager.start(id, project.path);
+  const result = await devServerManager.start(id, project.path);
 
   if (!result.ok) {
     logger.warn(`Dev server start failed for ${id}: ${result.error}`, "devserver");

@@ -1,221 +1,135 @@
-import { spawn, spawnSync } from "child_process";
-import type { ChildProcess } from "child_process";
+import { spawnSync } from "child_process";
 import { readFileSync, existsSync, readdirSync } from "fs";
 import path from "path";
 const { join } = path;
+import type { Server } from "http";
 import { eventBus } from "../realtime/event-bus.js";
 import { logger } from "../lib/logger.js";
 
 type DevServerStatus = "stopped" | "starting" | "running" | "error";
 
 interface DevServerEntry {
-  process: ChildProcess;
-  port: number | null;
+  process: null;
+  httpServer: Server;
+  port: number;
   status: DevServerStatus;
   logs: string[];
   projectPath: string;
 }
 
-const MAX_LOG_LINES = 500;
-const PORT_DETECT_REGEX = /https?:\/\/localhost:(\d+)/;
-// eslint-disable-next-line no-control-regex
-const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
-
-function stripAnsi(str: string): string {
-  return str.replace(ANSI_REGEX, "");
-}
-
-// Framework default ports
-const FRAMEWORK_PORTS: Record<string, number> = {
-  next: 3000,
-  vite: 5173,
-  "react-scripts": 3000,
-  nuxt: 3000,
-  astro: 4321,
-  remix: 5173,
-  svelte: 5173,
-  angular: 4200,
-  gatsby: 8000,
-};
-
 class DevServerManager {
   private servers = new Map<string, DevServerEntry>();
 
-  start(projectId: string, projectPath: string): { ok: boolean; error?: string } {
+  async start(projectId: string, projectPath: string): Promise<{ ok: boolean; error?: string }> {
     // Already running?
     const existing = this.servers.get(projectId);
-    if (existing && existing.status !== "stopped" && existing.status !== "error") {
+    if (existing && existing.status === "running") {
       return { ok: true };
     }
 
     // Clean up any previous entry
     if (existing) {
-      this.cleanup(projectId);
+      this.stop(projectId);
     }
 
     const pkgPath = join(projectPath, "package.json");
     if (!existsSync(pkgPath)) {
-      return { ok: false, error: "package.json not found in project path" };
+      return { ok: false, error: "No package.json found" };
     }
 
-    let pkg: { scripts?: Record<string, string>; dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+    let pkg: { name?: string; scripts?: Record<string, string>; dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
     try {
       pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
     } catch {
       return { ok: false, error: "Failed to parse package.json" };
     }
 
-    // Detect which script to run
     const scripts = pkg.scripts ?? {};
-    let scriptName: string | null = null;
-    if (scripts.dev) scriptName = "dev";
-    else if (scripts.start) scriptName = "start";
 
-    if (!scriptName) {
-      return { ok: false, error: "No 'dev' or 'start' script found in package.json" };
+    // 1. Install dependencies if needed
+    this.installDepsIfNeeded(projectPath);
+
+    // 2. Build the project
+    const buildScript = scripts.build ? "build" : null;
+    if (!buildScript) {
+      return { ok: false, error: "No 'build' script found in package.json" };
     }
 
-    // Detect port
-    const port = this.detectPort(scripts[scriptName]!, projectPath, pkg);
+    eventBus.emit("devserver:status", { projectId, status: "starting" });
+    eventBus.emit("devserver:output", { projectId, line: "Building project...", stream: "stdout", timestamp: Date.now() });
 
-    // Detect package manager
-    const pm = this.detectPackageManager(projectPath);
+    const binPath = join(projectPath, "node_modules", ".bin");
+    const buildCmd = scripts.build;
 
-    // Auto-install dependencies if node_modules/.bin doesn't exist
-    // (node_modules may exist from a previous production install that skipped devDeps)
-    const binCheck = join(projectPath, "node_modules", ".bin");
-    const needsInstall = !existsSync(binCheck) || (() => { try { return readdirSync(binCheck).length === 0; } catch { return true; } })();
-    if (needsInstall) {
-      logger.info(`Installing dependencies for ${projectPath} using ${pm}`, "devserver");
-      const installArgs = pm === "yarn" ? [] : ["install"];
-      const installResult = spawnSync(pm, installArgs, {
-        cwd: projectPath,
-        shell: true,
-        timeout: 300000, // 5 minutes for install
-        stdio: "pipe",
-        env: {
-          ...process.env,
-          NODE_ENV: "development", // CRITICAL: production skips devDependencies (CLI tools like ng, vite)
-        },
-      });
+    logger.info(`Building project ${projectId}: "${buildCmd}"`, "devserver");
 
-      if (installResult.error || installResult.status !== 0) {
-        const stderr = installResult.stderr?.toString() ?? installResult.error?.message ?? "unknown error";
-        logger.error(`Failed to install dependencies: ${stderr}`, "devserver");
-        // Continue anyway — some projects may work without install
-      } else {
-        logger.info(`Dependencies installed successfully for ${projectPath}`, "devserver");
-      }
-    }
-
-    const entry: DevServerEntry = {
-      process: null!,
-      port,
-      status: "starting",
-      logs: [],
-      projectPath,
-    };
-
-    // Emit starting status
-    eventBus.emit("devserver:status", { projectId, status: "starting", port: port ?? undefined });
-
-    // Read the actual script command from package.json and execute directly
-    // This avoids npm/pnpm subshell PATH issues on Alpine Linux
-    const binPath = path.join(projectPath, "node_modules", ".bin");
-
-    let scriptCmd = `${pm} run ${scriptName}`;
-    try {
-      const pkg = JSON.parse(readFileSync(path.join(projectPath, "package.json"), "utf-8"));
-      const rawScript = pkg.scripts?.[scriptName];
-      if (rawScript) {
-        scriptCmd = rawScript;
-      }
-    } catch { /* fallback to pm run */ }
-
-    // Log debug info for troubleshooting
-    const binExists = existsSync(binPath);
-    logger.info(`Dev server exec: cmd="${scriptCmd}", binPath="${binPath}", binExists=${binExists}, PATH prefix="${binPath}"`, "devserver");
-
-    // Execute with node_modules/.bin in PATH using explicit export
-    const fullCmd = `export PATH="${binPath}:$PATH" && ${scriptCmd}`;
-
-    const child = spawn("sh", ["-c", fullCmd], {
+    const buildResult = spawnSync("sh", ["-c", `export PATH="${binPath}:$PATH" && ${buildCmd}`], {
       cwd: projectPath,
-      env: {
-        ...process.env,
-        NODE_ENV: "development",
-      },
-      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 300000, // 5 minutes
+      stdio: "pipe",
+      env: { ...process.env, NODE_ENV: "production" },
     });
 
-    entry.process = child;
-    this.servers.set(projectId, entry);
+    if (buildResult.status !== 0) {
+      const stderr = buildResult.stderr?.toString() || buildResult.stdout?.toString() || "Build failed";
+      eventBus.emit("devserver:output", { projectId, line: stderr, stream: "stderr", timestamp: Date.now() });
+      eventBus.emit("devserver:status", { projectId, status: "error", error: "Build failed" });
+      logger.error(`Build failed for ${projectId}: ${stderr.slice(0, 200)}`, "devserver");
+      return { ok: false, error: stderr.slice(0, 200) };
+    }
 
-    const handleOutput = (stream: "stdout" | "stderr") => (data: Buffer) => {
-      const text = data.toString();
-      const lines = text.split(/\r?\n/).filter(Boolean);
-
+    // Emit build stdout if any
+    const stdout = buildResult.stdout?.toString();
+    if (stdout) {
+      const lines = stdout.split(/\r?\n/).filter(Boolean);
       for (const line of lines) {
-        // Buffer log line
-        entry.logs.push(line);
-        if (entry.logs.length > MAX_LOG_LINES) {
-          entry.logs.shift();
-        }
-
-        // Emit to clients
-        eventBus.emit("devserver:output", {
-          projectId,
-          line,
-          stream,
-          timestamp: Date.now(),
-        });
-
-        // Detect port from output (e.g., "http://localhost:3000")
-        // Strip ANSI escape codes before matching — tools like Vite embed colors in URLs
-        if (entry.status === "starting") {
-          const match = stripAnsi(line).match(PORT_DETECT_REGEX);
-          if (match) {
-            const detectedPort = parseInt(match[1], 10);
-            entry.port = detectedPort;
-            entry.status = "running";
-            eventBus.emit("devserver:status", {
-              projectId,
-              status: "running",
-              port: detectedPort,
-            });
-            logger.info(`Dev server for project ${projectId} running on port ${detectedPort}`, "devserver");
-          }
-        }
+        eventBus.emit("devserver:output", { projectId, line, stream: "stdout", timestamp: Date.now() });
       }
-    };
+    }
 
-    child.stdout?.on("data", handleOutput("stdout"));
-    child.stderr?.on("data", handleOutput("stderr"));
+    eventBus.emit("devserver:output", { projectId, line: "Build completed successfully", stream: "stdout", timestamp: Date.now() });
 
-    child.on("error", (err) => {
-      entry.status = "error";
-      eventBus.emit("devserver:status", {
-        projectId,
-        status: "error",
-        error: err.message,
-      });
-      logger.error(`Dev server error for project ${projectId}: ${err.message}`, "devserver");
+    // 3. Detect output directory
+    const outputDir = this.detectOutputDir(projectPath, pkg);
+    if (!outputDir) {
+      eventBus.emit("devserver:status", { projectId, status: "error", error: "No build output found" });
+      return { ok: false, error: "No build output directory found (dist/, build/, out/)" };
+    }
+
+    logger.info(`Detected output directory: ${outputDir}`, "devserver");
+
+    // 4. Start Express static server on dynamic port
+    const port = await this.findAvailablePort();
+    const express = (await import("express")).default;
+    const app = express();
+    app.use(express.static(outputDir));
+
+    // SPA fallback
+    app.get("*", (_req, res) => {
+      const indexPath = join(outputDir, "index.html");
+      if (existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send("Not found");
+      }
     });
 
-    child.on("exit", (code) => {
-      // Only set stopped if not already in error state from explicit stop
-      if (entry.status !== "stopped") {
-        entry.status = code === 0 ? "stopped" : "error";
-        eventBus.emit("devserver:status", {
-          projectId,
-          status: entry.status,
-          error: code !== 0 ? `Process exited with code ${code}` : undefined,
-        });
-      }
-      logger.info(`Dev server for project ${projectId} exited with code ${code}`, "devserver");
+    const server = app.listen(port, () => {
+      logger.info(`Static preview for ${projectId} on port ${port}`, "devserver");
     });
 
-    logger.info(`Dev server starting for project ${projectId}: ${pm} run ${scriptName}`, "devserver");
+    this.servers.set(projectId, {
+      process: null,
+      httpServer: server,
+      port,
+      status: "running",
+      logs: [`Serving ${outputDir} on port ${port}`],
+      projectPath,
+    });
+
+    eventBus.emit("devserver:status", { projectId, status: "running", port });
+    eventBus.emit("devserver:output", { projectId, line: `Preview available at http://localhost:${port}`, stream: "stdout", timestamp: Date.now() });
+
     return { ok: true };
   }
 
@@ -223,13 +137,15 @@ class DevServerManager {
     const entry = this.servers.get(projectId);
     if (!entry) return { ok: true };
 
+    if (entry.httpServer) {
+      entry.httpServer.close();
+    }
+
     entry.status = "stopped";
+    this.servers.delete(projectId);
     eventBus.emit("devserver:status", { projectId, status: "stopped" });
 
-    this.killProcess(entry.process);
-    this.servers.delete(projectId);
-
-    logger.info(`Dev server stopped for project ${projectId}`, "devserver");
+    logger.info(`Preview stopped for project ${projectId}`, "devserver");
     return { ok: true };
   }
 
@@ -255,54 +171,89 @@ class DevServerManager {
     }
   }
 
-  private cleanup(projectId: string): void {
-    const entry = this.servers.get(projectId);
-    if (entry) {
-      this.killProcess(entry.process);
-      this.servers.delete(projectId);
+  private installDepsIfNeeded(projectPath: string): void {
+    const binCheck = join(projectPath, "node_modules", ".bin");
+    const needsInstall = !existsSync(binCheck) || (() => { try { return readdirSync(binCheck).length === 0; } catch { return true; } })();
+    if (!needsInstall) return;
+
+    const pm = this.detectPackageManager(projectPath);
+    logger.info(`Installing dependencies for ${projectPath} using ${pm}`, "devserver");
+    const installArgs = pm === "yarn" ? [] : ["install"];
+    const installResult = spawnSync(pm, installArgs, {
+      cwd: projectPath,
+      shell: true,
+      timeout: 300000,
+      stdio: "pipe",
+      env: {
+        ...process.env,
+        NODE_ENV: "development",
+      },
+    });
+
+    if (installResult.error || installResult.status !== 0) {
+      const stderr = installResult.stderr?.toString() ?? installResult.error?.message ?? "unknown error";
+      logger.error(`Failed to install dependencies: ${stderr}`, "devserver");
+    } else {
+      logger.info(`Dependencies installed successfully for ${projectPath}`, "devserver");
     }
   }
 
-  private killProcess(child: ChildProcess): void {
-    if (!child || child.killed) return;
+  private detectOutputDir(projectPath: string, pkg: { name?: string }): string | null {
+    const candidates: string[] = [];
 
-    // Try SIGTERM first
-    child.kill("SIGTERM");
+    // Check angular.json for outputPath (highest priority)
+    const angularJsonPath = join(projectPath, "angular.json");
+    if (existsSync(angularJsonPath)) {
+      try {
+        const angularJson = JSON.parse(readFileSync(angularJsonPath, "utf-8"));
+        const projects = angularJson.projects || {};
+        for (const projName of Object.keys(projects)) {
+          const outputPath = projects[projName]?.architect?.build?.options?.outputPath;
+          if (outputPath) {
+            candidates.push(`${outputPath}/browser`); // Angular 17+ browser subdir
+            candidates.push(outputPath);
+          }
+        }
+      } catch { /* ignore */ }
+    }
 
-    // Force kill after 5 seconds
-    const forceKill = setTimeout(() => {
-      if (!child.killed) {
-        child.kill("SIGKILL");
-      }
-    }, 5000);
+    // Standard candidates
+    candidates.push("dist", "build", "out", ".next/out", "public", "dist/browser");
 
-    child.on("exit", () => clearTimeout(forceKill));
-  }
+    // Angular project-named output
+    if (pkg.name) {
+      candidates.push(`dist/${pkg.name}`);
+      candidates.push(`dist/${pkg.name}/browser`);
+    }
 
-  private detectPort(script: string, projectPath: string, pkg: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> }): number | null {
-    // 1. Parse script for --port or -p flags
-    const portFlag = script.match(/(?:--port|-p)\s+(\d+)/);
-    if (portFlag) return parseInt(portFlag[1], 10);
-
-    // 2. Check .env files for PORT=
-    for (const envFile of [".env.local", ".env"]) {
-      const envPath = join(projectPath, envFile);
-      if (existsSync(envPath)) {
-        try {
-          const envContent = readFileSync(envPath, "utf-8");
-          const portMatch = envContent.match(/^PORT\s*=\s*(\d+)/m);
-          if (portMatch) return parseInt(portMatch[1], 10);
-        } catch { /* ignore */ }
+    // First pass: directory with index.html (best match)
+    for (const candidate of candidates) {
+      const fullPath = join(projectPath, candidate);
+      if (existsSync(fullPath) && existsSync(join(fullPath, "index.html"))) {
+        return fullPath;
       }
     }
 
-    // 3. Detect framework from dependencies
-    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-    for (const [framework, port] of Object.entries(FRAMEWORK_PORTS)) {
-      if (allDeps[framework]) return port;
+    // Fallback: any existing directory from candidates
+    for (const candidate of candidates) {
+      const fullPath = join(projectPath, candidate);
+      if (existsSync(fullPath)) {
+        return fullPath;
+      }
     }
 
     return null;
+  }
+
+  private async findAvailablePort(): Promise<number> {
+    const net = await import("net");
+    return new Promise((resolve) => {
+      const server = net.createServer();
+      server.listen(0, () => {
+        const port = (server.address() as import("net").AddressInfo).port;
+        server.close(() => resolve(port));
+      });
+    });
   }
 
   private detectPackageManager(projectPath: string): string {

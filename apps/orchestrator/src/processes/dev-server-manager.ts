@@ -125,15 +125,20 @@ class DevServerManager {
       const rawScript = pkg.scripts?.[scriptName];
       if (rawScript) {
         scriptCmd = rawScript;
-        logger.info(`Executing script directly: ${scriptCmd}`, "devserver");
       }
     } catch { /* fallback to pm run */ }
 
-    const child = spawn("sh", ["-c", scriptCmd], {
+    // Log debug info for troubleshooting
+    const binExists = existsSync(binPath);
+    logger.info(`Dev server exec: cmd="${scriptCmd}", binPath="${binPath}", binExists=${binExists}, PATH prefix="${binPath}"`, "devserver");
+
+    // Execute with node_modules/.bin in PATH using explicit export
+    const fullCmd = `export PATH="${binPath}:$PATH" && ${scriptCmd}`;
+
+    const child = spawn("sh", ["-c", fullCmd], {
       cwd: projectPath,
       env: {
         ...process.env,
-        PATH: envPath,
         NODE_ENV: "development",
       },
       stdio: ["ignore", "pipe", "pipe"],

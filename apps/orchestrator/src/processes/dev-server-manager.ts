@@ -114,13 +114,27 @@ class DevServerManager {
     // Emit starting status
     eventBus.emit("devserver:status", { projectId, status: "starting", port: port ?? undefined });
 
-    // shell: true is required so npm/pnpm can resolve node_modules/.bin binaries
-    const child = spawn(pm, ["run", scriptName], {
+    // Read the actual script command from package.json and execute directly
+    // This avoids npm/pnpm subshell PATH issues on Alpine Linux
+    const binPath = path.join(projectPath, "node_modules", ".bin");
+    const envPath = `${binPath}:${process.env.PATH ?? ""}`;
+
+    let scriptCmd = `${pm} run ${scriptName}`;
+    try {
+      const pkg = JSON.parse(readFileSync(path.join(projectPath, "package.json"), "utf-8"));
+      const rawScript = pkg.scripts?.[scriptName];
+      if (rawScript) {
+        scriptCmd = rawScript;
+        logger.info(`Executing script directly: ${scriptCmd}`, "devserver");
+      }
+    } catch { /* fallback to pm run */ }
+
+    const child = spawn("sh", ["-c", scriptCmd], {
       cwd: projectPath,
-      shell: true,
       env: {
         ...process.env,
-        PATH: `${path.join(projectPath, "node_modules", ".bin")}:${process.env.PATH ?? ""}`,
+        PATH: envPath,
+        NODE_ENV: "development",
       },
       stdio: ["ignore", "pipe", "pipe"],
     });

@@ -1,56 +1,35 @@
-# ---- Stage 1: Dependencies ----
-FROM node:20-alpine AS deps
-
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
-
-WORKDIR /app
-
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/shared/package.json packages/shared/
-COPY packages/database/package.json packages/database/
-COPY apps/web/package.json apps/web/
-COPY apps/orchestrator/package.json apps/orchestrator/
-
-RUN pnpm install --frozen-lockfile
-
-# ---- Stage 2: Build ----
+# ---- Stage 1: Build ----
 FROM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/apps/orchestrator/node_modules ./apps/orchestrator/node_modules
-
+# Copy ALL source first, then install (pnpm creates node_modules after source exists)
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.json turbo.json ./
 COPY packages/shared packages/shared
 COPY packages/database packages/database
 COPY apps/web apps/web
 COPY apps/orchestrator apps/orchestrator
-COPY tsconfig.json turbo.json ./
 
-# Build packages first (shared → database → orchestrator)
+# Install dependencies (node_modules created here, not overwritten by COPY)
+RUN pnpm install --frozen-lockfile
+
+# Build all packages in dependency order
 RUN pnpm --filter @agenthub/shared build
 RUN pnpm --filter @agenthub/database build
-
-# Build orchestrator (backend)
 RUN pnpm --filter @agenthub/orchestrator build
-
-# Build web (frontend)
 RUN pnpm --filter @agenthub/web build
 
-# ---- Stage 3: Runtime ----
+# ---- Stage 2: Runtime ----
 FROM node:20-alpine AS runtime
 
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-# Install nginx + git + chromium (for WhatsApp Web.js / Puppeteer)
+# Install nginx + git + chromium (for WhatsApp / Puppeteer) + build tools (native modules)
 RUN apk add --no-cache nginx git chromium nss freetype harfbuzz ca-certificates ttf-freefont python3 make g++
 
-# Tell Puppeteer to use system Chromium instead of downloading its own
+# Tell Puppeteer to use system Chromium
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
@@ -59,16 +38,16 @@ WORKDIR /app
 # Copy orchestrator build + runtime deps
 COPY --from=builder /app/apps/orchestrator/dist ./apps/orchestrator/dist
 COPY --from=builder /app/apps/orchestrator/package.json ./apps/orchestrator/
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/packages/database ./packages/database
-COPY --from=deps /app/apps/orchestrator/node_modules ./apps/orchestrator/node_modules
+COPY --from=builder /app/apps/orchestrator/node_modules ./apps/orchestrator/node_modules
 COPY package.json pnpm-workspace.yaml ./
 
 # Copy web build (static files)
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
-# Nginx config — serves frontend + proxies /api and /socket.io to orchestrator
+# Nginx config
 RUN mkdir -p /run/nginx && printf 'server {\n\
     listen 80;\n\
     server_name _;\n\
@@ -110,5 +89,4 @@ ENV ORCHESTRATOR_PORT=3001
 
 EXPOSE 80
 
-# Start both nginx and orchestrator
-CMD sh -c "cd /app/apps/orchestrator && node dist/index.js & nginx -g 'daemon off;'"
+CMD ["sh", "-c", "cd /app/apps/orchestrator && node dist/index.js & nginx -g 'daemon off;'"]

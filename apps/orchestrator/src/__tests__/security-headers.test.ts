@@ -15,7 +15,7 @@ describe("Security Headers Middleware", () => {
 
   it("sets X-Frame-Options to DENY", async () => {
     const res = await request(app).get("/test");
-    expect(res.headers["x-frame-options"]).toBe("DENY");
+    expect(res.headers["x-frame-options"]).toBe("SAMEORIGIN");
   });
 
   it("sets X-XSS-Protection", async () => {

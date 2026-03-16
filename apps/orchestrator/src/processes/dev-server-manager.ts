@@ -1,6 +1,7 @@
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import { readFileSync, existsSync } from "fs";
-import { join } from "path";
+import path from "path";
+const { join } = path;
 import { eventBus } from "../realtime/event-bus.js";
 import { logger } from "../lib/logger.js";
 
@@ -113,12 +114,14 @@ class DevServerManager {
     // Emit starting status
     eventBus.emit("devserver:status", { projectId, status: "starting", port: port ?? undefined });
 
-    // Spawn process
-    const isWindows = process.platform === "win32";
+    // shell: true is required so npm/pnpm can resolve node_modules/.bin binaries
     const child = spawn(pm, ["run", scriptName], {
       cwd: projectPath,
-      shell: isWindows,
-      env: { ...process.env },
+      shell: true,
+      env: {
+        ...process.env,
+        PATH: `${path.join(projectPath, "node_modules", ".bin")}:${process.env.PATH ?? ""}`,
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
 

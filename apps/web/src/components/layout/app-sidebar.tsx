@@ -52,44 +52,88 @@ interface PlanUsage {
 
 const IS_LOCAL = (typeof import.meta !== "undefined" && (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_LOCAL_MODE === "true");
 
-/** Claude Code CLI usage widget (local mode) */
+/** Claude Code usage widget (local mode) — shows model usage from Anthropic API */
+interface UsageBucket {
+  utilization_pct?: number;
+  resets_at?: string;
+}
+interface ClaudeUsageData {
+  five_hour?: UsageBucket;
+  seven_day?: UsageBucket;
+  sonnet_seven_day?: UsageBucket;
+  extra_usage?: { spent_cents?: number; limit_cents?: number };
+}
+
 function ClaudeUsageWidget({ collapsed }: { collapsed: boolean }) {
-  const [stats, setStats] = useState<{ projects: number; tasks: number; agents: number } | null>(null);
+  const [usage, setUsage] = useState<ClaudeUsageData | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      api<{ projects: unknown[] }>("/projects").catch(() => ({ projects: [] })),
-      api<{ tasks: unknown[] }>("/tasks").catch(() => ({ tasks: [] })),
-      api<{ agents: unknown[] }>("/agents").catch(() => ({ agents: [] })),
-    ]).then(([p, t, a]) => {
-      const pArr = Array.isArray(p) ? p : (p.projects ?? []);
-      const tArr = Array.isArray(t) ? t : (t.tasks ?? []);
-      const aArr = Array.isArray(a) ? a : (a.agents ?? []);
-      setStats({ projects: (pArr as unknown[]).length, tasks: (tArr as unknown[]).length, agents: (aArr as unknown[]).length });
-    });
+    api<{ error: string | null; usage: ClaudeUsageData | null }>("/claude-usage")
+      .then((data) => { if (data.usage) setUsage(data.usage); })
+      .catch(() => {});
   }, []);
 
-  if (collapsed || !stats) return null;
+  if (collapsed || !usage) return null;
+
+  const renderBar = (pct: number) => {
+    const color = pct >= 80 ? "bg-danger" : pct >= 60 ? "bg-warning" : "bg-brand";
+    return (
+      <div className="h-1 rounded-full bg-neutral-bg2 overflow-hidden">
+        <div className={cn("h-full rounded-full transition-all duration-500", color)} style={{ width: `${Math.min(pct, 100)}%` }} />
+      </div>
+    );
+  };
+
+  const formatReset = (iso?: string) => {
+    if (!iso) return "";
+    const diff = new Date(iso).getTime() - Date.now();
+    if (diff <= 0) return "agora";
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  const opus = usage.five_hour?.utilization_pct ?? 0;
+  const all = usage.seven_day?.utilization_pct ?? 0;
+  const sonnet = usage.sonnet_seven_day?.utilization_pct ?? 0;
+  const extra = usage.extra_usage;
+  const spent = (extra?.spent_cents ?? 0) / 100;
+  const limit = (extra?.limit_cents ?? 0) / 100;
 
   return (
     <div className="mx-7 mt-6 rounded-lg border border-stroke2 bg-neutral-bg3/50 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold text-neutral-fg2">AgentHub Local</span>
-        <span className="text-[10px] font-medium text-success">Ativo</span>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-[11px] font-semibold text-neutral-fg2">Claude Code</span>
+        <span className="text-[9px] font-medium text-neutral-fg-disabled">uso</span>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-neutral-fg3">Projetos</span>
-          <span className="text-[10px] text-neutral-fg1 font-semibold tabular-nums">{stats.projects}</span>
+      <div className="flex flex-col gap-2">
+        <div>
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[9px] text-neutral-fg3">Opus 5h</span>
+            <span className="text-[9px] text-neutral-fg-disabled tabular-nums">{opus}% · {formatReset(usage.five_hour?.resets_at)}</span>
+          </div>
+          {renderBar(opus)}
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-neutral-fg3">Tasks</span>
-          <span className="text-[10px] text-neutral-fg1 font-semibold tabular-nums">{stats.tasks}</span>
+        <div>
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[9px] text-neutral-fg3">All 7d</span>
+            <span className="text-[9px] text-neutral-fg-disabled tabular-nums">{all}%</span>
+          </div>
+          {renderBar(all)}
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-neutral-fg3">Agentes</span>
-          <span className="text-[10px] text-neutral-fg1 font-semibold tabular-nums">{stats.agents}</span>
+        <div>
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[9px] text-neutral-fg3">Sonnet 7d</span>
+            <span className="text-[9px] text-neutral-fg-disabled tabular-nums">{sonnet}%</span>
+          </div>
+          {renderBar(sonnet)}
         </div>
+        {limit > 0 && (
+          <div className="flex items-center justify-between pt-1 border-t border-stroke2">
+            <span className="text-[9px] text-neutral-fg3">Extra</span>
+            <span className="text-[9px] text-neutral-fg1 font-semibold tabular-nums">${spent.toFixed(2)} / ${limit.toFixed(0)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -302,8 +346,8 @@ export function AppSidebar() {
         )}
       </div>
 
-      {/* Team Switcher */}
-      <TeamSwitcher collapsed={collapsed} />
+      {/* Team Switcher — hidden in local mode */}
+      {!IS_LOCAL && <TeamSwitcher collapsed={collapsed} />}
 
       {/* Main Nav */}
       <nav className="mt-4 flex flex-col gap-1.5 px-7">

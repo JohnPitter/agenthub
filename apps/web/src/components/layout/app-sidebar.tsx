@@ -50,6 +50,52 @@ interface PlanUsage {
   };
 }
 
+const IS_LOCAL = (typeof import.meta !== "undefined" && (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_LOCAL_MODE === "true");
+
+/** Claude Code CLI usage widget (local mode) */
+function ClaudeUsageWidget({ collapsed }: { collapsed: boolean }) {
+  const [stats, setStats] = useState<{ projects: number; tasks: number; agents: number } | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      api<{ projects: unknown[] }>("/projects").catch(() => ({ projects: [] })),
+      api<{ tasks: unknown[] }>("/tasks").catch(() => ({ tasks: [] })),
+      api<{ agents: unknown[] }>("/agents").catch(() => ({ agents: [] })),
+    ]).then(([p, t, a]) => {
+      const pArr = Array.isArray(p) ? p : (p.projects ?? []);
+      const tArr = Array.isArray(t) ? t : (t.tasks ?? []);
+      const aArr = Array.isArray(a) ? a : (a.agents ?? []);
+      setStats({ projects: (pArr as unknown[]).length, tasks: (tArr as unknown[]).length, agents: (aArr as unknown[]).length });
+    });
+  }, []);
+
+  if (collapsed || !stats) return null;
+
+  return (
+    <div className="mx-7 mt-6 rounded-lg border border-stroke2 bg-neutral-bg3/50 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold text-neutral-fg2">AgentHub Local</span>
+        <span className="text-[10px] font-medium text-success">Ativo</span>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-neutral-fg3">Projetos</span>
+          <span className="text-[10px] text-neutral-fg1 font-semibold tabular-nums">{stats.projects}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-neutral-fg3">Tasks</span>
+          <span className="text-[10px] text-neutral-fg1 font-semibold tabular-nums">{stats.tasks}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-neutral-fg3">Agentes</span>
+          <span className="text-[10px] text-neutral-fg1 font-semibold tabular-nums">{stats.agents}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Cloud plan usage widget */
 function UsageWidget({ collapsed }: { collapsed: boolean }) {
   const [data, setData] = useState<PlanUsage | null>(null);
 
@@ -57,7 +103,6 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
     api<PlanUsage>("/plans/my-usage").then(setData).catch(() => {});
   }, []);
 
-  // Real-time plan updates
   useEffect(() => {
     const socket = getSocket();
     const handlePlanUpdate = () => {
@@ -91,7 +136,6 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
 
       {plan && (
         <div className="flex flex-col gap-2">
-          {/* Projects usage */}
           <div>
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-[10px] text-neutral-fg3">Projetos</span>
@@ -104,7 +148,6 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
             </div>
           </div>
 
-          {/* Tasks usage */}
           <div>
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-[10px] text-neutral-fg3">Tasks/mês</span>
@@ -318,7 +361,7 @@ export function AppSidebar() {
       )}
 
       {/* Claude Code CLI Usage */}
-      <UsageWidget collapsed={collapsed} />
+      {IS_LOCAL ? <ClaudeUsageWidget collapsed={collapsed} /> : <UsageWidget collapsed={collapsed} />}
 
       {/* Projects section */}
       {projects.length > 0 && (
@@ -396,7 +439,7 @@ export function AppSidebar() {
       )}
 
       {/* Storage usage */}
-      {!collapsed && <StorageUsageBar />}
+      {!collapsed && !IS_LOCAL && <StorageUsageBar />}
 
       {/* Agent status indicators */}
       {agents.length > 0 && (

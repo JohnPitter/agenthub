@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ui/error-boundary";
 import { LandingPage } from "./routes/landing";
 import { LoginPage } from "./routes/login";
 import { SetupWizard } from "./routes/setup-wizard";
+import { Navigate } from "react-router-dom";
 import { Dashboard } from "./routes/dashboard";
 import { getSocket } from "./lib/socket";
 import { useWorkspaceStore } from "./stores/workspace-store";
@@ -40,16 +41,19 @@ function RouteLoader() {
 }
 
 export function App() {
-  // Check if initial setup is needed and redirect
+  const isLocalMode = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_LOCAL_MODE === "true";
+
+  // Check if initial setup is needed and redirect (skip in local mode)
   useEffect(() => {
+    if (isLocalMode) return;
     api<{ isSetupComplete: boolean }>("/admin/setup-status")
       .then(({ isSetupComplete }) => {
         if (!isSetupComplete && window.location.pathname !== "/setup") {
           window.location.href = "/setup";
         }
       })
-      .catch(() => {}); // If not authenticated yet, skip
-  }, []);
+      .catch(() => {});
+  }, [isLocalMode]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -67,9 +71,9 @@ export function App() {
   return (
     <ErrorBoundary>
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
+        {/* Public routes — in local mode, redirect / to /dashboard */}
+        <Route path="/" element={isLocalMode ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+        <Route path="/login" element={isLocalMode ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
 
         {/* Setup wizard (protected) */}
         <Route element={<ProtectedRoute />}>

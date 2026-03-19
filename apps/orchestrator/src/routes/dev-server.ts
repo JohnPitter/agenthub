@@ -1,9 +1,8 @@
 import { Router } from "express";
-import express from "express";
 import { db, schema } from "@agenthub/database";
 import { eq } from "drizzle-orm";
 import { join } from "path";
-import { existsSync } from "fs";
+import { existsSync, statSync } from "fs";
 import { devServerManager } from "../processes/dev-server-manager.js";
 import { logger } from "../lib/logger.js";
 
@@ -53,7 +52,47 @@ devServerRouter.get("/:id/dev-server/status", async (req, res) => {
 });
 
 // GET /api/projects/:id/preview/* — serve built static files
-devServerRouter.use("/:id/preview", (req, res) => {
+devServerRouter.get("/:id/preview/{*filePath}", (req, res) => {
+  const { id } = req.params;
+  // Express 5 wildcard params are arrays — join them back into a path string
+  const rawPath = (req.params as unknown as { id: string; filePath: string[] }).filePath;
+  const filePath = Array.isArray(rawPath) ? rawPath.join("/") : (rawPath || "");
+  const outputDir = devServerManager.getOutputDir(id);
+
+  if (!outputDir) {
+    return res.status(404).json({ error: "Preview not available. Build the project first." });
+  }
+
+  // Resolve the requested file within the output directory
+  const resolved = join(outputDir, filePath);
+
+  // Path traversal protection
+  if (!resolved.startsWith(outputDir)) {
+    return res.status(403).send("Forbidden");
+  }
+
+  // Try to serve the exact file
+  if (existsSync(resolved) && !statSync(resolved).isDirectory()) {
+    return res.sendFile(resolved);
+  }
+
+  // Try index.html in subdirectory
+  const dirIndex = join(resolved, "index.html");
+  if (existsSync(dirIndex)) {
+    return res.sendFile(dirIndex);
+  }
+
+  // SPA fallback: serve root index.html
+  const rootIndex = join(outputDir, "index.html");
+  if (existsSync(rootIndex)) {
+    return res.sendFile(rootIndex);
+  }
+
+  res.status(404).send("Not found");
+});
+
+// Also handle the root /preview/ without trailing path
+devServerRouter.get("/:id/preview", (req, res) => {
   const { id } = req.params;
   const outputDir = devServerManager.getOutputDir(id);
 
@@ -61,14 +100,10 @@ devServerRouter.use("/:id/preview", (req, res) => {
     return res.status(404).json({ error: "Preview not available. Build the project first." });
   }
 
-  // Serve static files from the build output directory
-  express.static(outputDir)(req, res, () => {
-    // SPA fallback: serve index.html for any unmatched route
-    const indexPath = join(outputDir, "index.html");
-    if (existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.status(404).send("Not found");
-    }
-  });
+  const indexPath = join(outputDir, "index.html");
+  if (existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  res.status(404).send("Not found");
 });

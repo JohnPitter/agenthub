@@ -48,34 +48,57 @@ export function ProjectPreview() {
 
   const loadProjectFiles = useCallback(async (): Promise<FileSystemTree | null> => {
     if (!id) return null;
+
+    interface FileNode {
+      name: string;
+      path: string;
+      type: "file" | "directory";
+      children?: FileNode[];
+    }
+
     try {
-      // Fetch file tree from existing files API
-      const { tree } = await api<{ tree: Array<{ name: string; path: string; type: "file" | "directory"; children?: unknown[] }> }>(
-        `/projects/${id}/files`
-      );
+      // Fetch file tree from existing files API (returns { files: FileNode[] })
+      const data = await api<{ files: FileNode[] }>(`/projects/${id}/files`);
+      const files = data.files;
+
+      if (!files || !Array.isArray(files) || files.length === 0) {
+        addLog("No files returned from API", "stderr");
+        return null;
+      }
+
+      addLog(`File tree loaded: ${files.length} top-level entries`);
 
       // Convert file tree to WebContainer filesystem format
-      const convertTree = async (items: typeof tree): Promise<FileSystemTree> => {
+      // Only load key files to avoid overwhelming the API (package.json, src/*, etc.)
+      const convertTree = async (items: FileNode[]): Promise<FileSystemTree> => {
         const fsTree: FileSystemTree = {};
         for (const item of items) {
           if (item.type === "file") {
+            // Skip binary/large files
+            const ext = item.name.split(".").pop()?.toLowerCase() ?? "";
+            const skipExts = new Set(["png", "jpg", "jpeg", "gif", "ico", "svg", "woff", "woff2", "ttf", "eot", "mp4", "mp3", "zip", "tar", "gz"]);
+            if (skipExts.has(ext)) {
+              fsTree[item.name] = { file: { contents: "" } };
+              continue;
+            }
+
             try {
               const { content } = await api<{ content: string }>(
                 `/projects/${id}/files/content?path=${encodeURIComponent(item.path)}`
               );
-              fsTree[item.name] = { file: { contents: content } };
+              fsTree[item.name] = { file: { contents: content ?? "" } };
             } catch {
-              // Skip files that can't be read
+              fsTree[item.name] = { file: { contents: "" } };
             }
-          } else if (item.type === "directory" && item.children) {
-            const children = await convertTree(item.children as typeof tree);
+          } else if (item.type === "directory" && item.children && item.children.length > 0) {
+            const children = await convertTree(item.children);
             fsTree[item.name] = { directory: children };
           }
         }
         return fsTree;
       };
 
-      return await convertTree(tree);
+      return await convertTree(files);
     } catch (err) {
       addLog(`Failed to load project files: ${err}`, "stderr");
       return null;

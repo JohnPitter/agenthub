@@ -54,14 +54,14 @@ const IS_LOCAL = (typeof import.meta !== "undefined" && (import.meta as unknown 
 
 /** Claude Code usage widget (local mode) — shows model usage from Anthropic API */
 interface UsageBucket {
-  utilization_pct?: number;
+  utilization?: number;
   resets_at?: string;
 }
 interface ClaudeUsageData {
   five_hour?: UsageBucket;
   seven_day?: UsageBucket;
-  sonnet_seven_day?: UsageBucket;
-  extra_usage?: { spent_cents?: number; limit_cents?: number };
+  seven_day_sonnet?: UsageBucket;
+  extra_usage?: { used_credits?: number; monthly_limit?: number; is_enabled?: boolean };
 }
 
 function ClaudeUsageWidget({ collapsed }: { collapsed: boolean }) {
@@ -93,12 +93,12 @@ function ClaudeUsageWidget({ collapsed }: { collapsed: boolean }) {
     return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
-  const opus = usage.five_hour?.utilization_pct ?? 0;
-  const all = usage.seven_day?.utilization_pct ?? 0;
-  const sonnet = usage.sonnet_seven_day?.utilization_pct ?? 0;
+  const opus = Math.round(usage.five_hour?.utilization ?? 0);
+  const all = Math.round(usage.seven_day?.utilization ?? 0);
+  const sonnet = Math.round(usage.seven_day_sonnet?.utilization ?? 0);
   const extra = usage.extra_usage;
-  const spent = (extra?.spent_cents ?? 0) / 100;
-  const limit = (extra?.limit_cents ?? 0) / 100;
+  const spent = (extra?.used_credits ?? 0) / 100;
+  const limit = (extra?.monthly_limit ?? 0) / 100;
 
   return (
     <div className="mx-7 mt-6 rounded-lg border border-stroke2 bg-neutral-bg3/50 p-3">
@@ -128,7 +128,7 @@ function ClaudeUsageWidget({ collapsed }: { collapsed: boolean }) {
           </div>
           {renderBar(sonnet)}
         </div>
-        {limit > 0 && (
+        {extra?.is_enabled && limit > 0 && (
           <div className="flex items-center justify-between pt-1 border-t border-stroke2">
             <span className="text-[9px] text-neutral-fg3">Extra</span>
             <span className="text-[9px] text-neutral-fg1 font-semibold tabular-nums">${spent.toFixed(2)} / ${limit.toFixed(0)}</span>

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, numeric, boolean, index } from "drizzle-orm/pg-core";
 
 export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
@@ -18,4 +18,7 @@ export const projects = pgTable("projects", {
   isShallowClone: boolean("is_shallow_clone").notNull().default(true),
   createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
   updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
-});
+}, (table) => ({
+  ownerIdIdx: index("projects_owner_id_idx").on(table.ownerId),
+  statusIdx: index("projects_status_idx").on(table.status),
+}));

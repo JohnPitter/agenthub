@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { agents } from "./agents";
 import { tasks } from "./tasks";
@@ -19,4 +19,8 @@ export const messages = pgTable("messages", {
   parentMessageId: text("parent_message_id"),
   isThinking: boolean("is_thinking").default(false).notNull(),
   createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
-});
+}, (table) => ({
+  projectIdIdx: index("messages_project_id_idx").on(table.projectId),
+  taskIdIdx: index("messages_task_id_idx").on(table.taskId),
+  createdAtIdx: index("messages_created_at_idx").on(table.createdAt),
+}));

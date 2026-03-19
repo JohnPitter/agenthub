@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 import { tasks } from "./tasks";
 import { agents } from "./agents";
 
@@ -12,4 +12,7 @@ export const taskLogs = pgTable("task_logs", {
   detail: text("detail"),
   filePath: text("file_path"),
   createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
-});
+}, (table) => ({
+  taskIdIdx: index("task_logs_task_id_idx").on(table.taskId),
+  createdAtIdx: index("task_logs_created_at_idx").on(table.createdAt),
+}));

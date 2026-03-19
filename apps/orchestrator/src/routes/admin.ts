@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, schema } from "@agenthub/database";
-import { eq, and, gte, count } from "drizzle-orm";
+import { eq, and, gte, count, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { adminMiddleware } from "../middleware/admin.js";
 import {
@@ -124,47 +124,41 @@ router.get("/users", async (_req, res) => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const users = await Promise.all(usersRaw.map(async (user) => {
-      // Count projects owned by user
-      const projectRows = await db.select({ count: count() }).from(schema.projects).where(eq(schema.projects.ownerId, user.id));
-      const projectCount = projectRows[0]?.count ?? 0;
+    // Batch: project counts per owner
+    const projectCounts = await db
+      .select({ ownerId: schema.projects.ownerId, count: count() })
+      .from(schema.projects)
+      .groupBy(schema.projects.ownerId);
+    const projectCountMap = new Map(projectCounts.map(r => [r.ownerId, Number(r.count)]));
 
-      // Count tasks this month (tasks in projects owned by this user)
-      const userProjects = await db.select({ id: schema.projects.id }).from(schema.projects).where(eq(schema.projects.ownerId, user.id));
-      let taskCountThisMonth = 0;
-      if (userProjects.length > 0) {
-        const projectIds = userProjects.map((p) => p.id);
-        for (const pid of projectIds) {
-          const taskRows = await db.select({ count: count() }).from(schema.tasks).where(
-            and(
-              eq(schema.tasks.projectId, pid),
-              gte(schema.tasks.createdAt, monthStart),
-            ),
-          );
-          taskCountThisMonth += taskRows[0]?.count ?? 0;
-        }
-      }
+    // Batch: task counts per owner this month (JOIN tasks + projects)
+    const taskCounts = await db
+      .select({
+        ownerId: schema.projects.ownerId,
+        count: count(),
+      })
+      .from(schema.tasks)
+      .innerJoin(schema.projects, eq(schema.tasks.projectId, schema.projects.id))
+      .where(gte(schema.tasks.createdAt, monthStart))
+      .groupBy(schema.projects.ownerId);
+    const taskCountMap = new Map(taskCounts.map(r => [r.ownerId, Number(r.count)]));
 
-      // Get plan name
-      let planName: string | null = null;
-      if (user.planId) {
-        const [plan] = await db.select({ name: schema.plans.name }).from(schema.plans).where(eq(schema.plans.id, user.planId));
-        planName = plan?.name ?? null;
-      }
+    // Batch: plan names
+    const allPlans = await db.select({ id: schema.plans.id, name: schema.plans.name }).from(schema.plans);
+    const planNameMap = new Map(allPlans.map(p => [p.id, p.name]));
 
-      return {
-        id: user.id,
-        login: user.login,
-        name: user.name,
-        email: user.email,
-        avatarUrl: user.avatarUrl,
-        role: user.role,
-        planId: user.planId,
-        planName,
-        projectCount,
-        taskCountThisMonth,
-        createdAt: user.createdAt,
-      };
+    const users = usersRaw.map((user) => ({
+      id: user.id,
+      login: user.login,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      planId: user.planId,
+      planName: user.planId ? planNameMap.get(user.planId) ?? null : null,
+      projectCount: projectCountMap.get(user.id) ?? 0,
+      taskCountThisMonth: taskCountMap.get(user.id) ?? 0,
+      createdAt: user.createdAt,
     }));
 
     res.json({ users });
@@ -332,26 +326,30 @@ router.get("/dashboard", async (_req, res) => {
       .map(([date, { count: c, cost }]) => ({ date, count: c, cost }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Top users by usage (task count this month)
-    const allUsers = await db.select().from(schema.users);
-    const topUsers: { userId: string; name: string; taskCount: number; cost: number }[] = [];
+    // Top users by usage (task count this month) — single JOIN query
+    const userTaskStats = await db
+      .select({
+        userId: schema.projects.ownerId,
+        taskCount: count(schema.tasks.id),
+        totalCost: sql<string>`COALESCE(SUM(${schema.tasks.costUsd}::numeric), 0)`,
+      })
+      .from(schema.tasks)
+      .innerJoin(schema.projects, eq(schema.tasks.projectId, schema.projects.id))
+      .where(gte(schema.tasks.createdAt, monthStart))
+      .groupBy(schema.projects.ownerId);
 
-    for (const user of allUsers) {
-      const userProjects = await db.select({ id: schema.projects.id }).from(schema.projects).where(eq(schema.projects.ownerId, user.id));
-      let userTaskCount = 0;
-      let userCost = 0;
-      for (const p of userProjects) {
-        const tasks = await db.select({ costUsd: schema.tasks.costUsd }).from(schema.tasks).where(
-          and(eq(schema.tasks.projectId, p.id), gte(schema.tasks.createdAt, monthStart)),
-        );
-        userTaskCount += tasks.length;
-        userCost += tasks.reduce((s, t) => s + (parseFloat(t.costUsd ?? "0") || 0), 0);
-      }
-      if (userTaskCount > 0) {
-        topUsers.push({ userId: user.id, name: user.name, taskCount: userTaskCount, cost: userCost });
-      }
-    }
-    topUsers.sort((a, b) => b.taskCount - a.taskCount);
+    const allUsers = await db.select({ id: schema.users.id, name: schema.users.name }).from(schema.users);
+    const userNameMap = new Map(allUsers.map(u => [u.id, u.name]));
+
+    const topUsers = userTaskStats
+      .filter(s => s.userId)
+      .map(s => ({
+        userId: s.userId!,
+        name: userNameMap.get(s.userId!) ?? "Unknown",
+        taskCount: Number(s.taskCount),
+        cost: parseFloat(s.totalCost) || 0,
+      }))
+      .sort((a, b) => b.taskCount - a.taskCount);
 
     // Top models by usage
     const modelMap = new Map<string, { taskCount: number; cost: number }>();

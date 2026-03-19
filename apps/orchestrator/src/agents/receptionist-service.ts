@@ -30,10 +30,22 @@ interface ReceptionistResponse {
   parsedAction: ReceptionistAction | null;
 }
 
+const MAX_CONVERSATIONS = 1000;
 const conversations = new Map<string, ConversationEntry[]>();
 
+// Cached OpenAI client with TTL
+let cachedClient: { client: OpenAI; expiresAt: number } | null = null;
+const CLIENT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 function getHistory(contactId: string): ConversationEntry[] {
-  if (!conversations.has(contactId)) conversations.set(contactId, []);
+  if (!conversations.has(contactId)) {
+    // LRU eviction: remove oldest entry if at capacity
+    if (conversations.size >= MAX_CONVERSATIONS) {
+      const oldestKey = conversations.keys().next().value;
+      if (oldestKey) conversations.delete(oldestKey);
+    }
+    conversations.set(contactId, []);
+  }
   return conversations.get(contactId)!;
 }
 
@@ -93,21 +105,41 @@ function contentToText(content: string | ContentBlock[]): string {
 }
 
 /**
- * Get OpenRouter API key from env or database.
+ * Get or create a cached OpenAI client with the OpenRouter API key.
  */
-async function getApiKey(): Promise<string | null> {
+async function getCachedClient(): Promise<OpenAI | null> {
+  if (cachedClient && Date.now() < cachedClient.expiresAt) {
+    return cachedClient.client;
+  }
+
+  let apiKey: string | null = null;
   if (process.env.OPENROUTER_API_KEY) {
-    return process.env.OPENROUTER_API_KEY;
+    apiKey = process.env.OPENROUTER_API_KEY;
+  } else {
+    try {
+      const configs = await db.select().from(schema.openrouterConfig);
+      const config = configs[0];
+      if (!config?.apiKey) return null;
+      const { safeDecrypt } = await import("../lib/encryption.js");
+      apiKey = safeDecrypt(config.apiKey);
+    } catch {
+      return null;
+    }
   }
-  try {
-    const configs = await db.select().from(schema.openrouterConfig);
-    const config = configs[0];
-    if (!config?.apiKey) return null;
-    const { safeDecrypt } = await import("../lib/encryption.js");
-    return safeDecrypt(config.apiKey);
-  } catch {
-    return null;
-  }
+
+  if (!apiKey) return null;
+
+  const client = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey,
+    defaultHeaders: {
+      "HTTP-Referer": "http://localhost:5173",
+      "X-Title": "AgentHub",
+    },
+  });
+
+  cachedClient = { client, expiresAt: Date.now() + CLIENT_CACHE_TTL };
+  return client;
 }
 
 export async function handleReceptionistMessage(
@@ -138,19 +170,10 @@ export async function handleReceptionistMessage(
   const history = getHistory(contactId);
 
   try {
-    const apiKey = await getApiKey();
-    if (!apiKey) {
+    const client = await getCachedClient();
+    if (!client) {
       throw new Error("OpenRouter API key not configured");
     }
-
-    const client = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey,
-      defaultHeaders: {
-        "HTTP-Referer": "http://localhost:5173",
-        "X-Title": "AgentHub",
-      },
-    });
 
     // Build messages from conversation history
     const messages: OpenAI.ChatCompletionMessageParam[] = [

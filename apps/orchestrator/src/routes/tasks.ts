@@ -122,8 +122,9 @@ tasksRouter.patch("/:id", async (req, res) => {
   // Pre-flight: validate tech_lead exists before allowing "assigned" transition
   let techLeadId: string | null = null;
   if (req.body.status === "assigned") {
-    const agents = await db.select().from(schema.agents);
-    const techLead = agents.find((a) => a.role === "tech_lead" && a.isActive);
+    const [techLead] = await db.select().from(schema.agents)
+      .where(and(eq(schema.agents.role, "tech_lead"), eq(schema.agents.isActive, true)))
+      .limit(1);
     if (!techLead) {
       return res.status(400).json({ error: "errorNoTechLead" });
     }

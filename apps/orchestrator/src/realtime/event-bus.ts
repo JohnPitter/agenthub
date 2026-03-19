@@ -43,7 +43,7 @@ class TypedEventBus {
   private emitter = new EventEmitter();
 
   constructor() {
-    this.emitter.setMaxListeners(50);
+    this.emitter.setMaxListeners(0); // Unlimited — we manage cleanup via off()
   }
 
   emit<K extends keyof EventMap>(event: K, data: EventMap[K]) {

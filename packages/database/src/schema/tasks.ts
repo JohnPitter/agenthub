@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { agents } from "./agents";
 
@@ -23,4 +23,10 @@ export const tasks = pgTable("tasks", {
   createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),
   updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
   completedAt: timestamp("completed_at"),
-});
+}, (table) => ({
+  projectIdIdx: index("tasks_project_id_idx").on(table.projectId),
+  statusIdx: index("tasks_status_idx").on(table.status),
+  createdAtIdx: index("tasks_created_at_idx").on(table.createdAt),
+  assignedAgentIdIdx: index("tasks_assigned_agent_id_idx").on(table.assignedAgentId),
+  parentTaskIdIdx: index("tasks_parent_task_id_idx").on(table.parentTaskId),
+}));

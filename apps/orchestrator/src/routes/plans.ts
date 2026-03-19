@@ -65,17 +65,15 @@ router.get("/my-usage", async (req, res) => {
     // Count projects
     const [projectCount] = await db.select({ count: count() }).from(schema.projects).where(eq(schema.projects.ownerId, userId));
 
-    // Count tasks this month
+    // Count tasks this month (single JOIN query)
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const userProjects = await db.select({ id: schema.projects.id }).from(schema.projects).where(eq(schema.projects.ownerId, userId));
-    let taskCount = 0;
-    for (const p of userProjects) {
-      const [tc] = await db.select({ count: count() }).from(schema.tasks).where(
-        and(eq(schema.tasks.projectId, p.id), gte(schema.tasks.createdAt, monthStart)),
-      );
-      taskCount += tc?.count ?? 0;
-    }
+    const [taskResult] = await db
+      .select({ count: count() })
+      .from(schema.tasks)
+      .innerJoin(schema.projects, eq(schema.tasks.projectId, schema.projects.id))
+      .where(and(eq(schema.projects.ownerId, userId), gte(schema.tasks.createdAt, monthStart)));
+    const taskCount = taskResult?.count ?? 0;
 
     res.json({
       plan: plan ? {

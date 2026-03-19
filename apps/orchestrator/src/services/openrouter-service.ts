@@ -57,15 +57,28 @@ export async function getOpenRouterConfig(): Promise<{
   return configs[0] ?? null;
 }
 
+// Module-level cache for decrypted API key with 5-min TTL
+let cachedApiKey: { value: string; expiresAt: number } | null = null;
+const API_KEY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function getDecryptedApiKey(): Promise<string | null> {
   // Check env first
   if (process.env.OPENROUTER_API_KEY) {
     return process.env.OPENROUTER_API_KEY;
   }
 
+  // Check cache
+  if (cachedApiKey && Date.now() < cachedApiKey.expiresAt) {
+    return cachedApiKey.value;
+  }
+
   const config = await getOpenRouterConfig();
   if (!config?.apiKey) return null;
-  return safeDecrypt(config.apiKey);
+  const decrypted = safeDecrypt(config.apiKey);
+  if (decrypted) {
+    cachedApiKey = { value: decrypted, expiresAt: Date.now() + API_KEY_CACHE_TTL };
+  }
+  return decrypted;
 }
 
 export async function saveOpenRouterConfig(
@@ -74,6 +87,7 @@ export async function saveOpenRouterConfig(
   userId: string,
 ) {
   const encryptedKey = encrypt(apiKey);
+  cachedApiKey = null; // Invalidate cache on config change
   const existing = await getOpenRouterConfig();
 
   if (existing) {

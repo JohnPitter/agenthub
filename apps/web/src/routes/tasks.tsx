@@ -942,26 +942,30 @@ function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, o
         <div className="absolute -top-px left-3 right-3 h-[2px] rounded-b-full bg-gradient-to-r from-brand via-purple to-brand" style={{ animation: "gradient 3s ease infinite", backgroundSize: "200% 200%" }} />
       )}
 
-      {/* Priority + project */}
-      <div className="flex items-center justify-between mb-2">
+      {/* Priority + grip */}
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <span className={cn("h-1.5 w-1.5 rounded-full", priority.dot)} />
           <span className="text-[9px] font-semibold uppercase tracking-wider text-neutral-fg3">
             {t(priority.labelKey)}
           </span>
         </div>
-        {projectName && (
-          <Link
-            to={`/project/${task.projectId}/tasks`}
-            className="flex items-center gap-1.5 rounded-md bg-brand-light px-2 py-0.5 text-[10px] font-semibold text-brand hover:bg-brand/10 transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <FolderOpen className="h-3 w-3" />
-            <span className="truncate max-w-[100px]">{projectName}</span>
-          </Link>
-        )}
         <GripVertical className="h-3.5 w-3.5 text-neutral-fg-disabled opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
+
+      {/* Project name — separate row */}
+      {projectName && (
+        <div className="mb-2">
+          <Link
+            to={`/project/${task.projectId}/tasks`}
+            className="inline-flex items-center gap-1 rounded-md bg-brand-light px-2 py-0.5 text-[10px] font-semibold text-brand hover:bg-brand/10 transition-colors max-w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FolderOpen className="h-3 w-3 shrink-0" />
+            <span className="truncate">{projectName}</span>
+          </Link>
+        </div>
+      )}
 
       {/* Title */}
       <p className="text-[13px] font-semibold text-neutral-fg1 leading-snug line-clamp-2 mb-2">
@@ -984,9 +988,9 @@ function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, o
 
       {/* Git branch */}
       {task.branch && (
-        <div className="mb-2 flex items-center gap-1.5 rounded-md bg-purple-light px-2.5 py-1 w-fit">
-          <GitBranch className="h-3 w-3 text-purple-dark" />
-          <span className="text-[10px] font-semibold text-purple-dark truncate max-w-[120px]">{task.branch}</span>
+        <div className="mb-2 flex items-center gap-1.5 rounded-md bg-purple-light px-2.5 py-1 max-w-full overflow-hidden">
+          <GitBranch className="h-3 w-3 text-purple-dark shrink-0" />
+          <span className="text-[10px] font-semibold text-purple-dark truncate">{task.branch}</span>
         </div>
       )}
 

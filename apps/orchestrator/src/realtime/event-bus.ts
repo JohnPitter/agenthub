@@ -37,6 +37,7 @@ export interface EventMap {
   "devserver:output": { projectId: string; line: string; stream: "stdout" | "stderr"; timestamp: number };
   "devserver:status": { projectId: string; status: "stopped" | "starting" | "running" | "error"; port?: number; error?: string };
   "notification:new": NotificationEvent;
+  "plan:updated": Record<string, never>;
 }
 
 class TypedEventBus {

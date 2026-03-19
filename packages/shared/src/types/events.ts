@@ -37,6 +37,7 @@ export interface ServerToClientEvents {
   "devserver:output": (data: DevServerOutputEvent) => void;
   "devserver:status": (data: DevServerStatusEvent) => void;
   "notification:new": (data: NotificationEvent) => void;
+  "plan:updated": (data: Record<string, never>) => void;
 }
 
 // Client → Server events

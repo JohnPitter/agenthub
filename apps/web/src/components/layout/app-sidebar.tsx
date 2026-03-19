@@ -57,6 +57,16 @@ function UsageWidget({ collapsed }: { collapsed: boolean }) {
     api<PlanUsage>("/plans/my-usage").then(setData).catch(() => {});
   }, []);
 
+  // Real-time plan updates
+  useEffect(() => {
+    const socket = getSocket();
+    const handlePlanUpdate = () => {
+      api<PlanUsage>("/plans/my-usage").then(setData).catch(() => {});
+    };
+    socket.on("plan:updated", handlePlanUpdate);
+    return () => { socket.off("plan:updated", handlePlanUpdate); };
+  }, []);
+
   if (collapsed || !data) return null;
 
   const plan = data.plan;

@@ -13,8 +13,40 @@ import {
 } from "../services/openrouter-service.js";
 import { safeDecrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
+import { eventBus } from "../realtime/event-bus.js";
 
 const router: ReturnType<typeof Router> = Router();
+
+// GET /api/admin/setup-status — Check if initial setup is done (public, no admin check)
+router.get("/setup-status", async (_req, res) => {
+  try {
+    // Check 1: OpenRouter API key configured?
+    const configs = await db.select().from(schema.openrouterConfig);
+    const hasApiKey = configs.length > 0 && !!configs[0]?.apiKey;
+
+    // Check 2: At least one plan exists?
+    const [planCount] = await db.select({ count: count() }).from(schema.plans);
+    const hasPlans = (planCount?.count ?? 0) > 0;
+
+    // Check 3: At least one admin user exists?
+    const [adminCount] = await db.select({ count: count() }).from(schema.users).where(eq(schema.users.role, "admin"));
+    const hasAdmin = (adminCount?.count ?? 0) > 0;
+
+    const isSetupComplete = hasApiKey && hasPlans && hasAdmin;
+
+    res.json({
+      isSetupComplete,
+      steps: {
+        hasAdmin,
+        hasApiKey,
+        hasPlans,
+      },
+    });
+  } catch (err) {
+    logger.error(`Failed to check setup status: ${err}`, "admin");
+    res.status(500).json({ error: "Failed to check setup status" });
+  }
+});
 
 // All admin routes require admin role
 router.use(adminMiddleware);
@@ -65,6 +97,7 @@ router.post("/plans", async (req, res) => {
 
     await db.insert(schema.plans).values(plan);
     logger.info(`Plan created: ${name}`, "admin");
+    eventBus.emit("plan:updated", {});
     res.status(201).json({ plan });
   } catch (err) {
     logger.error(`Failed to create plan: ${err}`, "admin");
@@ -89,6 +122,7 @@ router.put("/plans/:id", async (req, res) => {
     }).where(eq(schema.plans.id, id));
 
     const [updated] = await db.select().from(schema.plans).where(eq(schema.plans.id, id));
+    eventBus.emit("plan:updated", {});
     res.json({ plan: updated });
   } catch (err) {
     logger.error(`Failed to update plan: ${err}`, "admin");
@@ -106,6 +140,7 @@ router.delete("/plans/:id", async (req, res) => {
 
     await db.delete(schema.plans).where(eq(schema.plans.id, id));
     logger.info(`Plan deleted: ${id}`, "admin");
+    eventBus.emit("plan:updated", {});
     res.json({ success: true });
   } catch (err) {
     logger.error(`Failed to delete plan: ${err}`, "admin");

@@ -702,6 +702,10 @@ function setupEventBridge(io: SocketServer<ClientToServerEvents, ServerToClientE
     io.emit("integration:message", data);
   });
 
+  eventBus.on("plan:updated", () => {
+    io.emit("plan:updated", {});
+  });
+
   eventBus.on("devserver:output", (data) => {
     io.to(`project:${data.projectId}`).emit("devserver:output", data);
   });

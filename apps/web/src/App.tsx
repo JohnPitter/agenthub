@@ -6,9 +6,11 @@ import { ProtectedRoute } from "./components/auth/protected-route";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import { LandingPage } from "./routes/landing";
 import { LoginPage } from "./routes/login";
+import { SetupWizard } from "./routes/setup-wizard";
 import { Dashboard } from "./routes/dashboard";
 import { getSocket } from "./lib/socket";
 import { useWorkspaceStore } from "./stores/workspace-store";
+import { api } from "./lib/utils";
 import type { Agent, AgentUpdatedEvent } from "@agenthub/shared";
 
 // Lazy-loaded route pages (heavy deps: Monaco, Recharts, large components)
@@ -38,6 +40,17 @@ function RouteLoader() {
 }
 
 export function App() {
+  // Check if initial setup is needed and redirect
+  useEffect(() => {
+    api<{ isSetupComplete: boolean }>("/admin/setup-status")
+      .then(({ isSetupComplete }) => {
+        if (!isSetupComplete && window.location.pathname !== "/setup") {
+          window.location.href = "/setup";
+        }
+      })
+      .catch(() => {}); // If not authenticated yet, skip
+  }, []);
+
   useEffect(() => {
     const socket = getSocket();
     const onAgentUpdated = (data: AgentUpdatedEvent) => {
@@ -57,6 +70,11 @@ export function App() {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Setup wizard (protected) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/setup" element={<ErrorBoundary><SetupWizard /></ErrorBoundary>} />
+        </Route>
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>

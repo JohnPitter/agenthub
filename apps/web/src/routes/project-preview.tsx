@@ -116,10 +116,18 @@ export function ProjectPreview() {
 
     try {
       // Boot WebContainer (singleton — only one per page)
-      if (!webcontainerInstance) {
+      // If previous instance was torn down, reset and reboot
+      let wc: WebContainer;
+      try {
+        if (!webcontainerInstance) {
+          webcontainerInstance = await WebContainer.boot();
+        }
+        wc = webcontainerInstance;
+      } catch {
+        // Previous instance may have been torn down — reboot
         webcontainerInstance = await WebContainer.boot();
+        wc = webcontainerInstance;
       }
-      const wc = webcontainerInstance;
 
       // Load project files
       setStatus("loading");
@@ -192,13 +200,10 @@ export function ProjectPreview() {
   }, [id, project, addLog, loadProjectFiles]);
 
   const handleStop = useCallback(async () => {
-    if (webcontainerInstance) {
-      webcontainerInstance.teardown();
-      webcontainerInstance = null;
-    }
+    // Don't teardown — WebContainer only allows one instance per page.
+    // Just reset UI state; the container stays alive for reuse.
     setStatus("idle");
     setPreviewUrl(null);
-    setLogs([]);
   }, []);
 
   const handleRefresh = () => setIframeKey((k) => k + 1);

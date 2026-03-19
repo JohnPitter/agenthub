@@ -10,19 +10,25 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  // Required for WebContainer API (SharedArrayBuffer)
+  // Using "credentialless" instead of "require-corp" to allow cross-origin fonts/images
+  res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
 
   if (process.env.NODE_ENV === "production") {
     res.setHeader(
       "Content-Security-Policy",
       [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
+        "script-src 'self' 'unsafe-inline' blob:",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
-        "connect-src 'self' wss: https://openrouter.ai https://api.github.com",
-        "frame-src 'self' http://localhost:* https://localhost:*",
+        "connect-src 'self' wss: https://openrouter.ai https://api.github.com https://*.webcontainer.io",
+        "frame-src 'self' https://*.webcontainer.io blob:",
+        "worker-src 'self' blob:",
+        "child-src 'self' blob:",
       ].join("; "),
     );
   }

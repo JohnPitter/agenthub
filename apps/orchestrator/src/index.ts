@@ -18,7 +18,6 @@ import { adminRouter } from "./routes/admin.js";
 import { plansRouter } from "./routes/plans.js";
 import { memoriesRouter } from "./routes/memories.js";
 import { devServerRouter } from "./routes/dev-server.js";
-import { devServerManager } from "./processes/dev-server-manager.js";
 import { setupSocketHandlers } from "./realtime/socket-handler";
 import { securityHeaders } from "./middleware/security-headers.js";
 import { requestLogger } from "./middleware/request-logger";
@@ -200,7 +199,6 @@ process.on("SIGINT", () => {
   taskTimeoutManager.stop();
   taskWatcher.stop();
   storageCleanup.stop();
-  devServerManager.stopAll();
   process.exit(0);
 });
 
@@ -209,7 +207,6 @@ process.on("SIGTERM", () => {
   taskTimeoutManager.stop();
   taskWatcher.stop();
   storageCleanup.stop();
-  devServerManager.stopAll();
   process.exit(0);
 });
 

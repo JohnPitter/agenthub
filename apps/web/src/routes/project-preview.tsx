@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Play, Square, RefreshCw, Loader2, Terminal, AlertCircle, ExternalLink, ArrowLeft } from "lucide-react";
+import { Play, Square, RefreshCw, Loader2, Terminal, AlertCircle, ArrowLeft } from "lucide-react";
 import { useWorkspaceStore } from "../stores/workspace-store";
-import { useSocket } from "../hooks/use-socket";
 import { CommandBar } from "../components/layout/command-bar";
 import { api, cn } from "../lib/utils";
-import type { DevServerOutputEvent, DevServerStatusEvent } from "@agenthub/shared";
+import { WebContainer, type FileSystemTree } from "@webcontainer/api";
 
-type ServerStatus = "stopped" | "starting" | "running" | "error";
+type PreviewStatus = "idle" | "loading" | "installing" | "building" | "running" | "error";
 
 interface LogLine {
   line: string;
@@ -18,183 +17,227 @@ interface LogLine {
 
 const MAX_LOG_LINES = 500;
 
+// Singleton WebContainer instance (only one per page allowed)
+let webcontainerInstance: WebContainer | null = null;
+
 export function ProjectPreview() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const projects = useWorkspaceStore((s) => s.projects);
   const project = projects.find((p) => p.id === id);
 
-  const [status, setStatus] = useState<ServerStatus>("stopped");
-  const [port, setPort] = useState<number | null>(null);
+  const [status, setStatus] = useState<PreviewStatus>("idle");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
-  const [loading, setLoading] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
 
-  // Socket handlers for real-time updates
-  const handleDevServerOutput = useCallback((data: DevServerOutputEvent) => {
-    if (data.projectId !== id) return;
+  const addLog = useCallback((line: string, stream: "stdout" | "stderr" = "stdout") => {
     setLogs((prev) => {
-      const next = [...prev, { line: data.line, stream: data.stream, timestamp: data.timestamp }];
+      const next = [...prev, { line, stream, timestamp: Date.now() }];
       return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
     });
-  }, [id]);
-
-  const handleDevServerStatus = useCallback((data: DevServerStatusEvent) => {
-    if (data.projectId !== id) return;
-    setStatus(data.status);
-    if (data.port) setPort(data.port);
-    if (data.error) setError(data.error);
-    if (data.status === "stopped") {
-      setPort(null);
-      setError(null);
-    }
-  }, [id]);
-
-  useSocket(id, {
-    onDevServerOutput: handleDevServerOutput,
-    onDevServerStatus: handleDevServerStatus,
-  });
-
-  // Fetch initial status on mount
-  useEffect(() => {
-    if (!id) return;
-    api<{ status: ServerStatus; port: number | null; logs: string[] }>(
-      `/projects/${id}/dev-server/status`
-    ).then((data) => {
-      setStatus(data.status);
-      if (data.port) setPort(data.port);
-      if (data.logs.length > 0) {
-        setLogs(data.logs.map((line) => ({ line, stream: "stdout" as const, timestamp: Date.now() })));
-      }
-    }).catch(() => {});
-  }, [id]);
+  }, []);
 
   // Auto-scroll terminal
   useEffect(() => {
     const el = terminalRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
+    if (el) el.scrollTop = el.scrollHeight;
   }, [logs]);
 
-  const handleStart = async () => {
-    if (!id) return;
-    setLoading(true);
+  const loadProjectFiles = useCallback(async (): Promise<FileSystemTree | null> => {
+    if (!id) return null;
+    try {
+      // Fetch file tree from existing files API
+      const { tree } = await api<{ tree: Array<{ name: string; path: string; type: "file" | "directory"; children?: unknown[] }> }>(
+        `/projects/${id}/files`
+      );
+
+      // Convert file tree to WebContainer filesystem format
+      const convertTree = async (items: typeof tree): Promise<FileSystemTree> => {
+        const fsTree: FileSystemTree = {};
+        for (const item of items) {
+          if (item.type === "file") {
+            try {
+              const { content } = await api<{ content: string }>(
+                `/projects/${id}/files/content?path=${encodeURIComponent(item.path)}`
+              );
+              fsTree[item.name] = { file: { contents: content } };
+            } catch {
+              // Skip files that can't be read
+            }
+          } else if (item.type === "directory" && item.children) {
+            const children = await convertTree(item.children as typeof tree);
+            fsTree[item.name] = { directory: children };
+          }
+        }
+        return fsTree;
+      };
+
+      return await convertTree(tree);
+    } catch (err) {
+      addLog(`Failed to load project files: ${err}`, "stderr");
+      return null;
+    }
+  }, [id, addLog]);
+
+  const handleStart = useCallback(async () => {
+    if (!id || !project) return;
+
+    setStatus("loading");
     setError(null);
     setLogs([]);
-    try {
-      await api(`/projects/${id}/dev-server/start`, { method: "POST" });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("project.previewError"));
-    } finally {
-      setLoading(false);
-    }
-  };
+    setPreviewUrl(null);
+    addLog("Initializing WebContainer...");
 
-  const handleStop = async () => {
-    if (!id) return;
-    setLoading(true);
     try {
-      await api(`/projects/${id}/dev-server/stop`, { method: "POST" });
-      setStatus("stopped");
-      setPort(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("project.previewStopError"));
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Boot WebContainer (singleton — only one per page)
+      if (!webcontainerInstance) {
+        webcontainerInstance = await WebContainer.boot();
+      }
+      const wc = webcontainerInstance;
 
-  const handleRefresh = () => {
-    setIframeKey((k) => k + 1);
-  };
+      // Load project files
+      setStatus("loading");
+      addLog("Loading project files...");
+      const files = await loadProjectFiles();
+
+      if (!files || Object.keys(files).length === 0) {
+        throw new Error("No files found in project");
+      }
+
+      addLog(`Loaded ${Object.keys(files).length} top-level entries`);
+      await wc.mount(files);
+
+      // Install dependencies
+      setStatus("installing");
+      addLog("Installing dependencies (npm install)...");
+
+      const installProcess = await wc.spawn("npm", ["install"]);
+      installProcess.output.pipeTo(new WritableStream({
+        write(data) { addLog(data); },
+      }));
+      const installExitCode = await installProcess.exit;
+
+      if (installExitCode !== 0) {
+        throw new Error(`npm install failed with exit code ${installExitCode}`);
+      }
+      addLog("Dependencies installed successfully!");
+
+      // Start dev server
+      setStatus("building");
+      addLog("Starting dev server...");
+
+      // Detect start script
+      let startCmd = "start";
+      try {
+        const pkg = await wc.fs.readFile("package.json", "utf-8");
+        const pkgJson = JSON.parse(pkg);
+        if (pkgJson.scripts?.dev) startCmd = "dev";
+        else if (pkgJson.scripts?.start) startCmd = "start";
+        else if (pkgJson.scripts?.serve) startCmd = "serve";
+      } catch { /* use default */ }
+
+      const serverProcess = await wc.spawn("npm", ["run", startCmd]);
+      serverProcess.output.pipeTo(new WritableStream({
+        write(data) { addLog(data); },
+      }));
+
+      // Listen for server-ready event
+      wc.on("server-ready", (_port, url) => {
+        addLog(`Server ready at ${url}`);
+        setPreviewUrl(url);
+        setStatus("running");
+      });
+
+      // Handle process exit
+      serverProcess.exit.then((code) => {
+        if (code !== 0) {
+          addLog(`Dev server exited with code ${code}`, "stderr");
+          setStatus("error");
+          setError(`Dev server exited with code ${code}`);
+        }
+      });
+
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      addLog(`Error: ${msg}`, "stderr");
+      setError(msg);
+      setStatus("error");
+    }
+  }, [id, project, addLog, loadProjectFiles]);
+
+  const handleStop = useCallback(async () => {
+    if (webcontainerInstance) {
+      webcontainerInstance.teardown();
+      webcontainerInstance = null;
+    }
+    setStatus("idle");
+    setPreviewUrl(null);
+    setLogs([]);
+  }, []);
+
+  const handleRefresh = () => setIframeKey((k) => k + 1);
 
   if (!project) {
     return <div className="p-6 text-neutral-fg2">{t("project.notFound")}</div>;
   }
 
-  const isStopped = status === "stopped";
-  const isStarting = status === "starting";
-  const isRunning = status === "running";
-  const isError = status === "error";
-
-  const STATUS_INDICATOR: Record<ServerStatus, { labelKey: string; cls: string }> = {
-    stopped: { labelKey: "project.previewStopped", cls: "bg-neutral-fg-disabled" },
-    starting: { labelKey: "project.previewStarting", cls: "bg-warning animate-pulse" },
-    running: { labelKey: "project.previewRunning", cls: "bg-success" },
-    error: { labelKey: "common.error", cls: "bg-danger" },
+  const STATUS_LABELS: Record<PreviewStatus, { label: string; cls: string }> = {
+    idle: { label: "Parado", cls: "bg-neutral-fg-disabled" },
+    loading: { label: "Carregando arquivos...", cls: "bg-info animate-pulse" },
+    installing: { label: "Instalando dependências...", cls: "bg-warning animate-pulse" },
+    building: { label: "Iniciando servidor...", cls: "bg-warning animate-pulse" },
+    running: { label: "Preview ativo", cls: "bg-success" },
+    error: { label: "Erro", cls: "bg-danger" },
   };
 
-  const indicator = STATUS_INDICATOR[status];
+  const indicator = STATUS_LABELS[status];
+  const isIdle = status === "idle";
+  const isRunning = status === "running";
+  const isLoading = ["loading", "installing", "building"].includes(status);
+  const isError = status === "error";
 
   return (
     <div className="flex h-full flex-col">
-      {/* Command Bar with controls */}
       <CommandBar
         actions={
           <div className="flex items-center gap-3">
-            {/* Status indicator */}
             <div className="flex items-center gap-2">
               <span className={cn("h-2 w-2 rounded-full", indicator.cls)} />
-              <span className="text-[12px] font-medium text-neutral-fg3">{t(indicator.labelKey)}</span>
-              {port && (
-                <span className="text-[11px] font-mono text-neutral-fg-disabled">:{port}</span>
-              )}
+              <span className="text-[12px] font-medium text-neutral-fg3">{indicator.label}</span>
             </div>
 
             <div className="h-5 w-px bg-stroke2" />
 
-            {/* Start / Stop buttons */}
-            {isStopped || isError ? (
+            {isIdle || isError ? (
               <button
                 onClick={handleStart}
-                disabled={loading}
+                disabled={isLoading}
                 className="flex items-center gap-2 rounded-lg bg-success px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-success/90 disabled:opacity-50"
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-                {t("project.previewStart")}
+                <Play className="h-4 w-4" />
+                Preview
               </button>
             ) : (
               <button
                 onClick={handleStop}
-                disabled={loading}
-                className="flex items-center gap-2 rounded-lg bg-danger px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-danger/90 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-danger px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-danger/90"
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Square className="h-4 w-4" />
-                )}
-                {t("project.previewStop")}
+                <Square className="h-4 w-4" />
+                Parar
               </button>
             )}
 
-            {/* Refresh iframe button */}
-            {isRunning && port && (
-              <>
-                <button
-                  onClick={handleRefresh}
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-                  title={t("project.previewReload")}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
-                <a
-                  href={`/api/projects/${id}/preview/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-                  title={t("project.previewOpenTab")}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </>
+            {isRunning && previewUrl && (
+              <button
+                onClick={handleRefresh}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
+                title="Recarregar"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
             )}
           </div>
         }
@@ -202,7 +245,6 @@ export function ProjectPreview() {
         <Link
           to={`/project/${id}`}
           className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-fg3 hover:bg-neutral-bg-hover hover:text-neutral-fg1 transition-colors"
-          title={t("common.back")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
@@ -211,62 +253,58 @@ export function ProjectPreview() {
         <span className="text-[14px] font-semibold text-neutral-fg1">Preview</span>
       </CommandBar>
 
-      {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Idle state */}
-        {isStopped && logs.length === 0 && !error && (
+        {isIdle && logs.length === 0 && !error && (
           <div className="flex flex-1 items-center justify-center">
-            <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex flex-col items-center gap-4 text-center max-w-md">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-light">
                 <Play className="h-8 w-8 text-brand" />
               </div>
               <div>
-                <h3 className="text-[16px] font-semibold text-neutral-fg1">{t("project.previewStartServer")}</h3>
-                <p className="mt-1 text-[13px] text-neutral-fg3">
-                  {t("project.previewStartHint")}
+                <h3 className="text-[16px] font-semibold text-neutral-fg1">Preview do Projeto</h3>
+                <p className="mt-2 text-[13px] text-neutral-fg3 leading-relaxed">
+                  Executa o projeto diretamente no browser usando WebContainer.
+                  Instala dependências, inicia o dev server, e mostra o preview em tempo real.
                 </p>
               </div>
               <button
                 onClick={handleStart}
-                disabled={loading}
-                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand to-purple px-6 py-3 text-[14px] font-semibold text-white shadow-brand transition-all hover:shadow-lg disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand to-purple px-6 py-3 text-[14px] font-semibold text-white shadow-brand transition-all hover:shadow-lg"
               >
-                {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Play className="h-5 w-5" />
-                )}
-                {t("project.previewStartServer")}
+                <Play className="h-5 w-5" />
+                Iniciar Preview
               </button>
             </div>
           </div>
         )}
 
         {/* Active state: iframe + terminal */}
-        {(!isStopped || logs.length > 0 || error) && (
+        {(!isIdle || logs.length > 0 || error) && (
           <>
-            {/* Iframe area */}
             <div className="flex-1 bg-neutral-bg1 relative">
-              {isRunning ? (
+              {isRunning && previewUrl ? (
                 <iframe
                   key={iframeKey}
-                  src={`/api/projects/${id}/preview/`}
+                  src={previewUrl}
                   className="h-full w-full border-0"
                   title="Project Preview"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
                 />
-              ) : isStarting ? (
+              ) : isLoading ? (
                 <div className="flex h-full items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-8 w-8 text-brand animate-spin" />
-                    <p className="text-[13px] text-neutral-fg3">{t("project.previewWaiting")}</p>
+                    <p className="text-[13px] text-neutral-fg3">{indicator.label}</p>
                   </div>
                 </div>
               ) : isError ? (
                 <div className="flex h-full items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <AlertCircle className="h-8 w-8 text-danger" />
-                    <p className="text-[13px] text-danger font-medium">{error ?? t("project.previewError")}</p>
+                    <p className="text-[13px] text-danger font-medium">{error}</p>
+                    <button onClick={handleStart} className="btn-secondary text-[12px] mt-2">
+                      Tentar novamente
+                    </button>
                   </div>
                 </div>
               ) : null}
@@ -277,10 +315,10 @@ export function ProjectPreview() {
               <div className="flex items-center gap-2 border-b border-white/5 px-4 py-2">
                 <Terminal className="h-3.5 w-3.5 text-neutral-fg-disabled" />
                 <span className="text-[11px] font-semibold text-neutral-fg-disabled uppercase tracking-wider">
-                  Output
+                  Terminal
                 </span>
                 <span className="ml-auto text-[10px] text-neutral-fg-disabled tabular-nums">
-                  {logs.length} {t("project.previewLines")}
+                  {logs.length} linhas
                 </span>
               </div>
               <div
@@ -299,7 +337,7 @@ export function ProjectPreview() {
                   </div>
                 ))}
                 {logs.length === 0 && (
-                  <span className="text-neutral-500">{t("project.previewAwaitingOutput")}</span>
+                  <span className="text-neutral-500">Aguardando início...</span>
                 )}
               </div>
             </div>

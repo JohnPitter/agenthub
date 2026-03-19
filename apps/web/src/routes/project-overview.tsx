@@ -82,20 +82,20 @@ export function ProjectOverview() {
       {/* Command Bar */}
       <CommandBar
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2">
             <Link
               to={`/project/${id}/board`}
-              className="flex items-center gap-2 rounded-lg border border-stroke2 bg-neutral-bg2 px-4 py-2 text-[13px] font-semibold text-neutral-fg1 transition-all hover:bg-neutral-bg-hover"
+              className="flex items-center gap-2 rounded-lg border border-stroke2 bg-neutral-bg2 px-2.5 md:px-4 py-2 text-[13px] font-semibold text-neutral-fg1 transition-all hover:bg-neutral-bg-hover"
             >
               <Kanban className="h-4 w-4" />
-              {t("project.board")}
+              <span className="hidden md:inline">{t("project.board")}</span>
             </Link>
             <Link
               to={`/project/${id}/preview`}
-              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand to-purple px-4 py-2 text-[13px] font-semibold text-white shadow-brand transition-all hover:shadow-lg"
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand to-purple px-2.5 md:px-4 py-2 text-[13px] font-semibold text-white shadow-brand transition-all hover:shadow-lg"
             >
               <Play className="h-4 w-4" />
-              {t("project.preview")}
+              <span className="hidden md:inline">{t("project.preview")}</span>
             </Link>
             <Link
               to={`/project/${id}/settings`}
@@ -112,18 +112,18 @@ export function ProjectOverview() {
       </CommandBar>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-10">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
         {/* Stat cards row */}
-        <div className="grid grid-cols-4 gap-4 mb-10 animate-fade-up stagger-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-10 animate-fade-up stagger-2">
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.label} className="stat-card flex flex-col gap-3">
+              <div key={stat.label} className="stat-card flex flex-col gap-2 md:gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-label">{stat.label}</span>
                   <Icon className={cn("h-4 w-4", stat.color)} />
                 </div>
-                <span className={cn("text-[28px] font-bold tracking-tight", stat.color)}>
+                <span className={cn("text-[22px] md:text-[28px] font-bold tracking-tight", stat.color)}>
                   {stat.value}
                 </span>
               </div>
@@ -132,17 +132,17 @@ export function ProjectOverview() {
         </div>
 
         {/* 12-col grid content */}
-        <div className="grid grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
           {/* Recent Tasks — col-span-8 */}
-          <div className="col-span-8 animate-fade-up stagger-3">
+          <div className="lg:col-span-8 animate-fade-up stagger-3">
             <h3 className="section-heading mb-4">
               {t("project.recentTasks")}
             </h3>
             {!tasksLoaded ? (
               <SkeletonTable />
             ) : (
-              <div className="card-glow overflow-hidden">
-                <table className="w-full">
+              <div className="card-glow overflow-x-auto">
+                <table className="w-full min-w-[500px]">
                   <thead>
                     <tr className="border-b border-stroke2 text-left">
                       <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("tasks.status")}</th>
@@ -192,7 +192,7 @@ export function ProjectOverview() {
           </div>
 
           {/* Agent Team — col-span-4 */}
-          <div className="col-span-4 animate-fade-up stagger-4">
+          <div className="lg:col-span-4 animate-fade-up stagger-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="section-heading">
                 {t("project.agentTeam")}

@@ -43,13 +43,13 @@ export function TaskCard({ task, agents, onEdit, onDelete, onViewChanges, onAppr
       onDragStart={(e) => onDragStart?.(e, task)}
       onClick={() => onEdit(task)}
       className={cn(
-        "group relative cursor-pointer rounded-lg bg-neutral-bg1 p-4 shadow-2 border border-stroke transition-shadow hover:shadow-4",
+        "group relative cursor-pointer rounded-lg bg-neutral-bg1 p-3 md:p-4 shadow-2 border border-stroke transition-shadow hover:shadow-4",
         draggable && "cursor-grab active:cursor-grabbing",
       )}
     >
       {/* Header: Priority + Grip */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between mb-2 md:mb-3">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span className={cn("h-2 w-2 rounded-full", priorityDot)} />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-fg3">
             {t(`taskPriority.${task.priority}`)}
@@ -66,7 +66,7 @@ export function TaskCard({ task, agents, onEdit, onDelete, onViewChanges, onAppr
       </div>
 
       {/* Title */}
-      <p className="text-[14px] font-semibold text-neutral-fg1 leading-snug line-clamp-2 mb-2">
+      <p className="text-[13px] md:text-[14px] font-semibold text-neutral-fg1 leading-snug line-clamp-2 mb-2">
         {task.title}
       </p>
 
@@ -112,22 +112,22 @@ export function TaskCard({ task, agents, onEdit, onDelete, onViewChanges, onAppr
       )}
 
       {/* Footer: Agent + Timestamp + Delete */}
-      <div className="mt-4 flex items-center justify-between pt-3 border-t border-stroke">
-        <div className="flex items-center gap-2">
+      <div className="mt-3 md:mt-4 flex items-center flex-wrap gap-2 justify-between pt-2 md:pt-3 border-t border-stroke">
+        <div className="flex items-center gap-2 min-w-0">
           {agent ? (
-            <div className="flex items-center gap-2">
-              <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-6 !w-6 !text-[9px]" />
-              <span className="text-[11px] font-semibold text-neutral-fg2">{agent.name}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-5 md:!h-6 !w-5 md:!w-6 !text-[9px]" />
+              <span className="text-[11px] font-semibold text-neutral-fg2 truncate max-w-[80px] md:max-w-[120px]">{agent.name}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 text-neutral-fg-disabled">
-              <User className="h-4 w-4" />
+              <User className="h-4 w-4 shrink-0" />
               <span className="text-[11px] font-medium">{t("board.unassigned")}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           <div className="flex items-center gap-1.5 text-neutral-fg-disabled bg-neutral-bg2 px-2 py-1 rounded-md">
             <Clock className="h-3 w-3" />
             <span className="text-[10px] font-medium">{formatDate(task.createdAt)}</span>

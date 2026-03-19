@@ -286,14 +286,14 @@ export function TasksPage() {
     <div className="flex h-full flex-col">
       {/* ═══ Command Bar ═══ */}
       <CommandBar>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-brand" />
+            <Zap className="h-4 w-4 text-brand shrink-0" />
             <span className="text-[13px] font-semibold text-neutral-fg1">{t("tasks.title")}</span>
           </div>
 
           {/* Live counters */}
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-md bg-warning-light px-2.5 py-1 text-[11px] font-semibold text-warning">
               <Play className="h-3 w-3" />
               {totalActive} {t("common.active").toLowerCase()}
@@ -308,43 +308,43 @@ export function TasksPage() {
             </span>
           </div>
 
-          <span className="h-5 w-px bg-stroke" />
+          <span className="hidden md:block h-5 w-px bg-stroke" />
 
           {/* View toggle */}
           <div className="flex items-center rounded-full bg-neutral-bg2 p-1 border border-stroke">
             <button
               onClick={() => setViewMode("kanban")}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-200",
+                "flex items-center gap-1.5 rounded-full px-2.5 md:px-3 py-1 text-[11px] font-medium transition-all duration-200",
                 viewMode === "kanban"
                   ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
                   : "text-neutral-fg3 hover:text-neutral-fg1",
               )}
             >
               <LayoutGrid className="h-3 w-3" />
-              Kanban
+              <span className="hidden md:inline">Kanban</span>
             </button>
             <button
               onClick={() => setViewMode("office")}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-200",
+                "flex items-center gap-1.5 rounded-full px-2.5 md:px-3 py-1 text-[11px] font-medium transition-all duration-200",
                 viewMode === "office"
                   ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
                   : "text-neutral-fg3 hover:text-neutral-fg1",
               )}
             >
               <Building2 className="h-3 w-3" />
-              {t("pixelOffice.label")}
+              <span className="hidden md:inline">{t("pixelOffice.label")}</span>
             </button>
           </div>
 
-          <span className="h-5 w-px bg-stroke" />
+          <span className="hidden md:block h-5 w-px bg-stroke" />
 
           {projects.length > 1 && (
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="rounded-md border border-stroke bg-neutral-bg2 px-3 py-1.5 text-[12px] text-neutral-fg2 outline-none transition-all focus:border-brand"
+              className="rounded-md border border-stroke bg-neutral-bg2 px-2 md:px-3 py-1.5 text-[12px] text-neutral-fg2 outline-none transition-all focus:border-brand max-w-[120px] md:max-w-none"
             >
               <option value="">{t("common.all")}</option>
               {projects.map((p) => (
@@ -355,10 +355,10 @@ export function TasksPage() {
 
           <button
             onClick={() => setShowNewTask(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-[12px] font-semibold text-white transition-all hover:bg-brand-hover shadow-brand"
+            className="flex items-center gap-1.5 rounded-lg bg-brand px-2.5 md:px-4 py-1.5 text-[12px] font-semibold text-white transition-all hover:bg-brand-hover shadow-brand ml-auto"
           >
             <Plus className="h-3.5 w-3.5" />
-            {t("tasks.newTask")}
+            <span className="hidden md:inline">{t("tasks.newTask")}</span>
           </button>
         </div>
       </CommandBar>
@@ -369,7 +369,7 @@ export function TasksPage() {
 
           {/* ─── Agent Status Strip ─── */}
           {agents.length > 0 && (
-            <div className="shrink-0 border-b border-stroke2 bg-neutral-bg-subtle px-6 py-3">
+            <div className="shrink-0 border-b border-stroke2 bg-neutral-bg-subtle px-3 md:px-6 py-2 md:py-3">
               <div className="flex items-center gap-3 overflow-x-auto">
                 {agents.filter((a) => a.isActive).map((agent) => {
                   const activity = agentActivity.get(agent.id);
@@ -434,8 +434,8 @@ export function TasksPage() {
 
           {/* ─── View content ─── */}
           {viewMode === "kanban" ? (
-            <div className="flex-1 overflow-x-auto px-6 pb-6 pt-4">
-              <div className="grid h-full grid-cols-7 gap-4" style={{ minWidth: 1400 }}>
+            <div className="flex-1 overflow-x-auto px-3 md:px-6 pb-4 md:pb-6 pt-4">
+              <div className="grid h-full grid-cols-7 gap-3 md:gap-4" style={{ minWidth: 1400 }}>
                 {KANBAN_COLUMNS.map((column) => {
                   const columnTasks = getColumnTasks(column.status);
                   const isOver = dragOverColumn === column.status;
@@ -501,7 +501,7 @@ export function TasksPage() {
         </div>
 
         {/* ═══ Right: Live Activity Feed ═══ */}
-        <div className="w-[280px] shrink-0 border-l border-stroke2 bg-neutral-bg-subtle flex flex-col">
+        <div className="hidden lg:flex w-[280px] shrink-0 border-l border-stroke2 bg-neutral-bg-subtle flex-col">
           <div className="px-5 pt-5 pb-3 border-b border-stroke2">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
@@ -931,7 +931,7 @@ function WarRoomCard({ task, agentMap, projectMap, agentActivity, onDragStart, o
       onDragStart={(e) => onDragStart(e, task)}
       onClick={() => onClick(task)}
       className={cn(
-        "group relative cursor-pointer rounded-lg bg-neutral-bg1 p-3.5 shadow-2 border transition-all duration-300",
+        "group relative cursor-pointer rounded-lg bg-neutral-bg1 p-2.5 md:p-3.5 shadow-2 border transition-all duration-300",
         isAgentWorking
           ? "border-brand/30 shadow-glow"
           : "border-stroke hover:shadow-4",

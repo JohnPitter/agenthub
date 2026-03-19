@@ -181,10 +181,10 @@ export function ProjectTasks() {
         actions={
           <button
             onClick={() => setShowForm(true)}
-            className="btn-primary flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
+            className="btn-primary flex items-center gap-1.5 rounded-md px-2 md:px-3 py-1.5 text-[13px] font-medium text-white"
           >
             <Plus className="h-3.5 w-3.5" />
-            {t("tasks.newTask")}
+            <span className="hidden md:inline">{t("tasks.newTask")}</span>
           </button>
         }
       >
@@ -208,13 +208,13 @@ export function ProjectTasks() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex-1 overflow-x-auto px-8 pb-8 pt-4">
+        <div className="flex-1 overflow-x-auto px-3 md:px-8 pb-4 md:pb-8 pt-4">
           <SkeletonKanban columns={6} />
         </div>
       ) : viewMode === "kanban" ? (
         /* Kanban View */
-        <div className="flex-1 overflow-x-auto px-8 pb-8 pt-4">
-          <div className="grid h-full grid-cols-6 gap-5">
+        <div className="flex-1 overflow-x-auto px-3 md:px-8 pb-4 md:pb-8 pt-4">
+          <div className="grid h-full grid-cols-6 gap-3 md:gap-5" style={{ minWidth: 1200 }}>
             {KANBAN_COLUMNS.map((column) => {
               const columnTasks = getFilteredTasks(column.status);
               const isOver = dragOverColumn === column.status;
@@ -271,9 +271,9 @@ export function ProjectTasks() {
         </div>
       ) : (
         /* Table View */
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="card-glow rounded-xl overflow-hidden">
-            <table className="w-full">
+        <div className="flex-1 overflow-y-auto p-3 md:p-8">
+          <div className="card-glow rounded-xl overflow-x-auto">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-stroke2 text-left">
                   <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-fg3">{t("tasks.status")}</th>

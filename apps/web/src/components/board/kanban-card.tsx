@@ -53,18 +53,18 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
       {...listeners}
       onClick={() => !isDragging && onTaskClick?.(task)}
       className={cn(
-        "group cursor-grab card-interactive p-3 active:cursor-grabbing min-w-0 overflow-hidden",
+        "group cursor-grab card-interactive p-2.5 md:p-3 active:cursor-grabbing min-w-0 overflow-hidden",
         isDragging && "opacity-40 shadow-glow ring-2 ring-brand/20",
         recentlyMoved && "animate-task-land",
         className
       )}
     >
       {/* Priority + blocked */}
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center flex-wrap gap-1 justify-between">
         {task.priority && (
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+              "rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider shrink-0",
               PRIORITY_COLORS[task.priority]
             )}
           >
@@ -72,7 +72,7 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
           </span>
         )}
         {task.status === "blocked" && (
-          <AlertCircle className="h-3 w-3 text-danger" />
+          <AlertCircle className="h-3 w-3 text-danger shrink-0" />
         )}
         {task.category && (
           <span className="badge badge-neutral text-[9px] ml-auto truncate max-w-[60px]">{task.category}</span>
@@ -97,11 +97,11 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
       )}
 
       {/* Bottom row: agent + time + execute */}
-      <div className="flex items-center justify-between gap-2 min-w-0">
+      <div className="flex items-center flex-wrap gap-1 md:gap-2 justify-between min-w-0">
         {agent ? (
           <div className="flex items-center gap-1.5 min-w-0">
             <AgentAvatar name={agent.name} avatar={agent.avatar} color={agent.color} size="sm" className="!h-5 !w-5 !text-[9px] !rounded" />
-            <span className="text-[10px] text-neutral-fg2 truncate max-w-[60px]">{agent.name}</span>
+            <span className="text-[10px] text-neutral-fg2 truncate max-w-[50px] md:max-w-[60px]">{agent.name}</span>
           </div>
         ) : (
           <span className="text-[10px] text-neutral-fg-disabled">{t("tasks.noneAssigned")}</span>
@@ -114,8 +114,8 @@ export function KanbanCard({ task, agent, recentlyMoved, className, onViewChange
           )}
           {task.updatedAt && (
             <div className="flex items-center gap-1 text-[9px] text-neutral-fg-disabled">
-              <Clock className="h-2.5 w-2.5" />
-              <span>{formatRelativeTime(task.updatedAt)}</span>
+              <Clock className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate">{formatRelativeTime(task.updatedAt)}</span>
             </div>
           )}
         </div>

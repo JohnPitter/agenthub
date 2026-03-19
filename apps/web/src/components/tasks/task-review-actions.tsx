@@ -77,7 +77,7 @@ export function TaskReviewActions({ task, onApprove, onReject }: TaskReviewActio
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
         <button
           onClick={(e) => {
             e.stopPropagation();

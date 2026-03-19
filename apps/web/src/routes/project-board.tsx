@@ -119,46 +119,46 @@ export function ProjectBoard() {
     <div className="flex h-full flex-col">
       {/* Command Bar */}
       <CommandBar>
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between w-full gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {view === "kanban" ? (
-              <LayoutGrid className="h-4 w-4 text-brand" />
+              <LayoutGrid className="h-4 w-4 text-brand shrink-0" />
             ) : (
-              <Table2 className="h-4 w-4 text-brand" />
+              <Table2 className="h-4 w-4 text-brand shrink-0" />
             )}
-            <span className="text-[13px] font-semibold text-neutral-fg1">
+            <span className="text-[13px] font-semibold text-neutral-fg1 hidden md:inline">
               {view === "kanban" ? "Kanban Board" : t("tasks.title")}
             </span>
-            <span className="text-[12px] text-neutral-fg3">
+            <span className="text-[12px] text-neutral-fg3 shrink-0">
               {tasks.length} task{tasks.length !== 1 ? "s" : ""}
             </span>
           </div>
 
           {/* Pill view toggle */}
-          <div className="flex items-center rounded-full bg-neutral-bg2 p-1 border border-stroke ml-6">
+          <div className="flex items-center rounded-full bg-neutral-bg2 p-1 border border-stroke ml-auto shrink-0">
             <button
               onClick={() => setView("kanban")}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200",
+                "flex items-center gap-1.5 rounded-full px-2.5 md:px-4 py-1.5 text-[12px] font-medium transition-all duration-200",
                 view === "kanban"
                   ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
                   : "text-neutral-fg3 hover:text-neutral-fg1"
               )}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              Kanban
+              <span className="hidden md:inline">Kanban</span>
             </button>
             <button
               onClick={() => setView("table")}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200",
+                "flex items-center gap-1.5 rounded-full px-2.5 md:px-4 py-1.5 text-[12px] font-medium transition-all duration-200",
                 view === "table"
                   ? "bg-gradient-to-r from-brand to-brand-dark text-white shadow-brand"
                   : "text-neutral-fg3 hover:text-neutral-fg1"
               )}
             >
               <Table2 className="h-3.5 w-3.5" />
-              {t("tasks.title")}
+              <span className="hidden md:inline">{t("tasks.title")}</span>
             </button>
           </div>
         </div>

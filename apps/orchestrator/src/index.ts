@@ -38,6 +38,7 @@ import { notificationsRouter } from "./routes/notifications.js";
 import { teamsRouter } from "./routes/teams.js";
 import { skillsRouter, agentSkillsRouter } from "./routes/skills.js";
 import { storageRouter } from "./routes/storage.js";
+import { settingsRouter } from "./routes/settings.js";
 import { storageCleanup } from "./tasks/storage-cleanup.js";
 import { DEFAULT_AGENTS } from "@agenthub/shared";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
@@ -93,6 +94,7 @@ app.use("/api/teams", teamsRouter);
 app.use("/api/skills", skillsRouter);
 app.use("/api/agents", agentSkillsRouter);
 app.use("/api/storage", storageRouter);
+app.use("/api/settings", settingsRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

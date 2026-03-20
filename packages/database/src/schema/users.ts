@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   email: text("email"),
   avatarUrl: text("avatar_url"),
   accessToken: text("access_token"),
+  language: text("language").default("pt-BR"),
   role: text("role", { enum: ["user", "admin"] }).notNull().default("user"),
   planId: text("plan_id"),
   createdAt: timestamp("created_at").notNull().$defaultFn(() => new Date()),

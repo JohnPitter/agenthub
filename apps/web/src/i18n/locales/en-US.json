@@ -241,6 +241,8 @@
     "level": "Level",
     "permissions": "Permission Mode",
     "tools": "Allowed Tools",
+    "memories": "Memories",
+    "noMemories": "No memories recorded. Memories are created during task execution.",
     "soul": "Personality",
     "systemPrompt": "System Prompt",
     "noAgents": "No active agents",

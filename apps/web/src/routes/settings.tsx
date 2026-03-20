@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { FolderOpen, Palette, Info, ExternalLink, Plug, User, ChevronDown, ChevronUp, Check, Globe, Zap } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
-import { cn } from "../lib/utils";
+import { api, cn } from "../lib/utils";
 import { WhatsAppConfig } from "../components/integrations/whatsapp-config";
 import { TelegramConfig } from "../components/integrations/telegram-config";
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n";
@@ -347,6 +347,17 @@ export function SettingsPage() {
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
   const setActiveProject = useWorkspaceStore((s) => s.setActiveProject);
 
+  // Load language preference from API on mount
+  useEffect(() => {
+    api<{ language: string }>("/settings/language")
+      .then(({ language }) => {
+        if (language && language !== i18n.language) {
+          i18n.changeLanguage(language);
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-select first project if none is active (so integrations work)
   useEffect(() => {
     if (!activeProjectId && projects.length > 0) {
@@ -405,7 +416,10 @@ export function SettingsPage() {
                       return (
                         <button
                           key={lang.code}
-                          onClick={() => i18n.changeLanguage(lang.code)}
+                          onClick={() => {
+                            i18n.changeLanguage(lang.code);
+                            api("/settings/language", { method: "PUT", body: JSON.stringify({ language: lang.code }) }).catch(() => {});
+                          }}
                           className={cn(
                             "card-glow flex items-center gap-4 px-5 py-3.5 text-left transition-all",
                             isActive && "border-2 border-brand",

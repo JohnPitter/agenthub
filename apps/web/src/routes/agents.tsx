@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Power, Settings, Users, GitBranch, Trash2 } from "lucide-react";
+import { Plus, Power, Settings, Users, GitBranch, Trash2, Brain } from "lucide-react";
 import { CommandBar } from "../components/layout/command-bar";
 import { getSocket } from "../lib/socket";
 import { useAgents } from "../hooks/use-agents";
@@ -9,8 +9,8 @@ import { AgentAvatar } from "../components/agents/agent-avatar";
 import { WorkflowEditor } from "../components/agents/workflow-editor";
 import { useWorkflowStore } from "../stores/workflow-store";
 import { useWorkspaceStore } from "../stores/workspace-store";
-import { cn } from "../lib/utils";
-import type { Agent, AgentWorkflow } from "@agenthub/shared";
+import { api, cn } from "../lib/utils";
+import type { Agent, AgentMemory, AgentWorkflow } from "@agenthub/shared";
 import { getModelLabel } from "@agenthub/shared";
 
 type AgentsTab = "agentes" | "workflow";
@@ -41,6 +41,7 @@ export function AgentsPage() {
   const [configAgent, setConfigAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState<AgentsTab>("agentes");
   const [savedWorkflow, setSavedWorkflow] = useState<AgentWorkflow | null>(loadWorkflow);
+  const [memories, setMemories] = useState<AgentMemory[]>([]);
 
   // Workflow store for API integration
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId);
@@ -75,6 +76,18 @@ export function AgentsPage() {
       socket.off("agent:updated", handleAgentChange);
     };
   }, [fetchAgents]);
+
+  // Fetch memories when selected agent changes
+  useEffect(() => {
+    const agentId = selectedId ?? agents[0]?.id;
+    if (!agentId) {
+      setMemories([]);
+      return;
+    }
+    api<{ memories: AgentMemory[] }>(`/agents/${agentId}/memories`)
+      .then(({ memories: m }) => setMemories(m ?? []))
+      .catch(() => setMemories([]));
+  }, [selectedId, agents]);
 
   const activeCount = agents.filter((a) => a.isActive).length;
   const selected = agents.find((a) => a.id === selectedId) ?? agents[0] ?? null;
@@ -321,6 +334,65 @@ export function AgentsPage() {
                       </span>
                     ))}
                   </div>
+                </div>
+
+                {/* Memories */}
+                <div className="card-glow p-6 mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-fg2">
+                      {t("agents.memories")}
+                    </h3>
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-brand-light px-1.5 text-[10px] font-semibold text-brand">
+                      {memories.length}
+                    </span>
+                  </div>
+
+                  {memories.length > 0 ? (
+                    <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                      {memories.map((memory) => {
+                        const typeBadgeClass: Record<string, string> = {
+                          lesson: "bg-success-light text-success-dark",
+                          pattern: "bg-info-light text-info-dark",
+                          error: "bg-danger-light text-danger-dark",
+                          preference: "bg-brand-light text-brand",
+                          decision: "bg-neutral-bg3 text-neutral-fg2",
+                        };
+                        return (
+                          <div
+                            key={memory.id}
+                            className="rounded-lg border border-stroke2 bg-neutral-bg2 p-3 transition-colors hover:bg-neutral-bg-hover"
+                          >
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className={cn(
+                                "rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                                typeBadgeClass[memory.type] ?? "bg-neutral-bg3 text-neutral-fg2",
+                              )}>
+                                {memory.type}
+                              </span>
+                              {memory.context && (
+                                <span className="text-[10px] text-neutral-fg3 truncate">
+                                  {memory.context}
+                                </span>
+                              )}
+                              <span className="ml-auto text-[10px] text-neutral-fg-disabled shrink-0">
+                                {new Date(memory.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-neutral-fg1 leading-relaxed line-clamp-3">
+                              {memory.content}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-6 text-center">
+                      <Brain className="h-8 w-8 text-neutral-fg-disabled" />
+                      <p className="text-[12px] text-neutral-fg3 leading-relaxed max-w-xs">
+                        {t("agents.noMemories")}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

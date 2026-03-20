@@ -241,6 +241,8 @@
     "level": "等级",
     "permissions": "权限模式",
     "tools": "允许的工具",
+    "memories": "记忆",
+    "noMemories": "暂无记忆记录。记忆在任务执行过程中创建。",
     "soul": "个性",
     "systemPrompt": "系统提示词",
     "noAgents": "没有活跃的智能体",

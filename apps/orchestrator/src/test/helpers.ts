@@ -158,6 +158,7 @@ const CREATE_STATEMENTS = [
     access_token TEXT,
     role TEXT NOT NULL DEFAULT 'user',
     plan_id TEXT,
+    language TEXT DEFAULT 'pt-BR',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,

@@ -30,7 +30,7 @@ describe("Security Headers Middleware", () => {
 
   it("sets Strict-Transport-Security", async () => {
     const res = await request(app).get("/test");
-    expect(res.headers["strict-transport-security"]).toBe("max-age=31536000; includeSubDomains");
+    expect(res.headers["strict-transport-security"]).toBe("max-age=31536000; includeSubDomains; preload");
   });
 
   it("does NOT set CSP in non-production", async () => {
@@ -60,7 +60,9 @@ describe("Security Headers Middleware", () => {
       expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
       expect(csp).toContain("font-src 'self' https://fonts.gstatic.com");
       expect(csp).toContain("img-src 'self' data: https:");
-      expect(csp).toContain("connect-src 'self' wss: https://openrouter.ai https://api.github.com");
+      expect(csp).toContain("connect-src 'self' wss: https:");
+      expect(csp).toContain("base-uri 'self'");
+      expect(csp).toContain("form-action 'self'");
     });
   });
 });

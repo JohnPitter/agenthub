@@ -63,4 +63,4 @@ router.put("/language", async (req: Request, res: Response) => {
   }
 });
 
-export const settingsRouter = router;
+export const settingsRouter: ReturnType<typeof Router> = router;

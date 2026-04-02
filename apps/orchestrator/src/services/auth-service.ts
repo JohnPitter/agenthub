@@ -28,11 +28,16 @@ export interface JWTPayload {
   login: string;
 }
 
-export function getGitHubAuthUrl(): string {
+export function generateOAuthState(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export function getGitHubAuthUrl(state: string): string {
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
     redirect_uri: GITHUB_CALLBACK_URL,
     scope: "read:user user:email repo",
+    state,
   });
   return `https://github.com/login/oauth/authorize?${params}`;
 }
@@ -66,6 +71,9 @@ export async function fetchGitHubUser(accessToken: string): Promise<GitHubUser> 
   return res.json() as Promise<GitHubUser>;
 }
 
+// Mutex to prevent race condition in first-user admin promotion
+let isCreatingUser = false;
+
 export async function upsertUser(ghUser: GitHubUser, accessToken: string) {
   const existing = await db.select().from(schema.users).where(eq(schema.users.githubId, ghUser.id)).then(r => r[0]);
 
@@ -84,26 +92,42 @@ export async function upsertUser(ghUser: GitHubUser, accessToken: string) {
     return existing;
   }
 
-  // First user becomes admin automatically
-  const [userCount] = await db.select({ count: count() }).from(schema.users);
-  const isFirstUser = (userCount?.count ?? 0) === 0;
+  // Serialize first-user creation to prevent concurrent admin promotion
+  while (isCreatingUser) {
+    await new Promise(r => setTimeout(r, 50));
+  }
+  isCreatingUser = true;
 
-  const user = {
-    id: nanoid(),
-    githubId: ghUser.id,
-    login: ghUser.login,
-    name: ghUser.name ?? ghUser.login,
-    email: ghUser.email,
-    avatarUrl: ghUser.avatar_url,
-    accessToken: encryptedToken,
-    role: isFirstUser ? "admin" as const : "user" as const,
-    createdAt: now,
-    updatedAt: now,
-  };
+  try {
+    // Re-check after acquiring lock (another request may have created user)
+    const recheck = await db.select().from(schema.users).where(eq(schema.users.githubId, ghUser.id)).then(r => r[0]);
+    if (recheck) {
+      return recheck;
+    }
 
-  await db.insert(schema.users).values(user);
-  logger.info(`New user created: ${ghUser.login}${isFirstUser ? " (admin)" : ""}`, "auth");
-  return user;
+    // First user becomes admin automatically
+    const [userCount] = await db.select({ count: count() }).from(schema.users);
+    const isFirstUser = (userCount?.count ?? 0) === 0;
+
+    const user = {
+      id: nanoid(),
+      githubId: ghUser.id,
+      login: ghUser.login,
+      name: ghUser.name ?? ghUser.login,
+      email: ghUser.email,
+      avatarUrl: ghUser.avatar_url,
+      accessToken: encryptedToken,
+      role: isFirstUser ? "admin" as const : "user" as const,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db.insert(schema.users).values(user);
+    logger.info(`New user created: ${ghUser.login}${isFirstUser ? " (admin)" : ""}`, "auth");
+    return user;
+  } finally {
+    isCreatingUser = false;
+  }
 }
 
 export function signJWT(payload: JWTPayload): string {
@@ -120,4 +144,31 @@ export function verifyJWTIgnoringExpiry(token: string): JWTPayload | null {
   } catch {
     return null;
   }
+}
+
+// ── Token blacklist (in-memory, for logout invalidation) ───────────────
+const tokenBlacklist = new Map<string, number>(); // token → expiry timestamp (ms)
+
+// Cleanup expired blacklist entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, expiresAt] of tokenBlacklist) {
+    if (expiresAt <= now) tokenBlacklist.delete(token);
+  }
+}, 300_000);
+
+export function blacklistToken(token: string): void {
+  try {
+    const decoded = jwt.decode(token) as { exp?: number } | null;
+    // Keep in blacklist until the token would naturally expire (+ 60s buffer)
+    const expiresAt = decoded?.exp ? decoded.exp * 1000 + 60_000 : Date.now() + 30 * 60_000;
+    tokenBlacklist.set(token, expiresAt);
+  } catch {
+    // If decode fails, blacklist for 30 minutes
+    tokenBlacklist.set(token, Date.now() + 30 * 60_000);
+  }
+}
+
+export function isTokenBlacklisted(token: string): boolean {
+  return tokenBlacklist.has(token);
 }

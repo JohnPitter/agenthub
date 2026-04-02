@@ -26,7 +26,8 @@ import { errorHandler } from "./middleware/error-handler";
 import cookieParser from "cookie-parser";
 import { authRouter } from "./routes/auth.js";
 import { authMiddleware } from "./middleware/auth.js";
-import { verifyJWT } from "./services/auth-service.js";
+import { verifyJWT, isTokenBlacklisted } from "./services/auth-service.js";
+import cookie from "cookie";
 import { logger } from "./lib/logger";
 import { restoreWhatsAppSessions } from "./integrations/whatsapp-service.js";
 import { taskTimeoutManager } from "./tasks/task-lifecycle";
@@ -43,7 +44,7 @@ import { storageCleanup } from "./tasks/storage-cleanup.js";
 import { DEFAULT_AGENTS } from "@agenthub/shared";
 import type { ServerToClientEvents, ClientToServerEvents } from "@agenthub/shared";
 import { db, schema } from "@agenthub/database";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 
 const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
 
@@ -61,6 +62,22 @@ app.use(requestLogger);
 
 // Public auth routes (stricter rate limit)
 app.use("/api/auth", authLimiter, authRouter);
+// Public setup-status check (must be before authMiddleware)
+app.get("/api/admin/setup-status", async (_req, res) => {
+  try {
+    const configs = await db.select().from(schema.openrouterConfig);
+    const hasApiKey = configs.length > 0 && !!configs[0]?.apiKey;
+    const [planCount] = await db.select({ count: count() }).from(schema.plans);
+    const hasPlans = (planCount?.count ?? 0) > 0;
+    const [adminCount] = await db.select({ count: count() }).from(schema.users).where(eq(schema.users.role, "admin"));
+    const hasAdmin = (adminCount?.count ?? 0) > 0;
+    const isSetupComplete = hasApiKey && hasPlans && hasAdmin;
+    res.json({ isSetupComplete, steps: { hasAdmin, hasApiKey, hasPlans } });
+  } catch (err) {
+    logger.error(`Failed to check setup status: ${err}`, "admin");
+    res.status(500).json({ error: "Failed to check setup status" });
+  }
+});
 // Auth middleware for all other API routes
 app.use("/api", authMiddleware);
 
@@ -123,12 +140,20 @@ const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>(httpServ
 });
 
 io.use((socket, next) => {
-  const cookie = socket.handshake.headers.cookie;
-  if (!cookie) return next(new Error("Authentication required"));
-  const match = cookie.match(/agenthub_token=([^;]+)/);
-  if (!match) return next(new Error("Authentication required"));
+  const rawCookie = socket.handshake.headers.cookie;
+  if (!rawCookie) return next(new Error("Authentication required"));
+
+  const cookies = cookie.parse(rawCookie);
+  const token = cookies.agenthub_token;
+  if (!token) return next(new Error("Authentication required"));
+
+  // Check blacklist (logout invalidation)
+  if (isTokenBlacklisted(token)) return next(new Error("Token has been revoked"));
+
   try {
-    verifyJWT(match[1]);
+    const payload = verifyJWT(token);
+    // Cache user on socket for handlers to use without re-verifying
+    socket.data.user = payload;
     next();
   } catch {
     next(new Error("Invalid token"));

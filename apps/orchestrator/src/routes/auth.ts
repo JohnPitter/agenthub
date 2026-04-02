@@ -1,11 +1,13 @@
 import { Router } from "express";
 import {
   getGitHubAuthUrl,
+  generateOAuthState,
   exchangeCodeForToken,
   fetchGitHubUser,
   upsertUser,
   signJWT,
   verifyJWTIgnoringExpiry,
+  blacklistToken,
   type JWTPayload,
 } from "../services/auth-service.js";
 import { authMiddleware } from "../middleware/auth.js";
@@ -15,17 +17,35 @@ import { logger } from "../lib/logger.js";
 
 export const authRouter: ReturnType<typeof Router> = Router();
 
-// Redirect to GitHub OAuth
+// Redirect to GitHub OAuth (with CSRF state parameter)
 authRouter.get("/github", (_req, res) => {
-  res.redirect(getGitHubAuthUrl());
+  const state = generateOAuthState();
+  res.cookie("oauth_state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 10 * 60 * 1000, // 10 minutes
+    path: "/",
+  });
+  res.redirect(getGitHubAuthUrl(state));
 });
 
-// GitHub callback — exchange code, upsert user, set JWT cookie
+// GitHub callback — validate state, exchange code, upsert user, set JWT cookie
 authRouter.get("/github/callback", async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+
+  // Validate CSRF state parameter
+  const storedState = req.cookies?.oauth_state;
+  res.clearCookie("oauth_state", { path: "/" });
+
+  if (!state || !storedState || state !== storedState) {
+    logger.warn("OAuth callback: CSRF state mismatch", "auth");
+    res.redirect("/login?error=auth_failed");
+    return;
+  }
 
   if (!code || typeof code !== "string") {
-    res.redirect("/login?error=missing_code");
+    res.redirect("/login?error=auth_failed");
     return;
   }
 
@@ -43,7 +63,7 @@ authRouter.get("/github/callback", async (req, res) => {
     res.cookie("agenthub_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: "/",
     });
@@ -56,13 +76,17 @@ authRouter.get("/github/callback", async (req, res) => {
   }
 });
 
-// Logout — clear cookie
-authRouter.post("/logout", (_req, res) => {
+// Logout — blacklist token + clear cookie
+authRouter.post("/logout", (req, res) => {
+  const token = req.cookies?.agenthub_token;
+  if (token) {
+    blacklistToken(token);
+  }
   res.clearCookie("agenthub_token", { path: "/" });
   res.json({ ok: true });
 });
 
-// Silent token refresh — re-issue JWT if the old one is still valid (or recently expired)
+// Silent token refresh — re-issue JWT only if recently expired (within 1 hour)
 authRouter.post("/refresh", async (req, res) => {
   const token = req.cookies?.agenthub_token;
 
@@ -77,15 +101,23 @@ authRouter.post("/refresh", async (req, res) => {
     return;
   }
 
-  // Reject tokens older than 7 days (absolute session limit)
+  // Only allow refresh for tokens expired within the last hour (prevents infinite refresh loops)
+  const exp = (payload as JWTPayload & { exp?: number }).exp;
+  const now = Date.now() / 1000;
+  if (exp && now - exp > 3600) {
+    res.status(401).json({ error: "Session expired — please log in again" });
+    return;
+  }
+
+  // Absolute session limit: 7 days from original issue
   const iat = (payload as JWTPayload & { iat?: number }).iat;
-  if (iat && Date.now() / 1000 - iat > 7 * 24 * 60 * 60) {
+  if (iat && now - iat > 7 * 24 * 60 * 60) {
     res.status(401).json({ error: "Session expired" });
     return;
   }
 
-  // Verify user still exists
-  const user = await db.select({ id: schema.users.id })
+  // Verify user still exists and get current role
+  const user = await db.select({ id: schema.users.id, role: schema.users.role })
     .from(schema.users)
     .where(eq(schema.users.id, payload.userId))
     .then(r => r[0]);
@@ -95,7 +127,7 @@ authRouter.post("/refresh", async (req, res) => {
     return;
   }
 
-  // Issue fresh JWT
+  // Issue fresh JWT with new iat (rotation — old token can't be re-refreshed)
   const newToken = signJWT({
     userId: payload.userId,
     githubId: payload.githubId,
@@ -105,7 +137,7 @@ authRouter.post("/refresh", async (req, res) => {
   res.cookie("agenthub_token", newToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
   });

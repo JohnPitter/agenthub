@@ -65,7 +65,9 @@ export function createRateLimiter(category: string) {
   const store = getStore(category);
 
   return function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
-    const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+    // Use socket remote address directly to prevent X-Forwarded-For spoofing.
+    // Only use req.ip (which respects trust proxy) if the app has explicitly configured it.
+    const ip = req.socket.remoteAddress ?? "unknown";
     const now = Date.now();
 
     let entry = store.get(ip);

@@ -90,7 +90,7 @@ export class WhatsAppService {
     this.listenersAttached = false;
     await this.updateIntegrationStatus("connecting");
 
-    fs.mkdirSync(TOKEN_DIR, { recursive: true });
+    fs.mkdirSync(TOKEN_DIR, { recursive: true, mode: 0o700 });
     this.cleanChromiumProfile();
 
     // Fire-and-forget — route responds immediately

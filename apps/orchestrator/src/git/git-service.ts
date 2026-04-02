@@ -1,4 +1,50 @@
 import { execFileNoThrow } from "../lib/exec-file.js";
+import { resolve } from "path";
+import { existsSync } from "fs";
+import { logger } from "../lib/logger.js";
+
+/** Environment variables safe to pass to git child processes */
+const GIT_ENV_ALLOWLIST = new Set([
+  "PATH", "HOME", "USER", "USERNAME", "SHELL", "TERM", "LANG", "LC_ALL", "TZ",
+  "TMPDIR", "TEMP", "TMP",
+  "GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL",
+  "GIT_SSH_COMMAND", "GIT_ASKPASS", "GIT_TERMINAL_PROMPT",
+  "SSH_AUTH_SOCK", "SSH_AGENT_PID",
+  // Windows-specific
+  "SYSTEMROOT", "COMSPEC", "APPDATA", "LOCALAPPDATA", "PROGRAMFILES",
+  "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "SystemRoot", "windir",
+  "OS", "PATHEXT", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE",
+]);
+
+function sanitizeGitEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined && GIT_ENV_ALLOWLIST.has(key)) {
+      env[key] = value;
+    }
+  }
+  // Prevent git from prompting for credentials interactively
+  env.GIT_TERMINAL_PROMPT = "0";
+  return env;
+}
+
+/** Sanitize git stderr to remove credentials from error messages */
+function sanitizeGitStderr(stderr: string): string {
+  return stderr.replace(/https:\/\/[^@]+@/g, "https://***@");
+}
+
+/** Validate SSH key path is a real file and doesn't contain injection characters */
+function validateSshKeyPath(sshKeyPath: string): string {
+  // Block shell metacharacters
+  if (/[;&|`$"'\\(){}\n\r]/.test(sshKeyPath)) {
+    throw new Error("Invalid SSH key path: contains shell metacharacters");
+  }
+  const resolved = resolve(sshKeyPath);
+  if (!existsSync(resolved)) {
+    throw new Error(`SSH key not found: ${resolved}`);
+  }
+  return resolved;
+}
 
 export interface GitStatus {
   branch: string;
@@ -26,24 +72,25 @@ export class GitService {
     credentials?: { type: "ssh" | "https"; token?: string; sshKeyPath?: string },
     options?: { depth?: number },
   ): Promise<void> {
-    let url = repoUrl;
+    const env = sanitizeGitEnv();
+
+    // Use git config env vars for HTTPS auth (never embed tokens in URLs)
     if (credentials?.type === "https" && credentials.token) {
-      url = repoUrl.replace("https://", `https://${credentials.token}@`);
+      env.GIT_CONFIG_COUNT = "1";
+      env.GIT_CONFIG_KEY_0 = "http.extraHeader";
+      env.GIT_CONFIG_VALUE_0 = `Authorization: Basic ${Buffer.from(`x-access-token:${credentials.token}`).toString("base64")}`;
     }
 
-    const env: Record<string, string> = Object.fromEntries(
-      Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
-    );
-
     if (credentials?.type === "ssh" && credentials.sshKeyPath) {
-      env.GIT_SSH_COMMAND = `ssh -i "${credentials.sshKeyPath}" -o StrictHostKeyChecking=no`;
+      const keyPath = validateSshKeyPath(credentials.sshKeyPath);
+      env.GIT_SSH_COMMAND = `ssh -i "${keyPath}" -o StrictHostKeyChecking=accept-new`;
     }
 
     const args = ["clone"];
     if (options?.depth) {
       args.push("--depth", String(options.depth));
     }
-    args.push(url, targetPath);
+    args.push(repoUrl, targetPath);
 
     const result = await execFileNoThrow("git", args, {
       timeout: 120000,
@@ -51,7 +98,7 @@ export class GitService {
     });
 
     if (result.error) {
-      throw new Error(`Failed to clone repository: ${result.stderr}`);
+      throw new Error(`Failed to clone repository: ${sanitizeGitStderr(result.stderr)}`);
     }
   }
 
@@ -309,46 +356,29 @@ export class GitService {
       username?: string;
     }
   ): Promise<void> {
-    const env: Record<string, string> = Object.fromEntries(
-      Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
-    );
+    const env = sanitizeGitEnv();
 
     // Handle SSH key authentication
     if (credentials?.type === "ssh" && credentials.sshKeyPath) {
-      env.GIT_SSH_COMMAND = `ssh -i "${credentials.sshKeyPath}" -o StrictHostKeyChecking=no`;
+      const keyPath = validateSshKeyPath(credentials.sshKeyPath);
+      env.GIT_SSH_COMMAND = `ssh -i "${keyPath}" -o StrictHostKeyChecking=accept-new`;
     }
 
-    // Handle HTTPS token authentication
+    // Handle HTTPS token authentication via git config env vars (never embed in URL)
     if (credentials?.type === "https" && credentials.token) {
-      const remoteUrl = await this.getRemoteUrl(projectPath);
-      if (remoteUrl) {
-        // Inject token into URL temporarily
-        const urlWithToken = remoteUrl.replace("https://", `https://${credentials.token}@`);
-        await execFileNoThrow("git", ["remote", "set-url", remote, urlWithToken], {
-          cwd: projectPath,
-        });
-      }
+      env.GIT_CONFIG_COUNT = "1";
+      env.GIT_CONFIG_KEY_0 = "http.extraHeader";
+      env.GIT_CONFIG_VALUE_0 = `Authorization: Basic ${Buffer.from(`x-access-token:${credentials.token}`).toString("base64")}`;
     }
 
     const result = await execFileNoThrow("git", ["push", remote, branch], {
       cwd: projectPath,
-      timeout: 60000, // 60 seconds timeout for network operations
+      timeout: 60000,
+      env,
     });
 
-    // Reset URL after push if we injected token
-    if (credentials?.type === "https" && credentials.token) {
-      const remoteUrl = await this.getRemoteUrl(projectPath);
-      if (remoteUrl && remoteUrl.includes("@")) {
-        // Remove token from URL
-        const cleanUrl = remoteUrl.replace(/https:\/\/[^@]+@/, "https://");
-        await execFileNoThrow("git", ["remote", "set-url", remote, cleanUrl], {
-          cwd: projectPath,
-        });
-      }
-    }
-
     if (result.error) {
-      throw new Error(`Failed to push: ${result.stderr}`);
+      throw new Error(`Failed to push: ${sanitizeGitStderr(result.stderr)}`);
     }
   }
 

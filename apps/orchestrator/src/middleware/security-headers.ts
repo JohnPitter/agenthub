@@ -9,18 +9,20 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   // Required for WebContainer API (SharedArrayBuffer)
   // Using "credentialless" instead of "require-corp" to allow cross-origin fonts/images
   res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  // Restrict access to sensitive browser APIs
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
 
   if (process.env.NODE_ENV === "production") {
     res.setHeader(
       "Content-Security-Policy",
       [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' blob:",
+        "script-src 'self' blob:",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
@@ -29,6 +31,8 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
         "frame-src 'self' https://*.webcontainer.io https://*.webcontainer-api.io https://*.local-corp.webcontainer-api.io https://*.stackblitz.com https://stackblitz.com blob:",
         "worker-src 'self' blob:",
         "child-src 'self' blob:",
+        "base-uri 'self'",
+        "form-action 'self'",
       ].join("; "),
     );
   }

@@ -30,8 +30,8 @@ const getKey = (): Buffer => {
     // Generate and persist
     const newKey = crypto.randomBytes(KEY_LENGTH);
     try {
-      fs.mkdirSync(dataDir, { recursive: true });
-      fs.writeFileSync(keyFile, newKey.toString("hex"), "utf8");
+      fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+      fs.writeFileSync(keyFile, newKey.toString("hex"), { encoding: "utf8", mode: 0o600 });
       console.warn("⚠️  ENCRYPTION_KEY not set — generated dev key at data/.encryption-key");
     } catch {
       console.warn("⚠️  ENCRYPTION_KEY not set, using random key (will not persist)");

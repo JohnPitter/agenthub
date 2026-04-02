@@ -53,6 +53,11 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
   });
 
+  // Rate limited — don't retry, just throw
+  if (res.status === 429) {
+    throw new Error("Too many requests");
+  }
+
   if (res.status === 401 && !path.startsWith("/auth/")) {
     // Deduplicate concurrent refresh calls
     if (!isRefreshing) {
@@ -73,8 +78,10 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
       if (retry.ok) return retry.json();
     }
 
-    // Refresh failed — redirect to login
-    window.location.href = "/login";
+    // Refresh failed — redirect to login (only if not already there)
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
     throw new Error("Session expired");
   }
 

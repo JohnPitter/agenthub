@@ -8,16 +8,12 @@ export function LoginPage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const loading = useAuthStore((s) => s.loading);
-  const fetchUser = useAuthStore((s) => s.fetchUser);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const error = searchParams.get("error");
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
-
-  useEffect(() => {
+    // Only redirect if user is already known (e.g. navigated here while logged in)
     if (!loading && user) {
       navigate("/dashboard", { replace: true });
     }

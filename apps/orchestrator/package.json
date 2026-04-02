@@ -13,7 +13,9 @@
   "dependencies": {
     "@agenthub/database": "workspace:*",
     "@agenthub/shared": "workspace:*",
+    "@types/cookie": "^1.0.0",
     "@wppconnect-team/wppconnect": "^1.41.0",
+    "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.39.0",

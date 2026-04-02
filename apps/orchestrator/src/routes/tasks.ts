@@ -15,11 +15,15 @@ import { eventBus } from "../realtime/event-bus";
 import { docGenerator } from "../agents/doc-generator.js";
 import { parseGitHubRepoSlug } from "../services/github-service.js";
 import { TASK_TRANSITIONS } from "@agenthub/shared";
+import { requireProjectAccess } from "../middleware/authorization.js";
 
 const gitService = new GitService();
 const githubService = new GitHubService();
 
 export const tasksRouter: ReturnType<typeof Router> = Router();
+
+// Project access check for all task operations
+tasksRouter.use(requireProjectAccess());
 
 // GET /api/tasks?projectId=...&status=...&includeSubtasks=true&limit=50&offset=0
 tasksRouter.get("/", async (req, res) => {

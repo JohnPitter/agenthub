@@ -6,8 +6,12 @@ import { getWhatsAppService, resetWhatsAppService } from "../integrations/whatsa
 import { getTelegramService, resetTelegramService } from "../integrations/telegram-service.js";
 import { encrypt } from "../lib/encryption.js";
 import { logger } from "../lib/logger.js";
+import { requireProjectAccess } from "../middleware/authorization.js";
 
 const router: ReturnType<typeof Router> = Router();
+
+// Project access check for all integration operations
+router.use(requireProjectAccess());
 
 /**
  * POST /api/integrations/whatsapp/connect

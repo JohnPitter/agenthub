@@ -12,7 +12,7 @@ import { agentMemory } from "./agent-memory.js";
 import type { SessionConfig, SessionResult } from "./types.js";
 import { execFile } from "child_process";
 import { readFile, writeFile, mkdir, readdir, stat } from "fs/promises";
-import { dirname, resolve, relative } from "path";
+import { dirname, resolve, sep } from "path";
 import { promisify } from "util";
 
 const execFileAsync = promisify(execFile);
@@ -520,9 +520,57 @@ export class OpenRouterSession {
     }
   }
 
+  /** Commands that are explicitly denied for security reasons */
+  private static readonly BASH_DENIED_PATTERNS: RegExp[] = [
+    /\bcurl\b.*\|\s*\b(bash|sh|zsh)\b/i,     // curl piped to shell
+    /\bwget\b.*\|\s*\b(bash|sh|zsh)\b/i,      // wget piped to shell
+    /\brm\s+-[a-z]*r[a-z]*f?\s+\//i,          // rm -rf / (root deletion)
+    /\b(shutdown|reboot|poweroff|halt)\b/i,     // system shutdown
+    /\b(mkfs|fdisk|dd\b.*of=\/dev)/i,          // disk formatting
+    /\biptables\b/i,                            // firewall manipulation
+    /\buseradd\b|\buserdel\b|\bpasswd\b/i,     // user management
+    /\bchmod\s+[0-7]*\s+\/(etc|usr|bin|sbin)/i, // system permissions
+  ];
+
+  /** Environment variables safe to pass to agent bash commands */
+  private static readonly BASH_ENV_ALLOWLIST = new Set([
+    "PATH", "HOME", "USER", "USERNAME", "SHELL", "TERM", "LANG", "LC_ALL",
+    "TZ", "TMPDIR", "TEMP", "TMP",
+    "NODE_ENV", "NODE_PATH", "NODE_OPTIONS",
+    "NPM_CONFIG_PREFIX", "npm_config_prefix",
+    "PNPM_HOME", "YARN_CACHE_FOLDER",
+    "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
+    "GOPATH", "GOROOT", "CARGO_HOME", "RUSTUP_HOME",
+    "JAVA_HOME", "GRADLE_HOME", "MAVEN_HOME",
+    "GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL",
+    "EDITOR", "VISUAL", "PAGER",
+    // Windows-specific
+    "SYSTEMROOT", "COMSPEC", "APPDATA", "LOCALAPPDATA", "PROGRAMFILES",
+    "PROGRAMFILES(X86)", "COMMONPROGRAMFILES", "USERPROFILE", "HOMEDRIVE", "HOMEPATH",
+    "SystemRoot", "windir", "OS", "PATHEXT", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE",
+  ]);
+
+  private sanitizeBashEnv(): Record<string, string> {
+    const env: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined && OpenRouterSession.BASH_ENV_ALLOWLIST.has(key)) {
+        env[key] = value;
+      }
+    }
+    return env;
+  }
+
   private async toolBash(args: Record<string, unknown>, projectPath: string): Promise<string> {
     const command = args.command as string;
-    const timeoutMs = (args.timeout_ms as number) || 120_000;
+    const timeoutMs = Math.min((args.timeout_ms as number) || 120_000, 300_000); // cap at 5min
+
+    // Deny dangerous commands
+    for (const pattern of OpenRouterSession.BASH_DENIED_PATTERNS) {
+      if (pattern.test(command)) {
+        logger.warn(`Blocked dangerous bash command: ${command.slice(0, 100)}`, "openrouter-session");
+        return "Error: This command has been blocked for security reasons.";
+      }
+    }
 
     try {
       const shell = process.platform === "win32" ? "cmd.exe" : "/bin/bash";
@@ -532,6 +580,7 @@ export class OpenRouterSession {
         cwd: projectPath,
         timeout: timeoutMs,
         maxBuffer: 1024 * 1024,
+        env: this.sanitizeBashEnv(),
       });
 
       const output = [stdout, stderr].filter(Boolean).join("\n").trim();
@@ -659,9 +708,9 @@ export class OpenRouterSession {
 
   private resolvePath(filePath: string, projectPath: string): string {
     const resolved = resolve(projectPath, filePath);
-    const rel = relative(projectPath, resolved);
-    if (rel.startsWith("..")) {
-      logger.debug(`Path outside project: ${resolved}`, "openrouter-session");
+    const normalizedBase = resolve(projectPath);
+    if (!resolved.startsWith(normalizedBase + sep) && resolved !== normalizedBase) {
+      throw new Error(`Access denied: path "${filePath}" is outside the project directory`);
     }
     return resolved;
   }

@@ -57,12 +57,11 @@ class DevServerManager {
     eventBus.emit("devserver:status", { projectId, status: "starting" });
     eventBus.emit("devserver:output", { projectId, line: "Building project...", stream: "stdout", timestamp: Date.now() });
 
-    const binPath = join(projectPath, "node_modules", ".bin");
-    const buildCmd = scripts.build;
+    // Use package manager's `run build` instead of interpolating scripts.build into shell
+    const pm = this.detectPackageManager(projectPath);
+    logger.info(`Building project ${projectId} using ${pm} run build`, "devserver");
 
-    logger.info(`Building project ${projectId}: "${buildCmd}"`, "devserver");
-
-    const buildResult = spawnSync("sh", ["-c", `export PATH="${binPath}:$PATH" && ${buildCmd}`], {
+    const buildResult = spawnSync(pm, ["run", "build"], {
       cwd: projectPath,
       timeout: 300000, // 5 minutes
       stdio: "pipe",
@@ -162,7 +161,6 @@ class DevServerManager {
     const installArgs = pm === "yarn" ? [] : ["install"];
     const installResult = spawnSync(pm, installArgs, {
       cwd: projectPath,
-      shell: true,
       timeout: 300000,
       stdio: "pipe",
       env: {

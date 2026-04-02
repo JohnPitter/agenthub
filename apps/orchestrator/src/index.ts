@@ -50,6 +50,11 @@ const PORT = parseInt(process.env.ORCHESTRATOR_PORT ?? "3001");
 
 const app = express();
 
+// Trust first proxy (needed for secure cookies behind reverse proxy / load balancer)
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Middleware stack
 app.use(securityHeaders);
 const corsOrigins = process.env.CORS_ORIGINS

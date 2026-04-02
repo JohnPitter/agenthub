@@ -39,7 +39,7 @@ authRouter.get("/github/callback", async (req, res) => {
   res.clearCookie("oauth_state", { path: "/" });
 
   if (!state || !storedState || state !== storedState) {
-    logger.warn("OAuth callback: CSRF state mismatch", "auth");
+    logger.warn(`OAuth CSRF mismatch — state: ${state ? "present" : "missing"}, cookie: ${storedState ? "present" : "missing"}, match: ${state === storedState}`, "auth");
     res.redirect("/login?error=auth_failed");
     return;
   }

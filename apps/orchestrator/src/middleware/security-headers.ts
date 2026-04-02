@@ -22,7 +22,7 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
       "Content-Security-Policy",
       [
         "default-src 'self'",
-        "script-src 'self' blob:",
+        "script-src 'self' 'unsafe-inline' blob:",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",

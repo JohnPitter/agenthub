@@ -1,8 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-const OPENROUTER_API_KEY =
-  process.env.OPENROUTER_API_KEY ??
-  "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";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
 
 const BASE_URL = "https://openrouter.ai/api/v1";
 
@@ -78,7 +76,7 @@ async function findCheapModel(): Promise<string> {
   return "google/gemini-2.0-flash-001";
 }
 
-const describeIntegration = process.env.SKIP_INTEGRATION
+const describeIntegration = process.env.SKIP_INTEGRATION || !OPENROUTER_API_KEY
   ? describe.skip
   : describe;
 
